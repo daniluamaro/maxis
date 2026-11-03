@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `░░░░░░░░░░` 0% · 0 de 9 fases concluídas
-**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEP 0.1 ✅; próximo: 0.2)
+**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.2 ✅; próximo: 0.3)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Fase ativa — Fase 0: Infraestrutura & Setup
 
-**Status:** 🔄 Em andamento (STEP 0.1 ✅ · próximo: 0.2)
+**Status:** 🔄 Em andamento (STEPs 0.1–0.2 ✅ · próximo: 0.3)
 **Objetivo:** deixar o repositório pronto para desenvolvimento — build, lint, testes, CI/CD, Supabase local e tema visual — sem nenhuma lógica de negócio.
 
 **Plano:** `docs/plans/fase-00-infra-setup.md` (14 STEPs). Pendências #1, #2 e #4 já aplicadas. MCPs Supabase e Context7 autorizados e verificados em 02/11/2026 (pré-requisito do plano, §2). Plano revisado em 03/11/2026: decisões #5 (TypeScript 6.0.x), #11 (Supabase só online, dev + produção) e #12 (hospedagem portátil para Vercel).
@@ -76,7 +76,7 @@
 | # | Entregável | STEP | Status |
 |---|---|---|---|
 | 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
-| 2 | Repositório público com governança versionada | 0.2 | ⬜ |
+| 2 | Repositório público com governança versionada | 0.2 | ✅ |
 | 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ⬜ |
 | 4 | Lint, formatação e testes do frontend | 0.4 | ⬜ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
@@ -128,6 +128,7 @@
 | 03/11/2026 | Com autorização do Danilo: **Supabase só online** em dois projetos — `maxis` vira desenvolvimento (MCP com escrita) e a produção nasce em São Paulo (escrita só pelo CI; plano Pro na conclusão do SaaS) — e **hospedagem portátil** (GitHub Pages agora, Vercel no futuro). Pendências #10 e #11 aplicadas nos três `CLAUDE.md`; #12 proposta. Plano da Fase 0 revisado (objetivo, decisões #5/#11/#12, STEPs 0.1, 0.3, 0.10, 0.12 e 0.13, critérios 5/9/10/11, riscos); `modelo-dados.md §13` ajustado aos dois projetos. Decisão #5: **TypeScript 6.0.x** (typescript-eslint 8.72.1 aceita só `<6.1`; o TS 7 não traz `tsserver`). Git `user.name` "daniluamaro" confirmado. STEP 0.1: Node v24.22.2 ativo na sessão; Docker dispensado; faltam os logins do gh e do Supabase CLI. |
 | 03/11/2026 | Com autorização do Danilo: pendência #12 aplicada (nota obsoleta da #4 removida do `frontend/CLAUDE.md §6`). Login do Supabase CLI não roda fora de terminal interativo (`LoginMissingTokenError`) — feito pelo Danilo no terminal do VS Code, sem token no chat. |
 | 03/11/2026 | **STEP 0.1 ✅.** gh logado como `daniluamaro` (escopos `gist`, `read:org`, `repo`, `workflow`; git usando a credencial do gh; token em `~/.config/gh/hosts.yml`, pois o WSL não tem chaveiro). Supabase CLI logado (lista os projetos; sem `link`). Projeto `maxis` reativado (`ACTIVE_HEALTHY`, PG 17.6). Versões finais: Node v24.22.2 · Deno 2.9.8 · gh 2.103.3 · git 2.34.1 · Supabase CLI 3.0.0. Próximo: STEP 0.2, aguardando aprovação. |
+| 03/11/2026 | **STEP 0.2 ✅.** `git init` na `main`; `.gitignore` (inclui `.claude/settings.local.json` e `supabase/.temp/`), `.nvmrc` (24), `.editorconfig`, `README.md`. Commits `chore: governança e planejamento iniciais` e `chore: configuração base do repositório`. Repositório **público** `https://github.com/daniluamaro/maxis` criado e `main` enviada. Antes do envio: varredura de segredos e de dados pessoais limpa; 19 arquivos publicados, nenhum sensível. Mockup publicado como está (dados públicos do Preço da Hora, decisão do Danilo). Próximo: STEP 0.3, aguardando aprovação. |
 
 ---
 

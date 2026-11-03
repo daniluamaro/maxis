@@ -53,12 +53,12 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.2 — Repositório git e GitHub
 **Entrega:** repositório público com a governança versionada.
-- [ ] `git init` com branch `main`
-- [ ] `.gitignore`: dependências, builds, `.env*` (exceto `.env.example`), temporários do Supabase CLI, coverage, arquivos de SO/editor
-- [ ] `.nvmrc` (24) e `.editorconfig`
-- [ ] `README.md` curto (o que é o Maxis e onde estão a governança e os planos; comandos entram no 0.14)
-- [ ] 1º commit: `chore: governança e planejamento iniciais` (CLAUDE.md, project_manager.md, docs/, frontend/CLAUDE.md, supabase/CLAUDE.md)
-- [ ] Criar o repositório **público** no GitHub (`gh repo create` ou 📋 pela web), adicionar `origin` e enviar a `main`
+- [x] `git init` com branch `main`
+- [x] `.gitignore`: dependências, builds, `.env*` (exceto `.env.example`), temporários do Supabase CLI, coverage, arquivos de SO/editor (+ `.claude/settings.local.json`)
+- [x] `.nvmrc` (24) e `.editorconfig`
+- [x] `README.md` curto (o que é o Maxis e onde estão a governança e os planos; comandos entram no 0.14)
+- [x] 1º commit: `chore: governança e planejamento iniciais` (CLAUDE.md, project_manager.md, docs/, frontend/CLAUDE.md, supabase/CLAUDE.md); os arquivos base foram num 2º commit, `chore: configuração base do repositório` (uma unidade de valor por commit)
+- [x] Criar o repositório **público** no GitHub (`gh repo create` ou 📋 pela web), adicionar `origin` e enviar a `main` — `https://github.com/daniluamaro/maxis`
 
 **Verificação:** `main` publicada no GitHub com o commit inicial; nenhum arquivo sensível versionado.
 
@@ -245,7 +245,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | # | Entregável | STEP | Status |
 |---|---|---|---|
 | 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
-| 2 | Repositório público com governança versionada | 0.2 | ⬜ |
+| 2 | Repositório público com governança versionada | 0.2 | ✅ |
 | 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ⬜ |
 | 4 | Lint, formatação e testes do frontend | 0.4 | ⬜ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
