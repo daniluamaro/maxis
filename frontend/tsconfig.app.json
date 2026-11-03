@@ -1,34 +1,20 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "es2023",
     "lib": ["ES2023", "DOM"],
-    "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
     "jsx": "react-jsx",
+
+    /* O app é empacotado pelo Vite */
+    "module": "esnext",
+    "moduleResolution": "bundler",
 
     /* Alias espelhado em vite.config.ts */
     "paths": {
       "@/*": ["./src/*"]
-    },
-
-    /* Rigor de tipos (CLAUDE.md §6) */
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true
+    }
   },
   "include": ["src"]
 }
