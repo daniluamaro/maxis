@@ -1,0 +1,35 @@
+# Dependências
+node_modules/
+
+# Builds
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Variáveis de ambiente: só o exemplo é versionado
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase CLI (temporários)
+supabase/.temp/
+supabase/.branches/
+
+# Testes
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor e sistema operacional
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code: configurações locais da máquina e workspaces de skills
+.claude/settings.local.json
+.superpowers/
