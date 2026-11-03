@@ -11,4 +11,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Portas fixas: o localhost de desenvolvimento entra no CORS das Edge Functions e nos
+  // redirects do Auth do dev; trocar de porta em silêncio viraria erro de CORS.
+  server: { port: 5173, strictPort: true },
+  preview: { port: 4173, strictPort: true },
 });
