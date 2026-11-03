@@ -64,13 +64,13 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.3 — Workspace raiz e frontend Vite + React + TS strict
 **Entrega:** app React compilando, sem boilerplate.
-- [ ] `package.json` raiz: privado, `workspaces: ["frontend"]`, `engines.node` 24, scripts que orquestram as camadas
-- [ ] Scaffold Vite + React + TypeScript (**6.0.x**, decisão #5) em `frontend/` **preservando `frontend/CLAUDE.md`**
-- [ ] `tsconfig` com `strict` + `noUncheckedIndexedAccess` + `noImplicitOverride` + `noFallthroughCasesInSwitch`
-- [ ] Alias `@/` (TypeScript + Vite)
-- [ ] Remover todo o boilerplate do template (logos, contador, CSS demo)
-- [ ] `index.html`: `lang="pt-BR"`, `<title>Maxis</title>`, favicon SVG da marca (monograma "M" em ouro, como no mockup)
-- [ ] Pastas de `frontend/CLAUDE.md §1` criadas **à medida do uso** (sem pastas vazias)
+- [x] `package.json` raiz: privado, `workspaces: ["frontend"]`, `engines.node` 24, scripts que orquestram as camadas (+ `.npmrc` com `save-exact` e `engine-strict`)
+- [x] Scaffold Vite + React + TypeScript (**6.0.x**, decisão #5) em `frontend/` **preservando `frontend/CLAUDE.md`** — template `react-ts` do create-vite 9.3.3; o ESLint do template ficou de fora (entra no 0.4)
+- [x] `tsconfig` com `strict` + `noUncheckedIndexedAccess` + `noImplicitOverride` + `noFallthroughCasesInSwitch`
+- [x] Alias `@/` (TypeScript + Vite) — `paths` + `resolve.alias`, como no guia do shadcn para Vite
+- [x] Remover todo o boilerplate do template (logos, contador, CSS demo)
+- [x] `index.html`: `lang="pt-BR"`, `<title>Maxis</title>`, favicon SVG da marca (monograma "M" em ouro, como no mockup)
+- [x] Pastas de `frontend/CLAUDE.md §1` criadas **à medida do uso** (sem pastas vazias) — só `src/app/`
 
 **Verificação:** servidor de dev sobe; build de produção sem erro; checagem de tipos limpa.
 
@@ -246,7 +246,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 |---|---|---|---|
 | 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
 | 2 | Repositório público com governança versionada | 0.2 | ✅ |
-| 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ⬜ |
+| 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ✅ |
 | 4 | Lint, formatação e testes do frontend | 0.4 | ⬜ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
 | 6 | shadcn/ui no tema | 0.6 | ⬜ |
