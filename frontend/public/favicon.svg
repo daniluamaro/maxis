@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Monograma do mockup aprovado. Favicon não lê CSS variables: as cores são cópia dos
+       tokens do CLAUDE.md §7 (degradê do logo gold-bright → gold-dim; letra text-primary).
+       O "M" é desenhado em path para não depender da fonte instalada.
+       Comentário XML não aceita hífen duplo: por isso os tokens aparecem sem o prefixo. -->
+  <defs>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F0CC5C" />
+      <stop offset="1" stop-color="#8A7328" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#ouro)" />
+  <path d="M14 48V16h9.5L32 33l8.5-17H50v32h-8V29.5L35.5 42h-7L22 29.5V48z" fill="#0F1A2E" />
+</svg>
