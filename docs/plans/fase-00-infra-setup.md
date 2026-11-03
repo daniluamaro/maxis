@@ -1,0 +1,260 @@
+# Fase 0 — Infraestrutura & Setup
+
+> Plano detalhado da Fase 0. Fase ativa e progresso: `@project_manager.md`. Schema: `@docs/plans/modelo-dados.md`.
+> Convenções: `@CLAUDE.md`, `@frontend/CLAUDE.md`, `@supabase/CLAUDE.md`.
+> **Sem lógica de negócio.** TDD não é exigido nesta fase (`CLAUDE.md §9`), mas toda entrega tem verificação objetiva.
+
+**Status:** 🔄 Em andamento · **Depende de:** — · **Libera:** Fase 1
+
+---
+
+## 1. Objetivo
+
+Deixar o repositório pronto para desenvolver com segurança e no padrão visual do produto:
+- build, lint, tipos e testes nas três camadas (frontend, banco, Edge Functions);
+- dois projetos Supabase online — desenvolvimento (`maxis`) e produção (São Paulo) — operados pelo MCP e pelo CLI remoto, sem nada local;
+- tema visual (tokens, fontes, shadcn, ECharts) aplicado e conferível numa página de referência;
+- pipeline que valida todo PR e, no merge, publica backend e frontend **em ordem** em `https://maxis.performargestao.com.br`, com a publicação do frontend pronta para migrar para a Vercel.
+
+## 2. Pré-requisitos (antes do STEP 0.1)
+
+- [x] **Governança aplicada no `CLAUDE.md` raiz** (autorização do Danilo): pendências #1 (Node 24, §2), #2 (MCPs via OAuth, §8) e #4 (tokens, §7) — ver `project_manager.md`.
+- [x] **MCPs autorizados** via `/mcp`: Supabase e Context7.
+- [ ] 📋 Danilo com acesso a: conta GitHub, DNS de `performargestao.com.br`, Dashboard dos projetos Supabase (dev `maxis` e produção).
+
+## 3. Decisões desta fase
+
+| # | Decisão | Origem |
+|---|---|---|
+| 1 | Repositório **público** no GitHub (Pages gratuito). Consequência: nada sensível no código; logs do Actions são públicos — nunca imprimir segredo; PRs de fork não recebem secrets; deploy só em push na `main`. | Danilo |
+| 2 | Deploy **automático e em ordem** no push na `main`: testes → migrations → Edge Functions → frontend. O frontend nunca chega antes do schema. | Danilo |
+| 3 | **Um PR por STEP**, com CI verde e `code-review` antes do merge (exceto 0.1–0.2, que criam o próprio repositório). | Danilo |
+| 4 | npm workspaces: `package.json` raiz (privado) com o workspace `frontend` e o Supabase CLI como devDependency; lockfile único na raiz. | proposta |
+| 5 | Versões: a última estável no momento do STEP, conferida via Context7, **fixada exata** (sem `^`/`~`) + lockfile versionado. Tailwind v4 (configuração no CSS), padrão atual do shadcn. **Exceção: TypeScript 6.0.x** — o 7 (nativo) é o último estável, mas o typescript-eslint 8.72 só aceita `<6.1` e o `typescript-language-server` depende do `tsserver`, que o 7 não traz; é a mesma linha do Deno 2.9.8. Reavaliar o 7 quando o typescript-eslint suportar. | proposta · TypeScript: Danilo (03/11/2026) |
+| 6 | Fontes **self-hosted** via pacotes `@fontsource` (sem requisição a terceiros, versão fixa). O mockup usa Google Fonts só por ser HTML estático. | proposta |
+| 7 | **Fonte única de tokens = `frontend/src/theme/tokens.css`** (espelho do §7). Tailwind e shadcn leem dele; o tema ECharts lê as CSS variables em tempo de execução. A paleta padrão do Tailwind é **desligada** — `bg-blue-500` não existe no build. | proposta |
+| 8 | Produção mostra só uma **página de abertura** com a marca até a Fase 2. A **página de referência do tema** existe apenas em desenvolvimento. | proposta |
+| 9 | Sem hooks de pre-commit; o portão é o CI + proteção da `main`. | proposta |
+| 10 | Actions fixadas por **SHA de commit**; permissões mínimas por job; `pages`/`id-token` só no job de deploy. | proposta |
+| 11 | Supabase **só online**, em dois projetos: `maxis` (us-west-2) = **desenvolvimento** — MCP com escrita, testes e seed; **produção** nova em São Paulo (`sa-east-1`) — escrita só pelo CI, MCP somente leitura. Plano free até a conclusão do SaaS, depois Pro. Sem Supabase local nem Docker. | Danilo |
+| 12 | Hospedagem **portátil**: GitHub Pages agora, Vercel no futuro (`frontend/CLAUDE.md §14`). O específico da hospedagem (fallback `404.html`, publicação) fica só no job `deploy-frontend`; na migração, a Vercel é publicada pelo pipeline, depois do backend — nunca pelo deploy automático por Git da Vercel. | Danilo |
+
+## 4. STEPs (na ordem; não pular)
+
+### STEP 0.1 — Ferramentas locais
+**Entrega:** máquina com tudo o que as próximas fases usam.
+- [x] 📋 Danilo: Node **24 LTS** via nvm (ativo no projeto) — v24.22.2 na sessão, 03/11/2026
+- [x] Deno instalado (instalador oficial, sem sudo — instalar avisando)
+- [x] 📋 Danilo: `gh` CLI (exige sudo) + login no GitHub — gh 2.103.3 em `~/.local/bin`, conta `daniluamaro`, escopos com `workflow`, git configurado (03/11/2026)
+- [x] 📋 Danilo: login no Supabase CLI (navegador), para operar os projetos online pelo CLI (`config push`, `migration list`, sempre com `--remote`) — nada local · CLI 3.0.0 logado (03/11/2026)
+- [x] Docker: **dispensado** pela decisão #11 (sem Supabase local)
+
+**Verificação:** versões de `node` (24.x), `deno` e `gh` conferidas e registradas no log do `project_manager.md`; logins do `gh` e do Supabase CLI ativos.
+
+### STEP 0.2 — Repositório git e GitHub
+**Entrega:** repositório público com a governança versionada.
+- [ ] `git init` com branch `main`
+- [ ] `.gitignore`: dependências, builds, `.env*` (exceto `.env.example`), temporários do Supabase CLI, coverage, arquivos de SO/editor
+- [ ] `.nvmrc` (24) e `.editorconfig`
+- [ ] `README.md` curto (o que é o Maxis e onde estão a governança e os planos; comandos entram no 0.14)
+- [ ] 1º commit: `chore: governança e planejamento iniciais` (CLAUDE.md, project_manager.md, docs/, frontend/CLAUDE.md, supabase/CLAUDE.md)
+- [ ] Criar o repositório **público** no GitHub (`gh repo create` ou 📋 pela web), adicionar `origin` e enviar a `main`
+
+**Verificação:** `main` publicada no GitHub com o commit inicial; nenhum arquivo sensível versionado.
+
+### STEP 0.3 — Workspace raiz e frontend Vite + React + TS strict
+**Entrega:** app React compilando, sem boilerplate.
+- [ ] `package.json` raiz: privado, `workspaces: ["frontend"]`, `engines.node` 24, scripts que orquestram as camadas
+- [ ] Scaffold Vite + React + TypeScript (**6.0.x**, decisão #5) em `frontend/` **preservando `frontend/CLAUDE.md`**
+- [ ] `tsconfig` com `strict` + `noUncheckedIndexedAccess` + `noImplicitOverride` + `noFallthroughCasesInSwitch`
+- [ ] Alias `@/` (TypeScript + Vite)
+- [ ] Remover todo o boilerplate do template (logos, contador, CSS demo)
+- [ ] `index.html`: `lang="pt-BR"`, `<title>Maxis</title>`, favicon SVG da marca (monograma "M" em ouro, como no mockup)
+- [ ] Pastas de `frontend/CLAUDE.md §1` criadas **à medida do uso** (sem pastas vazias)
+
+**Verificação:** servidor de dev sobe; build de produção sem erro; checagem de tipos limpa.
+
+### STEP 0.4 — Lint, formatação e testes do frontend
+**Entrega:** portões de qualidade locais.
+- [ ] ESLint (flat config): typescript-eslint *strict type-checked*, react-hooks, react-refresh, jsx-a11y; `no-explicit-any` como **erro**
+- [ ] Prettier integrado ao ESLint (sem conflito de regras)
+- [ ] Vitest + React Testing Library + jsdom + matchers do jest-dom (arquivo de setup)
+- [ ] Scripts: `lint`, `format:check`, `typecheck`, `test`, `build`
+- [ ] Primeiro teste real: a tela inicial renderiza a marca "Maxis"
+
+**Verificação:** todos os scripts verdes, sem avisos; um `any` proposital é barrado pelo lint (e removido).
+
+### STEP 0.5 — Tokens, Tailwind e tipografia
+**Entrega:** o contrato visual do §7 virando código, em fonte única.
+- [ ] Tailwind v4 via plugin do Vite
+- [ ] `theme/tokens.css` com **todos** os tokens do §7 (incluindo os da pendência #4) como CSS variables
+- [ ] Mapeamento dos tokens para utilitários (cores, sombras, raio, famílias); paleta padrão do Tailwind desligada
+- [ ] Fontes via `@fontsource`: Manrope 500/700/800, Inter 400/500/600, JetBrains Mono 400/500/700; famílias `display`, `sans`, `mono`; algarismos tabulares no mono
+- [ ] **Escala tipográfica fixa** derivada do mockup (título de página 22, título de seção 17, corpo 13–13,5, rótulos 10,5–11, KPI 25 mono) registrada nos tokens
+- [ ] Base global: fundo `--bg-base`, texto `--text-primary`, seleção em ouro, anel de foco com token
+
+**Verificação:** build não gera CSS para `bg-blue-500`; nenhum hex/rgb fora de `tokens.css` (busca no código); fontes carregam sem requisição externa.
+
+### STEP 0.6 — shadcn/ui no tema
+**Entrega:** primitivos do shadcn vestidos com os tokens.
+- [ ] Inicializar o shadcn (`components.json`, alias `@/components/ui`, utilitário de classes)
+- [ ] Variáveis do shadcn **apontando para tokens** (nenhum valor novo). Proposta:
+
+  | shadcn | Token |
+  |---|---|
+  | `background` / `foreground` | `--bg-base` / `--text-primary` |
+  | `card`, `popover` | `--bg-panel` |
+  | `primary` (ação principal) | `--navy` |
+  | `secondary`, `muted`, `accent` | `--bg-panel-alt` / `--bg-hover`, texto `--text-secondary` |
+  | `destructive` | `--red` (texto `--red-text`) |
+  | `border`, `input` | `--border` |
+  | `ring` (foco) | `--gold-strong` (marca + contraste ≥ 3:1 sobre branco) |
+  | `radius` | `--radius` |
+
+- [ ] Adicionar **só** os primitivos usados na página de referência: button, input, label, badge, skeleton, tabs, dialog, toast (sonner)
+
+**Verificação:** primitivos exibidos na página de referência com os tokens; contraste AA conferido nos pares texto/fundo usados.
+
+### STEP 0.7 — Formatação pt-BR (`lib/format`)
+**Entrega:** os únicos formatadores permitidos na UI.
+- [ ] Moeda BRL, número (casas configuráveis), percentual, data `dd/mm/aaaa`, data-hora `dd/mm HH:mm`, todos com `Intl` pt-BR
+- [ ] Valor ausente/inválido (`null`, `undefined`, `NaN`) → "—"
+- [ ] Testes unitários: milhar, negativo, zero, arredondamento, ausentes, e **data `YYYY-MM-DD` sem deslocamento de fuso** (não pode virar o dia anterior em UTC−3)
+
+**Verificação:** testes verdes (escritos antes da implementação — recomendado já aqui).
+
+### STEP 0.8 — Tema ECharts
+**Entrega:** gráficos já nascem no padrão do produto.
+- [ ] `echarts` + `echarts-for-react`, com importação **modular** (só os tipos de gráfico usados, para conter o bundle)
+- [ ] `theme/echarts.ts`: tema registrado a partir das CSS variables — série `[navy, gold, green, blue, amber, cinza]`, grid/eixos `--border`, rótulos `--text-tertiary`, tooltip claro com sombra, fontes do produto
+- [ ] Wrapper em `components/charts` que aplica o tema e formata eixos/tooltip via `lib/format`
+- [ ] Exemplo (barras + linha) com dados fictícios na página de referência
+
+**Verificação:** nenhuma cor default do ECharts aparece; tooltip mostra moeda e data em pt-BR.
+
+### STEP 0.9 — Rotas mínimas, abertura e página de referência
+**Entrega:** SPA com roteamento por segmento pronto para o GitHub Pages.
+- [ ] React Router com `BrowserRouter`. Rotas desta fase: `/` (abertura), `/dev/tema` (**só em desenvolvimento**), `*` (404 com a marca)
+- [ ] Página de abertura: marca Maxis em layout dual-tone discreto, sem texto de template
+- [ ] Página de referência do tema: paleta com nomes dos tokens, escala tipográfica, primitivos shadcn, skeleton, números formatados, gráfico de exemplo — comparada lado a lado com `docs/design/maxis-tema-claro.html`
+- [ ] 404 com a marca e link para o início (a versão no shell vem na Fase 3)
+
+**Verificação:** `/dev/tema` inexistente no build de produção; contraste e foco visível conferidos; checklist de tela (`frontend/CLAUDE.md §13`) nos itens aplicáveis.
+
+### STEP 0.10 — Projetos Supabase online, MCP e teste guardião
+**Entrega:** backend versionado e operado direto nos projetos online — desenvolvimento (`maxis`) e produção (São Paulo) —, sem nada local (decisão #11).
+- [x] 📋 Danilo: reativar o projeto `maxis` — `ACTIVE_HEALTHY` em 03/11/2026
+- [ ] 📋 Danilo: criar o projeto de **produção** em São Paulo (`sa-east-1`), plano free, na mesma organização — nome proposto `maxis-producao`; senha do banco forte, guardada fora do chat e do repositório
+- [ ] Mesma versão major do Postgres nos dois (dev hoje: 17.6); se a produção nascer em outra, igualar o dev antes da primeira migration (ele está vazio)
+- [ ] Supabase CLI como devDependency (versão fixa), usado só contra os projetos online, sempre com `--remote=<ref>` explícito e sem `link`; comandos conferidos via `--help`
+- [ ] Inicializar `supabase/` **preservando `supabase/CLAUDE.md`**
+- [ ] `config.toml` como fonte do Auth dos dois projetos: cadastro público desligado; `site_url` = domínio de produção; localhost de desenvolvimento só no dev (diferença por projeto pelo mecanismo que o CLI suportar — conferir na documentação; sem suporte, 📋 checklist no Dashboard)
+- [ ] Aplicar o `config.toml` nos dois projetos (`config push --remote=<ref>`) e conferir no Dashboard
+- [ ] `.mcp.json` versionado: `supabase-dev` (`project_ref` do `maxis`, com escrita, só as features usadas) + `supabase-prod` (`project_ref` da produção, `read_only=true`) + Context7 — OAuth, nenhum segredo no arquivo
+- [ ] O MCP do plugin `supabase` (alcance de conta inteira) fica desativado neste projeto: o único MCP com escrita é o `supabase-dev`; nenhuma ferramenta de escrita na allowlist
+- [ ] **Via MCP, nos dois projetos:** confirmar que estão vazios, a versão do Postgres e o formato das chaves → resolver a pendência #3 e registrar em `modelo-dados.md §13` (e trocar o default de PK para `uuidv7()` se for PG 18+)
+- [ ] **Teste guardião (pgTAP)** em `supabase/tests/database/`: toda tabela de `public` com RLS habilitada; `anon` sem privilégio em tabela/view/função de `public`; nenhuma view de `public` sem `security_invoker`. Passa com zero tabelas e protege todas as fases seguintes. Roda no dev, pelo MCP e por `test db --remote`, em transação e sem resíduo — definir aqui como o pgTAP fica disponível no dev
+
+**Verificação:** guardião verde no dev pelos dois caminhos; `supabase-prod` recusa escrita e `supabase-dev` só alcança o `maxis`; Auth dos dois projetos confere com o `config.toml`.
+
+### STEP 0.11 — Base das Edge Functions (Deno)
+**Entrega:** toolchain Deno e o código compartilhado que toda função da Fase 1 em diante usa.
+- [ ] `supabase/functions/deno.json`: strict, lint, fmt; lockfile versionado
+- [ ] `_shared/`: resposta padrão (`{ data }` / `{ error: { codigo, mensagem } }` + status HTTP) e CORS com allowlist (produção + localhost) — conforme `supabase/CLAUDE.md §8`
+- [ ] Testes `deno test` da resposta padrão e do CORS (origem permitida, negada, preflight)
+- [ ] Nenhuma função publicada ainda (a primeira é a `provisionar-usuario`, Fase 1)
+
+**Verificação:** `deno fmt --check`, `deno lint`, `deno check` e `deno test` verdes.
+
+### STEP 0.12 — Pipeline CI/CD
+**Entrega:** todo PR validado; todo merge na `main` publicado em ordem.
+- [ ] Workflow único com jobs:
+  - **frontend:** Node pela `.nvmrc`, instalação limpa, lint, format, tipos, testes, build
+  - **banco:** contra o projeto de **dev** — `migration list --remote` (repositório × dev alinhados; diferença = falha) + testes pgTAP (`test db --remote`)
+  - **edge-functions:** Deno — fmt, lint, check, test
+  - **deploy-backend** *(só push na `main`, após os três)*: no projeto de **produção**, com `--remote=<ref>` explícito — `db push`, `config push` e `functions deploy --use-api`
+  - **deploy-frontend** *(após o backend)*: build com as variáveis públicas de **produção**; passo de hospedagem isolado (hoje: cópia de `index.html` → `404.html` + publicação no Pages — decisão #12)
+- [ ] Environments no GitHub: `development` (credenciais do dev, usado pelo job **banco**) e `production` (credenciais da produção, só nos jobs de deploy)
+- [ ] 📋 Danilo cadastra (nunca pelo chat): por projeto, o **token de menor escopo** que o CLI aceitar (não o token clássico do login), a senha do banco e o project ref. Variáveis públicas do Supabase de produção como *variables* (nomes conforme a pendência #3)
+- [ ] `.env.example` com os nomes das variáveis públicas (sem valores); consumo começa na Fase 2
+- [ ] `concurrency`: um deploy por vez; runs antigos de PR cancelados
+- [ ] Actions fixadas por SHA; `permissions` mínimas por job
+
+**Verificação:** PR mostra os 3 checks verdes; merge dispara deploy-backend (sem migrations = no-op) e depois deploy-frontend; nenhum segredo aparece nos logs públicos.
+
+### STEP 0.13 — Domínio, HTTPS e fallback SPA
+**Entrega:** produto no ar no domínio oficial.
+- [ ] Pages com origem "GitHub Actions"; domínio `maxis.performargestao.com.br`; HTTPS forçado
+- [ ] 📋 Danilo: registro `CNAME maxis → <conta>.github.io` no DNS; **verificação do domínio** na conta GitHub (evita sequestro de subdomínio)
+- [ ] Com deploy via Actions, o arquivo `CNAME` é dispensado — confirmar na documentação do GitHub ao executar
+- [ ] Vite com `base: '/'`
+- [ ] Portabilidade (decisão #12): nada no app depende do Pages — trocar para a Vercel mexe só no job `deploy-frontend` e no DNS
+
+**Verificação:** `https://maxis.performargestao.com.br` abre a página de abertura com certificado válido; deep link e refresh em `/qualquer/rota` mostram a 404 da SPA (não a do GitHub).
+
+### STEP 0.14 — Proteção da `main`, comandos reais e fechamento
+**Entrega:** fase fechada com o repositório protegido e a documentação com dados reais.
+- [ ] Ruleset da `main`: PR obrigatório, checks `frontend`/`banco`/`edge-functions` obrigatórios, sem force-push
+- [ ] Busca de segredos no histórico do git (nenhuma chave, token ou senha)
+- [ ] **Sob autorização do Danilo** (`CLAUDE.md §10`): preencher os comandos reais no `CLAUDE.md` raiz, `frontend/CLAUDE.md` e `supabase/CLAUDE.md`
+- [ ] `README.md` com os comandos de desenvolvimento
+- [ ] `project_manager.md`: entregáveis ✅, Fase 0 ✅ no roadmap, barra de progresso, log; fase ativa → Fase 1
+
+**Verificação:** push direto na `main` é recusado; todos os critérios de aceite (§5) conferidos.
+
+## 5. Critérios de aceite da fase
+
+1. Merge na `main` → pipeline verde → site publicado em `https://maxis.performargestao.com.br` com HTTPS.
+2. Deep link e refresh em rota inexistente servem a SPA (404 com a marca), não a 404 do GitHub.
+3. Lint, format, tipos, testes e build do frontend sem erro e sem aviso; `any` barrado pelo lint.
+4. `tokens.css` é a única fonte de cor/sombra/raio/fonte; paleta padrão do Tailwind indisponível; ECharts sem cores default; página de referência fiel ao mockup (dual-tone, ouro como marca, mono em números).
+5. Projetos de dev (`maxis`) e produção (São Paulo) ativos, na mesma versão major do Postgres; teste guardião pgTAP verde no dev; Auth dos dois com cadastro público desligado e Site URL correto.
+6. `deno fmt/lint/check/test` verdes.
+7. `main` protegida (PR + checks obrigatórios).
+8. Nenhum segredo no repositório nem nos logs do Actions.
+9. `.mcp.json` com Supabase MCP restrito por projeto: escrita só no dev, produção somente leitura.
+10. Pendências de governança #1–#4, #10 e #11 resolvidas e refletidas nos `CLAUDE.md`.
+11. Publicação do frontend isolada no job `deploy-frontend`, pronta para migrar para a Vercel.
+
+## 6. Modelagem de dados afetada
+
+**Nenhuma tabela.** A fase só cria o teste guardião (pgTAP) e a configuração do Supabase. As confirmações do `modelo-dados.md §13` (versão do Postgres, formato das chaves) são resolvidas no STEP 0.10 e registradas lá.
+
+## 7. Rotas, Edge Functions e RPCs
+
+| Tipo | Item | Observação |
+|---|---|---|
+| Rota | `/` | página de abertura (produção) |
+| Rota | `/dev/tema` | referência do tema — **só em desenvolvimento** |
+| Rota | `*` | 404 com a marca |
+| Edge Function | — | só o código compartilhado `_shared/` (resposta padrão, CORS) |
+| RPC | — | nenhuma |
+
+## 8. Riscos e atenção
+
+- **Repositório público:** qualquer `echo` de variável no CI pode vazar segredo — usar só secrets mascarados; revisar logs no primeiro deploy.
+- **Token do CI:** o login do CLI pelo navegador gera token clássico com acesso à conta inteira; no CI usar o token de **menor escopo** que o CLI aceitar, um por projeto.
+- **CLI do Supabase muda entre versões:** conferir comandos e flags com `--help` antes de usar (skill `supabase`).
+- **DNS:** propagação pode levar horas; o STEP 0.13 só fecha com HTTPS válido.
+- **Plano free pausa projeto parado há 7 dias:** o dev pausa se o trabalho parar; a produção, sem uso até o go-live, também — reativar antes de um deploy. Deixa de acontecer com o plano Pro, na conclusão do SaaS.
+- **MCP com escrita no dev:** um comando errado (ou um texto malicioso lido de uma tabela) afeta o dev — por isso schema só por migration versionada, aprovação do Danilo a cada escrita e produção fora do alcance de escrita do MCP.
+- **Comando no projeto errado:** dois projetos na mesma conta → sem `link`; todo comando do CLI com `--remote=<ref>` explícito.
+
+## 9. Status dos Entregáveis
+
+| # | Entregável | STEP | Status |
+|---|---|---|---|
+| 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
+| 2 | Repositório público com governança versionada | 0.2 | ⬜ |
+| 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ⬜ |
+| 4 | Lint, formatação e testes do frontend | 0.4 | ⬜ |
+| 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
+| 6 | shadcn/ui no tema | 0.6 | ⬜ |
+| 7 | Formatadores pt-BR com testes | 0.7 | ⬜ |
+| 8 | Tema ECharts e wrapper | 0.8 | ⬜ |
+| 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ⬜ |
+| 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ⬜ |
+| 11 | Base Deno das Edge Functions com testes | 0.11 | ⬜ |
+| 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ⬜ |
+| 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
+| 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |

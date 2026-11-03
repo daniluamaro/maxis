@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maxis · Design System — Tema Claro (re-skin do mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* SUPERFÍCIES (claro) */
+  --bg-base:#F4F6FB;
+  --bg-panel:#FFFFFF;
+  --bg-panel-alt:#EEF1F7;
+  --bg-hover:#E8ECF4;
+  --border:#DDE3EE;
+  --border-soft:#E8ECF3;
+
+  /* SIDEBAR (permanece navy — dual-tone) */
+  --sidebar-bg:#0E1A33;
+  --sidebar-bg-alt:#16233F;
+
+  /* MARCA / OURO */
+  --gold:#C79A2E;         /* acento de marca (sobre navy / barras) */
+  --gold-bright:#F0CC5C;  /* só usado dentro da sidebar escura */
+  --gold-dim:#8A7328;
+  --gold-strong:#8A6D1A;  /* ouro como TEXTO sobre branco (AA) */
+  --navy:#14294D;
+
+  /* TEXTO (claro) */
+  --text-primary:#0F1A2E;
+  --text-secondary:#52607A;
+  --text-tertiary:#8A94A9;
+
+  /* FUNCIONAIS (preenchimento / texto-AA) */
+  --green:#1F9D57;  --green-text:#157F43;
+  --red:#D64545;    --red-text:#C0392B;
+  --amber:#E0A106;  --amber-text:#8A5A00;
+  --blue:#2563C4;   --blue-text:#1E4FA0;
+
+  --radius:10px;
+  --shadow-sm:0 1px 2px rgba(16,26,46,.04),0 1px 3px rgba(16,26,46,.06);
+  --shadow-md:0 4px 14px rgba(16,26,46,.08);
+  --font-display:'Manrope',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse 1200px 800px at 20% -10%, #FFFFFF 0%, var(--bg-base) 60%);
+  color:var(--text-primary);
+  font-family:var(--font-body);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--gold);color:#fff;}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+@media (max-width:900px){.app{grid-template-columns:1fr;}.sidebar{display:none;}}
+
+/* SIDEBAR — redefine os tokens neutros localmente p/ ficar claro-sobre-escuro */
+.sidebar{
+  background:var(--sidebar-bg);
+  border-right:1px solid rgba(255,255,255,.07);
+  padding:28px 20px;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+  --text-primary:#FFFFFF;
+  --text-secondary:#A9B4CC;
+  --text-tertiary:#6B7793;
+  --bg-hover:#16233F;
+  --bg-panel-alt:#16233F;
+  --border:rgba(255,255,255,.08);
+  --border-soft:rgba(255,255,255,.06);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold-dim));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:800;font-size:15px;color:#0A0D14;
+  flex-shrink:0;
+}
+.brand-text{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:0.5px;color:#fff;}
+.brand-sub{font-size:10.5px;color:var(--text-tertiary);letter-spacing:1.2px;text-transform:uppercase;margin:2px 0 30px 44px;}
+
+.nav{display:flex;flex-direction:column;gap:2px;flex:1;}
+.nav-label{font-size:10px;letter-spacing:1.3px;color:var(--text-tertiary);text-transform:uppercase;margin:18px 10px 8px;}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:10px 12px;border-radius:8px;
+  color:var(--text-secondary);font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:background .15s,color .15s;
+  border:1px solid transparent;
+}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.85;}
+.nav-item:hover{background:var(--bg-hover);color:#fff;}
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(212,175,55,0.18),rgba(212,175,55,0.04));
+  color:var(--gold-bright);
+  border:1px solid rgba(212,175,55,0.30);
+}
+.nav-item.active svg{opacity:1;stroke:var(--gold-bright);}
+
+.sidebar-foot{border-top:1px solid var(--border-soft);padding-top:16px;margin-top:16px;}
+.client-chip{
+  background:var(--bg-panel-alt);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--text-secondary);
+}
+.client-chip b{color:#fff;font-weight:600;display:block;font-size:12.5px;margin-bottom:2px;}
+.source-tag{margin-top:10px;font-size:10px;color:var(--text-tertiary);letter-spacing:.3px;display:flex;align-items:center;gap:6px;}
+.source-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+
+/* MAIN */
+.main{padding:26px 34px 60px;max-width:1280px;}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px;flex-wrap:wrap;}
+.topbar h1{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.3px;color:var(--text-primary);}
+.topbar p{color:var(--text-secondary);font-size:13px;margin-top:4px;}
+.pilot-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(224,161,6,0.10);border:1px solid rgba(224,161,6,0.38);
+  color:var(--amber-text);font-size:11px;font-weight:600;letter-spacing:.4px;
+  padding:6px 12px;border-radius:100px;text-transform:uppercase;white-space:nowrap;
+}
+.pilot-badge::before{content:'●';font-size:8px;color:var(--amber);}
+
+.filters{display:flex;gap:10px;margin-bottom:26px;flex-wrap:wrap;}
+.filter{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;
+  padding:9px 14px;font-size:12.5px;color:var(--text-secondary);
+  display:flex;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--shadow-sm);
+}
+.filter b{color:var(--text-primary);font-weight:600;}
+.filter svg{width:13px;height:13px;opacity:.6;}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:30px;}
+@media (max-width:1100px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi{
+  background:var(--bg-panel);border:1px solid var(--border-soft);border-radius:var(--radius);
+  padding:18px 18px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow-sm);
+}
+.kpi::after{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold);}
+.kpi-label{font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.kpi-value{font-family:var(--font-mono);font-size:25px;font-weight:700;color:var(--text-primary);}
+.kpi-delta{font-size:11.5px;margin-top:7px;display:flex;align-items:center;gap:4px;}
+.kpi-delta.up{color:var(--green-text);}
+.kpi-delta.warn{color:var(--red-text);}
+.kpi-delta.neutral{color:var(--text-tertiary);}
+
+/* SECTIONS */
+.section{
+  background:var(--bg-panel);border:1px solid var(--border-soft);border-radius:14px;
+  padding:22px 24px 26px;margin-bottom:22px;box-shadow:var(--shadow-sm);
+}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:10px;}
+.section-eyebrow{font-size:10.5px;color:var(--gold-strong);letter-spacing:1.3px;text-transform:uppercase;font-weight:700;}
+.section-title{font-family:var(--font-display);font-weight:800;font-size:17px;margin-top:3px;color:var(--text-primary);}
+.section-desc{color:var(--text-secondary);font-size:12.5px;margin-top:5px;max-width:640px;line-height:1.5;}
+.section-tag{
+  font-size:10.5px;background:var(--bg-panel-alt);border:1px solid var(--border);
+  color:var(--text-secondary);padding:5px 10px;border-radius:6px;
+}
+
+.grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;margin-top:20px;}
+@media (max-width:1000px){.grid-2{grid-template-columns:1fr;}}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12.5px;}
+th{
+  text-align:left;font-size:10.5px;color:var(--text-tertiary);text-transform:uppercase;
+  letter-spacing:.5px;font-weight:600;padding:0 12px 10px;border-bottom:1px solid var(--border);
+}
+td{padding:11px 12px;border-bottom:1px solid var(--border-soft);color:var(--text-secondary);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+td.mono,th.mono{font-family:var(--font-mono);}
+td.strong{color:var(--text-primary);font-weight:600;}
+.brand-row:hover td{background:var(--bg-hover);}
+
+.disp-bar{width:100%;height:5px;background:var(--bg-panel-alt);border-radius:4px;margin-top:5px;overflow:hidden;}
+.disp-fill{height:100%;border-radius:4px;}
+.badge{
+  font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;letter-spacing:.3px;
+  display:inline-block;
+}
+.badge.alert{background:rgba(214,69,69,0.10);color:var(--red-text);border:1px solid rgba(214,69,69,0.28);}
+.badge.ok{background:rgba(31,157,87,0.10);color:var(--green-text);border:1px solid rgba(31,157,87,0.26);}
+.badge.watch{background:rgba(224,161,6,0.12);color:var(--amber-text);border:1px solid rgba(224,161,6,0.32);}
+
+/* MATRIX (Cobertura) */
+.matrix-wrap{overflow-x:auto;margin-top:16px;}
+.matrix{border-collapse:collapse;font-size:12px;min-width:640px;}
+.matrix th{padding:8px 10px;text-align:center;font-size:10px;}
+.matrix th.pdv-col{text-align:left;min-width:200px;}
+.matrix td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--border-soft);}
+.matrix td.pdv-name{text-align:left;color:var(--text-primary);font-weight:500;font-size:12px;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.dot.yes{background:var(--green);box-shadow:0 0 0 3px rgba(31,157,87,.14);}
+.dot.no{background:var(--border);}
+.lead-tag{font-size:9.5px;background:rgba(199,154,46,.12);border:1px solid rgba(199,154,46,.32);color:var(--gold-strong);padding:2px 7px;border-radius:5px;margin-left:8px;}
+
+/* GIRO BARS */
+.giro-list{margin-top:18px;display:flex;flex-direction:column;gap:12px;}
+.giro-item{display:grid;grid-template-columns:110px 1fr 60px;align-items:center;gap:12px;}
+.giro-name{font-size:12.5px;color:var(--text-primary);font-weight:600;}
+.giro-track{height:9px;background:var(--bg-panel-alt);border-radius:5px;overflow:hidden;}
+.giro-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold-dim),var(--gold));}
+.giro-count{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);text-align:right;}
+
+/* LEADS PANEL */
+.leads-panel{background:var(--bg-panel-alt);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.leads-panel h4{font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:4px;}
+.leads-panel p{font-size:11.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;}
+.lead-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:12px;}
+.lead-row:last-child{border-bottom:none;}
+.lead-row .name{color:var(--text-primary);font-weight:500;}
+.lead-row .bairro{color:var(--text-tertiary);font-size:10.5px;}
+.lead-count{
+  background:rgba(199,154,46,.12);color:var(--gold-strong);font-family:var(--font-mono);
+  font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;border:1px solid rgba(199,154,46,.28);
+  margin-top:14px;text-align:center;
+}
+
+.footnote{font-size:11px;color:var(--text-tertiary);margin-top:18px;line-height:1.6;border-top:1px solid var(--border-soft);padding-top:14px;}
+.footnote b{color:var(--text-secondary);}
+
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div class="brand-text">MAXIS</div>
+    </div>
+    <div class="brand-sub">Inteligência de Mercado</div>
+
+    <nav class="nav">
+      <div class="nav-item active" onclick="showTab('geral', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Visão Geral
+      </div>
+      <div class="nav-item" onclick="showTab('precos', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Preços &amp; Concorrência
+      </div>
+      <div class="nav-item" onclick="showTab('cobertura', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+        Cobertura &amp; Leads
+      </div>
+      <div class="nav-item" onclick="showTab('giro', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8M17 7h4v4"/></svg>
+        Giro &amp; Frequência
+      </div>
+      <div class="nav-item" onclick="showTab('tabela', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M3 14h18M9 4v16"/></svg>
+        Tabela de Dados
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="client-chip">
+        <b>Empresa Exemplo - Dados Fictícios</b>
+        Cliente · Plano Inteligência de Mercado
+      </div>
+      <div class="source-tag"><span class="source-dot"></span> Fonte: SEFAZ/BA · NFC-e</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Inteligência de Mercado — Energéticos</h1>
+        <p>Eunápolis/BA · 17–20 jul 2026 · 22 pontos de venda monitorados</p>
+      </div>
+      <span class="pilot-badge">Amostra piloto · 4 dias de dados</span>
+    </div>
+
+    <div class="filters">
+      <div class="filter">Cidade: <b>Eunápolis</b></div>
+      <div class="filter">Categoria: <b>Bebidas não alcoólicas</b></div>
+      <div class="filter">Marca do cliente: <b>Red Bull</b></div>
+      <div class="filter">Período: <b>17–20 jul 2026</b></div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Produtos monitorados</div>
+        <div class="kpi-value">63</div>
+        <div class="kpi-delta neutral">12 marcas ativas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Pontos de venda</div>
+        <div class="kpi-value">22</div>
+        <div class="kpi-delta up">▲ cobertura mapeada</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Notas capturadas</div>
+        <div class="kpi-value">110</div>
+        <div class="kpi-delta neutral">últimas 96h</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Preço médio categoria</div>
+        <div class="kpi-value">R$ 7,86</div>
+        <div class="kpi-delta neutral">todas as marcas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Alerta de preço — Red Bull</div>
+        <div class="kpi-value" style="color:var(--red-text)">124%</div>
+        <div class="kpi-delta warn">▲ dispersão acima do normal</div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: VISÃO GERAL ===== -->
+    <div class="tab-panel active" id="tab-geral">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Resumo executivo</div>
+            <div class="section-title">O que os dados mostram nesta amostra</div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <table>
+              <tr><th>Achado</th><th class="mono">Impacto</th></tr>
+              <tr><td>Red Bull vendido entre <span class="strong">R$ 4,91</span> e <span class="strong">R$ 10,99</span> na mesma cidade</td><td><span class="badge alert">Risco de margem</span></td></tr>
+              <tr><td>Red Bull presente em apenas <span class="strong">2 de 22</span> PDVs, mas é a marca mais citada nas notas (<span class="strong">28</span>)</td><td><span class="badge watch">Demanda não atendida</span></td></tr>
+              <tr><td>BIVOLT é a marca com maior cobertura (<span class="strong">9 PDVs</span>)</td><td><span class="badge ok">Benchmark</span></td></tr>
+              <tr><td>20 PDVs vendem energéticos concorrentes sem vender Red Bull</td><td><span class="badge watch">20 leads</span></td></tr>
+            </table>
+          </div>
+          <div class="leads-panel">
+            <h4>Leitura rápida para o cliente</h4>
+            <p>Red Bull é a marca mais mencionada nas notas fiscais da amostra (28 de 110), mas está presente em menos de <b>10%</b> dos pontos de venda ativos da categoria em Eunápolis — sinal claro de demanda que não está sendo capturada por falta de distribuição, além de preço variando mais que o dobro entre as duas lojas onde é vendido.</p>
+            <div class="lead-count">20 pontos de venda sem Red Bull → potencial de expansão direta</div>
+          </div>
+        </div>
+        <div class="footnote">Dados extraídos da Plataforma Preço da Hora, a partir de Notas Fiscais do Consumidor (NFC-e) aprovadas pela SEFAZ/BA. Amostra restrita a Eunápolis e à categoria de energéticos para fins de demonstração — a base contratada cobre cidades, categorias e período conforme o escopo do projeto.</div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: PREÇOS ===== -->
+    <div class="tab-panel" id="tab-precos">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Bloco 2</div>
+            <div class="section-title">Preços &amp; Concorrência</div>
+            <div class="section-desc">Preço mínimo, médio e máximo por marca, com dispersão como indicador de descontrole de tabela.</div>
+          </div>
+          <span class="section-tag">12 marcas · 22 PDVs</span>
+        </div>
+        <table>
+          <tr><th>Marca</th><th class="mono">Mín.</th><th class="mono">Média</th><th class="mono">Máx.</th><th>Dispersão</th><th>PDVs</th><th>Status</th></tr>
+          <tr class="brand-row">
+            <td class="strong">RED BULL <span style="color:var(--gold-strong);font-size:10px;font-weight:700;">· cliente</span></td>
+            <td class="mono">R$ 4,91</td><td class="mono">R$ 7,76</td><td class="mono">R$ 10,99</td>
+            <td><div class="disp-bar"><div class="disp-fill" style="width:100%;background:var(--red)"></div></div></td>
+            <td class="mono">2</td><td><span class="badge alert">124%</span></td>
+          </tr>
+          <tr class="brand-row"><td class="strong">TNT</td><td class="mono">R$ 4,39</td><td class="mono">R$ 7,06</td><td class="mono">R$ 10,00</td>
+            <td><div class="disp-bar"><div class="disp-fill" style="width:91%;background:var(--red)"></div></div></td><td class="mono">3</td><td><span class="badge alert">128%</span></td></tr>
+          <tr class="brand-row"><td class="strong">MEGATON</td><td class="mono">R$ 6,99</td><td class="mono">R$ 7,76</td><td class="mono">R$ 8,49</td>
+            <td><div class="disp-bar"><div class="disp-fill" style="width:38%;background:var(--amber)"></div></div></td><td class="mono">2</td><td><span class="badge watch">21%</span></td></tr>
+          <tr class="brand-row"><td class="strong">BALY</td><td class="mono">R$ 5,69</td><td class="mono">R$ 7,20</td><td class="mono">R$ 8,29</td>
+            <td><div class="disp-bar"><div class="disp-fill" style="width:37%;background:var(--amber)"></div></div></td><td class="mono">3</td><td><span class="badge watch">21%</span></td></tr>
+          <tr class="brand-row"><td class="strong">MONSTER</td><td class="mono">R$ 9,49</td><td class="mono">R$ 10,27</td><td class="mono">R$ 10,49</td>
+            <td><div class="disp-bar"><div class="disp-fill" style="width:12%;background:var(--green)"></div></div></td><td class="mono">2</td><td><span class="badge ok">10%</span></td></tr>
+          <tr class="brand-row"><td class="strong">BIVOLT</td><td class="mono">R$ 4,99</td><td class="mono">R$ 7,99</td><td class="mono">R$ 10,50</td>
+            <td><div class="disp-bar"><div class="disp-fill" style="width:69%;background:var(--amber)"></div></div></td><td class="mono">9</td><td><span class="badge watch">55%</span></td></tr>
+        </table>
+        <div class="footnote"><b>Leitura:</b> dispersão = (máx − mín) / mín. Acima de 60% sinaliza que revendedores estão precificando sem referência comum — geralmente sintoma de tabela não comunicada ou não fiscalizada pela distribuidora.</div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: COBERTURA ===== -->
+    <div class="tab-panel" id="tab-cobertura">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Bloco 3</div>
+            <div class="section-title">Cobertura &amp; Leads</div>
+            <div class="section-desc">Presença de marca por ponto de venda — todo PDV que vende a categoria mas não vende Red Bull é um lead qualificado.</div>
+          </div>
+          <span class="section-tag">Marca do cliente: Red Bull</span>
+        </div>
+        <div class="matrix-wrap">
+          <table class="matrix">
+            <tr><th class="pdv-col">Ponto de venda</th><th>RED BULL</th><th>TNT</th><th>BIVOLT</th><th>BALY</th><th>MEGATON</th><th>MONSTER</th></tr>
+            <tr><td class="pdv-name">Rondelli Com. e Transporte</td><td><span class="dot yes"></span></td><td><span class="dot yes"></span></td><td><span class="dot yes"></span></td><td><span class="dot yes"></span></td><td><span class="dot yes"></span></td><td><span class="dot yes"></span></td></tr>
+            <tr><td class="pdv-name">Supermercado Econômico</td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Cestão do Povo Eunápolis <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Empório ABC Ltda <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Mix Mateus <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Atacarejo Colares <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Irmãos Mattar &amp; Cia <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Nacional Supermercado <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td><td><span class="dot no"></span></td></tr>
+            <tr><td class="pdv-name">Atacadão <span class="lead-tag">lead</span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot no"></span></td><td><span class="dot yes"></span></td></tr>
+          </table>
+        </div>
+        <div class="grid-2" style="margin-top:22px;">
+          <div class="leads-panel">
+            <h4>Lista de prospecção gerada automaticamente</h4>
+            <p>PDVs que vendem energéticos concorrentes mas não vendem Red Bull — priorizados por variedade de marcas concorrentes ativas (indício de bom giro de categoria).</p>
+            <div class="lead-row"><span class="name">Cestão do Povo Eunápolis</span><span class="bairro">2 marcas concorrentes</span></div>
+            <div class="lead-row"><span class="name">Mix Mateus</span><span class="bairro">2 marcas concorrentes</span></div>
+            <div class="lead-row"><span class="name">Irmãos Mattar &amp; Cia S.A.</span><span class="bairro">2 marcas concorrentes</span></div>
+            <div class="lead-row"><span class="name">Atacarejo Colares</span><span class="bairro">2 marcas concorrentes</span></div>
+            <div class="lead-row"><span class="name">Empório ABC Ltda</span><span class="bairro">1 marca concorrente</span></div>
+            <div class="lead-count">20 leads no total nesta amostra</div>
+          </div>
+          <div class="leads-panel">
+            <h4>Benchmark de cobertura</h4>
+            <p>Comparação de quantos PDVs distintos cada marca alcança na base monitorada.</p>
+            <div class="giro-list">
+              <div class="giro-item"><span class="giro-name">BIVOLT</span><div class="giro-track"><div class="giro-fill" style="width:100%"></div></div><span class="giro-count">9 PDVs</span></div>
+              <div class="giro-item"><span class="giro-name">TNT</span><div class="giro-track"><div class="giro-fill" style="width:33%"></div></div><span class="giro-count">3 PDVs</span></div>
+              <div class="giro-item"><span class="giro-name">BALY</span><div class="giro-track"><div class="giro-fill" style="width:33%"></div></div><span class="giro-count">3 PDVs</span></div>
+              <div class="giro-item"><span class="giro-name">RED BULL <span style="color:var(--gold-strong);font-size:9px;font-weight:700;">cliente</span></span><div class="giro-track"><div class="giro-fill" style="width:22%"></div></div><span class="giro-count">2 PDVs</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: GIRO ===== -->
+    <div class="tab-panel" id="tab-giro">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Bloco 4</div>
+            <div class="section-title">Giro &amp; Frequência</div>
+            <div class="section-desc">A NFC-e pública não informa quantidade vendida — este indicador conta a frequência de notas emitidas por marca, como proxy de movimento relativo, não de volume.</div>
+          </div>
+          <span class="section-tag mono">110 notas · 4 dias</span>
+        </div>
+        <div class="giro-list" style="margin-top:22px;">
+          <div class="giro-item"><span class="giro-name">RED BULL <span style="color:var(--gold-strong);font-size:9px;font-weight:700;">cliente</span></span><div class="giro-track"><div class="giro-fill" style="width:100%"></div></div><span class="giro-count">28 notas</span></div>
+          <div class="giro-item"><span class="giro-name">TNT</span><div class="giro-track"><div class="giro-fill" style="width:82%"></div></div><span class="giro-count">23 notas</span></div>
+          <div class="giro-item"><span class="giro-name">BIVOLT</span><div class="giro-track"><div class="giro-fill" style="width:61%"></div></div><span class="giro-count">17 notas</span></div>
+          <div class="giro-item"><span class="giro-name">BALY</span><div class="giro-track"><div class="giro-fill" style="width:39%"></div></div><span class="giro-count">11 notas</span></div>
+          <div class="giro-item"><span class="giro-name">MONSTER</span><div class="giro-track"><div class="giro-fill" style="width:32%"></div></div><span class="giro-count">9 notas</span></div>
+          <div class="giro-item"><span class="giro-name">MEGATON</span><div class="giro-track"><div class="giro-fill" style="width:25%"></div></div><span class="giro-count">7 notas</span></div>
+          <div class="giro-item"><span class="giro-name">NIGHT BLUE</span><div class="giro-track"><div class="giro-fill" style="width:18%"></div></div><span class="giro-count">5 notas</span></div>
+          <div class="giro-item"><span class="giro-name">START</span><div class="giro-track"><div class="giro-fill" style="width:18%"></div></div><span class="giro-count">5 notas</span></div>
+        </div>
+        <div class="footnote"><b>Destaque para o cliente:</b> Red Bull lidera em frequência de notas (28) mesmo estando presente em só 2 dos 22 PDVs mapeados — ou seja, a marca com maior giro relativo é também a com menor cobertura. Esse é o argumento mais direto para justificar expansão de distribuição.<br><br><b>Importante para a proposta comercial:</b> este bloco deve ser vendido como "frequência de reposição/venda", nunca como "volume vendido" — a fonte SEFAZ/NFC-e pública não expõe quantidade, apenas ocorrência de nota fiscal. Com histórico maior (semanas/meses), este indicador passa a revelar sazonalidade e dias de pico com boa confiabilidade.</div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: TABELA DE DADOS ===== -->
+    <div class="tab-panel" id="tab-tabela">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Fonte dos dados</div>
+            <div class="section-title">Tabela de Dados — amostra bruta</div>
+            <div class="section-desc">Fração dos registros originais coletados pela Plataforma Preço da Hora, a partir de Notas Fiscais do Consumidor (NFC-e) aprovadas pela SEFAZ/BA — antes de qualquer cruzamento ou agregação.</div>
+          </div>
+          <span class="section-tag mono">10 de 110 registros</span>
+        </div>
+        <table>
+          <tr><th>Cód. Barras</th><th>Produto</th><th class="mono">Preço</th><th>Estabelecimento</th><th>Bairro</th><th>Cidade</th></tr>
+          <tr><td class="mono">7897395001841</td><td>ENERGETICO TNT LT 269ML ZERO TANGERINA</td><td class="mono">R$ 4,39</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>ENCANTO DAS ÁGUAS</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">9002490275020</td><td>ENERGETICO RED BULL LT 250ML SUGFR AMORA</td><td class="mono">R$ 7,99</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>CENTRO</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">9002490286040</td><td>ENERGETICO RED BULL LT 250ML THE SUM NECTARI</td><td class="mono">R$ 4,91</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>CENTRO</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7898969505154</td><td>ENERGETICO BIVOLT MELANCIA 270ML</td><td class="mono">R$ 4,99</td><td>ATACAREJO COLARES</td><td>THIAGO DE MELLO</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7897395031602</td><td>ENERGETICO TNT LT 269ML</td><td class="mono">R$ 5,49</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>DOUTOR GUSMÃO</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7897395001841</td><td>ENERGETICO TNT LT 269ML ZERO TANGERINA</td><td class="mono">R$ 5,49</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>PEQUI</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7897395001841</td><td>ENERGETICO TNT LT 269ML ZERO TANGERINA</td><td class="mono">R$ 5,49</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>CENTRO</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7897395031657</td><td>ENERGETICO TNT LT 269ML ZERO AÇÚCAR</td><td class="mono">R$ 5,49</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>CENTRO</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7897395031602</td><td>ENERGETICO TNT LT 269ML</td><td class="mono">R$ 5,49</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>PEQUI</td><td>EUNÁPOLIS</td></tr>
+          <tr><td class="mono">7897395001841</td><td>ENERGETICO TNT LT 269ML ZERO TANGERINA</td><td class="mono">R$ 5,49</td><td>RONDELLI COMERCIO E TRANSPORTE LTDA</td><td>DOUTOR GUSMÃO</td><td>EUNÁPOLIS</td></tr>
+        </table>
+        <div class="footnote">Esta é uma amostra ilustrativa dos registros brutos que alimentam todos os blocos deste dashboard (Preços, Cobertura, Giro). Cada linha corresponde a um produto identificado em uma nota fiscal — é a partir do cruzamento dessas linhas que os indicadores das demais seções são calculados.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function showTab(id, el){
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
