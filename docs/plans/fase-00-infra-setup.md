@@ -65,12 +65,13 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 ### STEP 0.3 — Workspace raiz e frontend Vite + React + TS strict
 **Entrega:** app React compilando, sem boilerplate.
 - [x] `package.json` raiz: privado, `workspaces: ["frontend"]`, `engines.node` 24, scripts que orquestram as camadas (+ `.npmrc` com `save-exact` e `engine-strict`)
-- [x] Scaffold Vite + React + TypeScript (**6.0.x**, decisão #5) em `frontend/` **preservando `frontend/CLAUDE.md`** — template `react-ts` do create-vite 9.3.3; o ESLint do template ficou de fora (entra no 0.4)
+- [x] Scaffold Vite + React + TypeScript (**6.0.x**, decisão #5) em `frontend/` **preservando `frontend/CLAUDE.md`** — template `react-ts` do create-vite 9.3.3, variante `--eslint` (o padrão do create-vite 9 é o Oxlint); o ESLint do template ficou de fora e entra configurado no 0.4
 - [x] `tsconfig` com `strict` + `noUncheckedIndexedAccess` + `noImplicitOverride` + `noFallthroughCasesInSwitch`
 - [x] Alias `@/` (TypeScript + Vite) — `paths` + `resolve.alias`, como no guia do shadcn para Vite
 - [x] Remover todo o boilerplate do template (logos, contador, CSS demo)
 - [x] `index.html`: `lang="pt-BR"`, `<title>Maxis</title>`, favicon SVG da marca (monograma "M" em ouro, como no mockup)
 - [x] Pastas de `frontend/CLAUDE.md §1` criadas **à medida do uso** (sem pastas vazias) — só `src/app/`
+- [x] Achados do code-review: `devEngines` barra também os scripts fora do Node 24; portas fixas do Vite (dev `5173`, preview `4173`, `strictPort`) — é esse localhost que entra no CORS e nos redirects do dev; rigor compartilhado em `tsconfig.base.json`
 
 **Verificação:** servidor de dev sobe; build de produção sem erro; checagem de tipos limpa.
 
@@ -93,7 +94,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - [ ] **Escala tipográfica fixa** derivada do mockup (título de página 22, título de seção 17, corpo 13–13,5, rótulos 10,5–11, KPI 25 mono) registrada nos tokens
 - [ ] Base global: fundo `--bg-base`, texto `--text-primary`, seleção em ouro, anel de foco com token
 
-**Verificação:** build não gera CSS para `bg-blue-500`; nenhum hex/rgb fora de `tokens.css` (busca no código); fontes carregam sem requisição externa.
+**Verificação:** build não gera CSS para `bg-blue-500`; nenhum hex/rgb fora de `tokens.css` (busca no código; exceção: `public/favicon.svg`, asset estático que não lê CSS variables — cores copiadas dos tokens e indicadas no próprio arquivo); fontes carregam sem requisição externa.
 
 ### STEP 0.6 — shadcn/ui no tema
 **Entrega:** primitivos do shadcn vestidos com os tokens.
