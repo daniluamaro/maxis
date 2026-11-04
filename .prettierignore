@@ -1,0 +1,7 @@
+# Governança, planos e o mockup aprovado não são código: o Prettier não reformata
+*.md
+docs/
+# Gerado pelo npm
+package-lock.json
+# Edge Functions são formatadas pelo deno fmt
+supabase/
