@@ -2,12 +2,12 @@
   "name": "maxis",
   "private": true,
   "engines": {
-    "node": "24.x"
+    "node": "^24.15.0"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "24.x",
+      "version": "^24.15.0",
       "onFail": "error"
     }
   },
@@ -19,10 +19,17 @@
     "build": "npm run build --workspace frontend",
     "typecheck": "npm run typecheck --workspace frontend",
     "lint": "npm run lint --workspace frontend",
-    "format:check": "npm run format:check --workspace frontend",
-    "test": "npm run test --workspace frontend"
+    "test": "npm run test --workspace frontend",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
+  },
+  "devDependencies": {
+    "eslint": "10.14.0",
+    "prettier": "3.9.10"
   },
   "overrides": {
-    "eslint": "10.14.0"
+    "eslint-plugin-jsx-a11y": {
+      "eslint": "$eslint"
+    }
   }
 }

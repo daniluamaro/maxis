@@ -19,5 +19,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
+    // Isolamento entre testes: spies, `vi.stubEnv` e `vi.stubGlobal` não vazam para o próximo
+    restoreMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
   },
 });
