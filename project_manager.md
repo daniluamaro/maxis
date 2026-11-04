@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `░░░░░░░░░░` 0% · 0 de 9 fases concluídas
-**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.3 ✅; próximo: 0.4)
+**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.4 ✅; próximo: 0.5)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Fase ativa — Fase 0: Infraestrutura & Setup
 
-**Status:** 🔄 Em andamento (STEPs 0.1–0.3 ✅ · próximo: 0.4)
+**Status:** 🔄 Em andamento (STEPs 0.1–0.4 ✅ · próximo: 0.5)
 **Objetivo:** deixar o repositório pronto para desenvolvimento — build, lint, testes, CI/CD, Supabase local e tema visual — sem nenhuma lógica de negócio.
 
 **Plano:** `docs/plans/fase-00-infra-setup.md` (14 STEPs). Pendências #1, #2 e #4 já aplicadas. MCPs Supabase e Context7 autorizados e verificados em 02/11/2026 (pré-requisito do plano, §2). Plano revisado em 03/11/2026: decisões #5 (TypeScript 6.0.x), #11 (Supabase só online, dev + produção) e #12 (hospedagem portátil para Vercel).
@@ -78,7 +78,7 @@
 | 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
 | 2 | Repositório público com governança versionada | 0.2 | ✅ |
 | 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ✅ |
-| 4 | Lint, formatação e testes do frontend | 0.4 | ⬜ |
+| 4 | Lint, formatação e testes do frontend | 0.4 | ✅ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
 | 6 | shadcn/ui no tema | 0.6 | ⬜ |
 | 7 | Formatadores pt-BR com testes | 0.7 | ⬜ |
@@ -130,6 +130,8 @@
 | 03/11/2026 | **STEP 0.1 ✅.** gh logado como `daniluamaro` (escopos `gist`, `read:org`, `repo`, `workflow`; git usando a credencial do gh; token em `~/.config/gh/hosts.yml`, pois o WSL não tem chaveiro). Supabase CLI logado (lista os projetos; sem `link`). Projeto `maxis` reativado (`ACTIVE_HEALTHY`, PG 17.6). Versões finais: Node v24.22.2 · Deno 2.9.8 · gh 2.103.3 · git 2.34.1 · Supabase CLI 3.0.0. Próximo: STEP 0.2, aguardando aprovação. |
 | 03/11/2026 | **STEP 0.2 ✅.** `git init` na `main`; `.gitignore` (inclui `.claude/settings.local.json` e `supabase/.temp/`), `.nvmrc` (24), `.editorconfig`, `README.md`. Commits `chore: governança e planejamento iniciais` e `chore: configuração base do repositório`. Repositório **público** `https://github.com/daniluamaro/maxis` criado e `main` enviada. Antes do envio: varredura de segredos e de dados pessoais limpa; 19 arquivos publicados, nenhum sensível. Mockup publicado como está (dados públicos do Preço da Hora, decisão do Danilo). Próximo: STEP 0.3, aguardando aprovação. |
 | 03/11/2026 | **STEP 0.3 ✅** (branch `chore/step-0.3-frontend`, PR). Workspace npm na raiz (`engines.node` 24.x; `.npmrc` com `save-exact` e `engine-strict`; lockfile único). Frontend a partir do template `react-ts` do create-vite 9.3.3, versões exatas: Vite 8.3.5, React 19.3.1, `@vitejs/plugin-react` 6.2.1, TypeScript 6.0.3, `@types/react`/`react-dom` 19.3.0, `@types/node` 24.19.2; `npm audit` sem vulnerabilidades. `tsconfig` strict + `noUncheckedIndexedAccess` + `noImplicitOverride` + `noFallthroughCasesInSwitch`; alias `@/`; boilerplate removido; `App` em `src/app/` (named export); `index.html` em pt-BR com favicon do monograma. Verificado: `typecheck` e `build` limpos, servidor de dev responde 200 e resolve o alias. Decisões: ESLint da variante `--eslint` do template fora — entra configurado no 0.4 (o padrão do create-vite 9 é o Oxlint); alias por `resolve.alias` + `paths` (o `resolve.tsconfigPaths` do Vite 8 tem custo e é desaconselhado pelo time do TypeScript); favicon com o "M" em path, maior que no mockup para ser legível em 16 px, e letra em `--text-primary` (o `#0A0D14` do mockup não é token). Bug achado ao renderizar o favicon e corrigido: comentário XML com `--` deixava o SVG inválido. **Code-review (medium), 10 achados:** corrigidos `devEngines` (antes só a instalação era barrada fora do Node 24; os scripts rodavam no 22 — reproduzido e conferido), portas fixas 5173/4173 com `strictPort`, `tsconfig.base.json` com o rigor compartilhado, comentário errado herdado do template e texto sobre o linter do template; exceção do favicon registrada na verificação do STEP 0.5. Mantidos: tela sem estilo até o 0.5/0.9 (placeholder; nada é publicado antes), alias em `paths` + `resolve.alias` (padrão do shadcn), typecheck duplo no CI (decidir no 0.12). Adiados para decisão do Danilo: `apple-touch-icon` e favicon PNG/ICO de reserva para Safari antigo. Próximo: STEP 0.4, aguardando aprovação. |
+| 03/11/2026 | PR #1 (STEP 0.3) mergeado com rebase na `main`. Ícones complementares (`apple-touch-icon` + favicon PNG de reserva) aprovados para o STEP 0.9. |
+| 03/11/2026 | **STEP 0.4 ✅** (branch `chore/step-0.4-qualidade`, PR). ESLint **10.14** (flat config) com typescript-eslint 8.72.1 `strictTypeChecked` via `projectService`, react-hooks 7.1.1, react-refresh 0.5.7 e jsx-a11y 6.10.2 *strict*; `no-explicit-any` e `explicit-module-boundary-types` como erro; `noInlineConfig` (exceção a regra só no config). Prettier 3.9.10 na raiz para o repositório todo (fora `*.md`, `docs/`, `supabase/`, lockfile) + `eslint-config-prettier`. Vitest 5.1 + Testing Library 16.3 + jsdom 30.1 + jest-dom 7.0, com restauração de mocks/envs/globais. Scripts `lint`, `format`, `format:check`, `typecheck`, `test`, `build` na raiz. Node passa a `^24.15.0` (exigência do jsdom). Verificado: os cinco portões verdes e sem aviso, inclusive após `npm ci` limpo; provas com arquivos temporários — `any`, retorno sem tipo, promise solta (regra com tipos) e `img` sem `alt` barrados; `eslint-disable` reprovado; teste falha com a marca errada e volta a passar. **Decisão do Danilo:** ESLint 10 + jsx-a11y oficial, que não declara suporte ao 10 — o `overrides` restrito ao jsx-a11y aponta para o ESLint da raiz (`$eslint`). **Risco aceito:** 15 alertas moderados do `minimatch` só em dependências de desenvolvimento, sem correção compatível (produção: 0). **Code-review (medium), 14 achados:** corrigidos override global que travava o ESLint em silêncio, Prettier que reformataria os `CLAUDE.md` se rodado da raiz, faixa do Node abaixo do que o jsdom exige, `eslint-disable` burlando o `any`, falta de isolamento entre testes, import relativo no teste, extensões `.mjs/.cjs/.mts/.cts` fora do lint, `globals` sem efeito e script `format` na raiz. Mantidos: testes no typecheck do build, jsdom como ambiente padrão, `no-explicit-any` explícito. Próximo: STEP 0.5, aguardando aprovação. |
 
 ---
 
