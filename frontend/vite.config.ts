@@ -1,11 +1,12 @@
 import { fileURLToPath, URL } from 'node:url';
 
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 // O defineConfig do Vitest é o do Vite com a tipagem da chave `test`
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     // Mesmo alias de `paths` no tsconfig.app.json
     alias: {
@@ -16,6 +17,11 @@ export default defineConfig({
   // redirects do Auth do dev; trocar de porta em silêncio viraria erro de CORS.
   server: { port: 5173, strictPort: true },
   preview: { port: 4173, strictPort: true },
+  build: {
+    // Fonte nunca vira base64 no CSS: os subconjuntos pequenos (grego, vietnamita…) iriam para
+    // todo usuário. Como arquivo, o `unicode-range` faz o navegador baixar só o que o texto usa.
+    assetsInlineLimit: (filePath) => (/\.woff2?$/.test(filePath) ? false : undefined),
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],

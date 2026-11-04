@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+@import './theme/tokens.css';
+
+/* Fontes self-hosted (decisão #6 da Fase 0): só os pesos do contrato, sem requisição a terceiros */
+@import '@fontsource/manrope/500.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/manrope/800.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/700.css';
+
+/*
+ * Desliga o tema padrão do Tailwind onde o contrato decide: sem isto, `bg-blue-500`,
+ * `shadow-lg` ou `font-serif` continuariam disponíveis com valores fora dos tokens.
+ * Os utilitários sem sufixo (`rounded`, `shadow`…) vêm de um tema legado e são desligados à parte.
+ */
+@theme {
+  --color-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --radius-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  /* Só os pesos que têm arquivo de fonte; os demais seriam sintetizados pelo navegador */
+  --font-weight-*: initial;
+}
+
+/*
+ * Mapeamento tokens → utilitários. Só referencia variáveis do tokens.css (nenhum valor aqui).
+ * Cor: o utilitário leva o nome exato do token — `bg-bg-panel`, `text-text-secondary`,
+ * `border-border-soft`, `text-gold-strong` —, sem colidir com os nomes do shadcn (STEP 0.6).
+ */
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-panel-alt: var(--bg-panel-alt);
+  --color-bg-hover: var(--bg-hover);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-bg-alt: var(--sidebar-bg-alt);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-navy: var(--navy);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-dim: var(--gold-dim);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-green: var(--green);
+  --color-green-text: var(--green-text);
+  --color-red: var(--red);
+  --color-red-text: var(--red-text);
+  --color-amber: var(--amber);
+  --color-amber-text: var(--amber-text);
+  --color-blue: var(--blue);
+  --color-blue-text: var(--blue-text);
+
+  /*
+   * Sombras e famílias têm o mesmo nome dos dois lados (o §7 já usa o do Tailwind). O Tailwind
+   * repete a variável na camada `theme`; a declaração sem camada do tokens.css vence a cascata.
+   */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+
+  /* Derivados de --radius como no shadcn: 6 · 8 · 10 · 14px, os raios do mockup */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+  --font-mono--font-feature-settings: 'tnum';
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Escala fixa com os nomes padrão: os primitivos do shadcn (text-sm, text-xs…) já a herdam */
+  --text-2xs: var(--font-size-2xs);
+  --text-2xs--line-height: var(--line-height-body);
+  --text-xs: var(--font-size-xs);
+  --text-xs--line-height: var(--line-height-body);
+  --text-sm: var(--font-size-sm);
+  --text-sm--line-height: var(--line-height-body);
+  --text-base: var(--font-size-base);
+  --text-base--line-height: var(--line-height-body);
+  --text-lg: var(--font-size-lg);
+  --text-lg--line-height: var(--line-height-heading);
+  --text-xl: var(--font-size-xl);
+  --text-xl--line-height: var(--line-height-heading);
+  --text-2xl: var(--font-size-2xl);
+  --text-2xl--line-height: var(--line-height-metric);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ouro da marca com texto navy: o branco do mockup sobre --gold não passa no AA (2,6:1) */
+  ::selection {
+    background-color: var(--gold);
+    color: var(--navy);
+  }
+
+  /* Anel padrão de quem não define o seu; --gold-strong tem ≥ 3:1 no claro e na sidebar navy */
+  :focus-visible {
+    outline: 2px solid var(--gold-strong);
+    outline-offset: 2px;
+  }
+}

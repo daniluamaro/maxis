@@ -1,0 +1,71 @@
+/*
+ * Tokens do Maxis: fonte única de cor, sombra, raio, família e escala tipográfica.
+ * Espelho do CLAUDE.md §7 (contrato visual). Mudou lá, muda aqui, e só aqui:
+ * o Tailwind (index.css) e o tema do ECharts leem estas variáveis.
+ * Nenhum outro arquivo do frontend declara cor literal.
+ */
+:root {
+  /* Superfícies */
+  --bg-base: #f4f6fb;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #eef1f7;
+  --bg-hover: #e8ecf4;
+
+  /* Bordas */
+  --border: #dde3ee;
+  --border-soft: #e8ecf3;
+
+  /* Sidebar (navy escura do dual-tone) */
+  --sidebar-bg: #0e1a33;
+  --sidebar-bg-alt: #16233f;
+
+  /* Marca */
+  --gold: #c79a2e; /* marca e barras; item ativo da sidebar com transparência */
+  --gold-strong: #8a6d1a; /* ouro como texto sobre claro (AA) */
+  --navy: #14294d;
+  --gold-bright: #f0cc5c; /* só dentro da sidebar escura */
+  --gold-dim: #8a7328; /* só no gradiente do logo */
+
+  /* Texto */
+  --text-primary: #0f1a2e;
+  --text-secondary: #52607a;
+  --text-tertiary: #8a94a9;
+
+  /* Funcionais: a cor viva preenche; a variante -text é a de texto e ícone sobre claro (AA) */
+  --green: #1f9d57;
+  --green-text: #157f43;
+  --red: #d64545;
+  --red-text: #c0392b;
+  --amber: #e0a106;
+  --amber-text: #8a5a00;
+  --blue: #2563c4;
+  --blue-text: #1e4fa0;
+
+  /* Sombra */
+  --shadow-sm: 0 1px 2px rgba(16, 26, 46, 0.04), 0 1px 3px rgba(16, 26, 46, 0.06);
+  --shadow-md: 0 4px 14px rgba(16, 26, 46, 0.08); /* só elementos flutuantes: popover, dropdown, diálogo */
+
+  /* Forma */
+  --radius: 10px;
+
+  /* Famílias (arquivos self-hosted via @fontsource, importados no index.css) */
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif; /* títulos */
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif; /* corpo e UI */
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace; /* todo número, moeda e métrica */
+
+  /*
+   * Escala tipográfica fixa, derivada do mockup aprovado. Só estes tamanhos existem
+   * (utilitários text-2xs … text-2xl). Em rem, para respeitar o tamanho de fonte do navegador.
+   */
+  --font-size-2xs: 0.65625rem; /* 10,5px: rótulo em caixa alta (cabeçalho de tabela, rótulo de KPI, grupo da sidebar) */
+  --font-size-xs: 0.71875rem; /* 11,5px: legenda, badge, variação de KPI, nota */
+  --font-size-sm: 0.78125rem; /* 12,5px: UI densa (tabela, filtro, campo, botão, descrição de seção) */
+  --font-size-base: 0.84375rem; /* 13,5px: corpo, item de navegação, subtítulo de página */
+  --font-size-lg: 1.0625rem; /* 17px: título de seção (display) */
+  --font-size-xl: 1.375rem; /* 22px: título de página (display) */
+  --font-size-2xl: 1.5625rem; /* 25px: valor de KPI (mono) */
+
+  --line-height-body: 1.5;
+  --line-height-heading: 1.3;
+  --line-height-metric: 1.15;
+}
