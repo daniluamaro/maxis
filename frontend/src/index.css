@@ -15,7 +15,7 @@
 /*
  * Desliga o tema padrão do Tailwind onde o contrato decide: sem isto, `bg-blue-500`,
  * `shadow-lg` ou `font-serif` continuariam disponíveis com valores fora dos tokens.
- * Os utilitários sem sufixo (`rounded`, `shadow`…) vêm de um tema legado e são desligados à parte.
+ * Os sem sufixo do tema legado (`rounded`, `shadow`, `drop-shadow`) somem junto (conferido no build).
  */
 @theme {
   --color-*: initial;
@@ -26,16 +26,20 @@
   --radius-*: initial;
   --font-*: initial;
   --text-*: initial;
-  /* Só os pesos que têm arquivo de fonte; os demais seriam sintetizados pelo navegador */
+  /* Só os pesos com arquivo em alguma família; sem arquivo na família, o navegador usa o mais
+     próximo, como no mockup (Inter 700 → 600) */
   --font-weight-*: initial;
 }
 
 /*
  * Mapeamento tokens → utilitários. Só referencia variáveis do tokens.css (nenhum valor aqui).
+ * `inline`: o utilitário usa `var(--token)` direto, então redefinir um token num contêiner
+ * (a sidebar navy) vale para tudo dentro dele. `reference`: o Tailwind não reemite estas
+ * variáveis; sombras e famílias têm o mesmo nome dos dois lados e virariam autorreferência.
  * Cor: o utilitário leva o nome exato do token — `bg-bg-panel`, `text-text-secondary`,
  * `border-border-soft`, `text-gold-strong` —, sem colidir com os nomes do shadcn (STEP 0.6).
  */
-@theme inline {
+@theme inline reference {
   --color-bg-base: var(--bg-base);
   --color-bg-panel: var(--bg-panel);
   --color-bg-panel-alt: var(--bg-panel-alt);
@@ -61,10 +65,7 @@
   --color-blue: var(--blue);
   --color-blue-text: var(--blue-text);
 
-  /*
-   * Sombras e famílias têm o mesmo nome dos dois lados (o §7 já usa o do Tailwind). O Tailwind
-   * repete a variável na camada `theme`; a declaração sem camada do tokens.css vence a cascata.
-   */
+  /* Só as duas sombras do §7, com a cor já no token: `shadow-<cor>` não tinge, de propósito */
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
 
@@ -114,6 +115,15 @@
     line-height: var(--line-height-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Borda sem cor explícita usa o token, não a cor do texto (padrão do preflight) */
+  *,
+  ::before,
+  ::after,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
   }
 
   /* Ouro da marca com texto navy: o branco do mockup sobre --gold não passa no AA (2,6:1) */
