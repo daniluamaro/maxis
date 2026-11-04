@@ -77,11 +77,11 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.4 — Lint, formatação e testes do frontend
 **Entrega:** portões de qualidade locais.
-- [ ] ESLint (flat config): typescript-eslint *strict type-checked*, react-hooks, react-refresh, jsx-a11y; `no-explicit-any` como **erro**
-- [ ] Prettier integrado ao ESLint (sem conflito de regras)
-- [ ] Vitest + React Testing Library + jsdom + matchers do jest-dom (arquivo de setup)
-- [ ] Scripts: `lint`, `format:check`, `typecheck`, `test`, `build`
-- [ ] Primeiro teste real: a tela inicial renderiza a marca "Maxis"
+- [x] ESLint (flat config): typescript-eslint *strict type-checked*, react-hooks, react-refresh, jsx-a11y; `no-explicit-any` como **erro** — ESLint 10.14 com `projectService`; jsx-a11y *strict*; `explicit-module-boundary-types` como erro; sem `eslint-disable` no código (`noInlineConfig`)
+- [x] Prettier integrado ao ESLint (sem conflito de regras) — `eslint-config-prettier`; Prettier na raiz para o repositório todo, exceto `*.md`, `docs/`, `supabase/` e o lockfile
+- [x] Vitest + React Testing Library + jsdom + matchers do jest-dom (arquivo de setup) — `src/setupTests.ts`; mocks, envs e globais restaurados entre testes
+- [x] Scripts: `lint`, `format:check`, `typecheck`, `test`, `build` (+ `format`)
+- [x] Primeiro teste real: a tela inicial renderiza a marca "Maxis"
 
 **Verificação:** todos os scripts verdes, sem avisos; um `any` proposital é barrado pelo lint (e removido).
 
@@ -139,6 +139,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - [ ] Página de abertura: marca Maxis em layout dual-tone discreto, sem texto de template
 - [ ] Página de referência do tema: paleta com nomes dos tokens, escala tipográfica, primitivos shadcn, skeleton, números formatados, gráfico de exemplo — comparada lado a lado com `docs/design/maxis-tema-claro.html`
 - [ ] 404 com a marca e link para o início (a versão no shell vem na Fase 3)
+- [ ] Ícones complementares: `apple-touch-icon` 180×180 e favicon PNG de reserva para navegadores sem favicon SVG (Safari < 26) — achado do code-review do 0.3, aprovado pelo Danilo em 03/11/2026
 
 **Verificação:** `/dev/tema` inexistente no build de produção; contraste e foco visível conferidos; checklist de tela (`frontend/CLAUDE.md §13`) nos itens aplicáveis.
 
@@ -240,6 +241,8 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **Plano free pausa projeto parado há 7 dias:** o dev pausa se o trabalho parar; a produção, sem uso até o go-live, também — reativar antes de um deploy. Deixa de acontecer com o plano Pro, na conclusão do SaaS.
 - **MCP com escrita no dev:** um comando errado (ou um texto malicioso lido de uma tabela) afeta o dev — por isso schema só por migration versionada, aprovação do Danilo a cada escrita e produção fora do alcance de escrita do MCP.
 - **Comando no projeto errado:** dois projetos na mesma conta → sem `link`; todo comando do CLI com `--remote=<ref>` explícito.
+- **jsx-a11y parado:** a 6.10.2 (out/2024) não declara suporte ao ESLint 10, embora funcione (testado). A versão do ESLint mora só no `package.json` raiz, e o `overrides` do jsx-a11y aponta para ela (`$eslint`): atualizar o ESLint é mudar uma linha. Revisar quando o jsx-a11y publicar suporte ao 10.
+- **`npm audit` de desenvolvimento:** 15 alertas moderados do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
 
 ## 9. Status dos Entregáveis
 
@@ -248,7 +251,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
 | 2 | Repositório público com governança versionada | 0.2 | ✅ |
 | 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ✅ |
-| 4 | Lint, formatação e testes do frontend | 0.4 | ⬜ |
+| 4 | Lint, formatação e testes do frontend | 0.4 | ✅ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
 | 6 | shadcn/ui no tema | 0.6 | ⬜ |
 | 7 | Formatadores pt-BR com testes | 0.7 | ⬜ |
