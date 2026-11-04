@@ -87,12 +87,12 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.5 — Tokens, Tailwind e tipografia
 **Entrega:** o contrato visual do §7 virando código, em fonte única.
-- [ ] Tailwind v4 via plugin do Vite
-- [ ] `theme/tokens.css` com **todos** os tokens do §7 (incluindo os da pendência #4) como CSS variables
-- [ ] Mapeamento dos tokens para utilitários (cores, sombras, raio, famílias); paleta padrão do Tailwind desligada
-- [ ] Fontes via `@fontsource`: Manrope 500/700/800, Inter 400/500/600, JetBrains Mono 400/500/700; famílias `display`, `sans`, `mono`; algarismos tabulares no mono
-- [ ] **Escala tipográfica fixa** derivada do mockup (título de página 22, título de seção 17, corpo 13–13,5, rótulos 10,5–11, KPI 25 mono) registrada nos tokens
-- [ ] Base global: fundo `--bg-base`, texto `--text-primary`, seleção em ouro, anel de foco com token
+- [x] Tailwind v4 via plugin do Vite — 4.3.4; entrada em `src/index.css`
+- [x] `theme/tokens.css` com **todos** os tokens do §7 (incluindo os da pendência #4) como CSS variables
+- [x] Mapeamento dos tokens para utilitários (cores, sombras, raio, famílias); paleta padrão do Tailwind desligada — `@theme inline reference`, utilitário com o nome exato do token (`bg-bg-panel`, `text-text-secondary`); também desligados sombras, raios, famílias, tamanhos e pesos padrão; raios derivados de `--radius` como no shadcn (6 · 8 · 10 · 14px)
+- [x] Fontes via `@fontsource`: Manrope 500/700/800, Inter 400/500/600, JetBrains Mono 400/500/700; famílias `display`, `sans`, `mono`; algarismos tabulares no mono — fonte nunca embutida em base64 no CSS (`assetsInlineLimit`)
+- [x] **Escala tipográfica fixa** derivada do mockup (título de página 22, título de seção 17, corpo 13–13,5, rótulos 10,5–11, KPI 25 mono) registrada nos tokens — 7 passos com os nomes padrão do Tailwind (o shadcn herda): `2xs` 10,5 · `xs` 11,5 · `sm` 12,5 · `base` 13,5 · `lg` 17 · `xl` 22 · `2xl` 25
+- [x] Base global: fundo `--bg-base`, texto `--text-primary`, seleção em ouro, anel de foco com token — seleção `--gold` com texto `--navy` (o branco do mockup dá 2,6:1); foco `--gold-strong` 2px; borda padrão `--border`; corpo em `base`
 
 **Verificação:** build não gera CSS para `bg-blue-500`; nenhum hex/rgb fora de `tokens.css` (busca no código; exceção: `public/favicon.svg`, asset estático que não lê CSS variables — cores copiadas dos tokens e indicadas no próprio arquivo); fontes carregam sem requisição externa.
 
@@ -242,7 +242,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **MCP com escrita no dev:** um comando errado (ou um texto malicioso lido de uma tabela) afeta o dev — por isso schema só por migration versionada, aprovação do Danilo a cada escrita e produção fora do alcance de escrita do MCP.
 - **Comando no projeto errado:** dois projetos na mesma conta → sem `link`; todo comando do CLI com `--remote=<ref>` explícito.
 - **jsx-a11y parado:** a 6.10.2 (out/2024) não declara suporte ao ESLint 10, embora funcione (testado). A versão do ESLint mora só no `package.json` raiz, e o `overrides` do jsx-a11y aponta para ela (`$eslint`): atualizar o ESLint é mudar uma linha. Revisar quando o jsx-a11y publicar suporte ao 10.
-- **`npm audit` de desenvolvimento:** 15 alertas moderados do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
+- **`npm audit` de desenvolvimento:** 14 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
 
 ## 9. Status dos Entregáveis
 
@@ -252,7 +252,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 2 | Repositório público com governança versionada | 0.2 | ✅ |
 | 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ✅ |
 | 4 | Lint, formatação e testes do frontend | 0.4 | ✅ |
-| 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ⬜ |
+| 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ✅ |
 | 6 | shadcn/ui no tema | 0.6 | ⬜ |
 | 7 | Formatadores pt-BR com testes | 0.7 | ⬜ |
 | 8 | Tema ECharts e wrapper | 0.8 | ⬜ |
