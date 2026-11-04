@@ -1,0 +1,4 @@
+dist
+coverage
+# Governança (CLAUDE.md) não é código: o Prettier não reformata
+*.md
