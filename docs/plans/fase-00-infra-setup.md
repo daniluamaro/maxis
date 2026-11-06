@@ -98,8 +98,8 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.6 — shadcn/ui no tema
 **Entrega:** primitivos do shadcn vestidos com os tokens.
-- [ ] Inicializar o shadcn (`components.json`, alias `@/components/ui`, utilitário de classes)
-- [ ] Variáveis do shadcn **apontando para tokens** (nenhum valor novo). Proposta:
+- [x] Inicializar o shadcn (`components.json`, alias `@/components/ui`, utilitário de classes) — shadcn 4.23.0, **Base UI** (decisão do Danilo, 05/11/2026), estilo `base-nova`; utilitário = pacote `cn` 0.5.2 (decisão do Danilo), reexportado em `lib/utils.ts`; alias também no `tsconfig.json` raiz (o CLI resolve por ele); CLI chamado com versão explícita (`npx shadcn@4.23.0`), sem pacote no projeto
+- [x] Variáveis do shadcn **apontando para tokens** (nenhum valor novo) — direto no `@theme`, sem variável intermediária (a redefinição local de token vale também nos primitivos). Desvios da proposta, por AA: `destructive` → `--red-text` (o shadcn o usa como texto; `--red` como texto dá 4,4:1); `secondary-foreground` e `accent-foreground` → `--text-primary` (texto de botão e de item em hover; só `muted-foreground` é `--text-secondary`). Proposta:
 
   | shadcn | Token |
   |---|---|
@@ -112,9 +112,10 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
   | `ring` (foco) | `--gold-strong` (marca + contraste ≥ 3:1 sobre branco) |
   | `radius` | `--radius` |
 
-- [ ] Adicionar **só** os primitivos usados na página de referência: button, input, label, badge, skeleton, tabs, dialog, toast (sonner)
+- [x] Adicionar **só** os primitivos usados na página de referência: button, input, label, badge, skeleton, tabs, dialog, toast (sonner) — adaptados: alvo ≥ 40px (sem os tamanhos `xs`/`sm`), foco `ring-2` em `--gold-strong` cheio com `outline-hidden` (alto contraste do Windows), hover em `--bg-hover`, badge no padrão do mockup com variantes `success`/`warning`/`destructive`/`info`, campo com 16px abaixo de `md` (zoom do iOS), textos em pt-BR, sem `dark:` (variante neutralizada) e sem `next-themes`
+- [x] Exceção de lint só no config: variantes exportadas pelos primitivos e o `Label` genérico; no app, `Label` sem campo associado é barrado
 
-**Verificação:** primitivos exibidos na página de referência com os tokens; contraste AA conferido nos pares texto/fundo usados.
+**Verificação:** primitivos exibidos na página de referência com os tokens; contraste AA conferido nos pares texto/fundo usados. *(A página de referência é do STEP 0.9; aqui, sonda temporária no build de produção, medida no Chromium.)*
 
 ### STEP 0.7 — Formatação pt-BR (`lib/format`)
 **Entrega:** os únicos formatadores permitidos na UI.
@@ -242,7 +243,9 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **MCP com escrita no dev:** um comando errado (ou um texto malicioso lido de uma tabela) afeta o dev — por isso schema só por migration versionada, aprovação do Danilo a cada escrita e produção fora do alcance de escrita do MCP.
 - **Comando no projeto errado:** dois projetos na mesma conta → sem `link`; todo comando do CLI com `--remote=<ref>` explícito.
 - **jsx-a11y parado:** a 6.10.2 (out/2024) não declara suporte ao ESLint 10, embora funcione (testado). A versão do ESLint mora só no `package.json` raiz, e o `overrides` do jsx-a11y aponta para ela (`$eslint`): atualizar o ESLint é mudar uma linha. Revisar quando o jsx-a11y publicar suporte ao 10.
-- **`npm audit` de desenvolvimento:** 14 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
+- **`cn` pré-1.0:** o utilitário de classes do shadcn 4 (`cn` 0.5.2, mantido pelo shadcn) é jovem. Mitigação: versão exata e `src/theme/cn.test.ts`, que prova a mesclagem com os nomes do tema — rodar a cada atualização do pacote.
+- **Primitivos adaptados divergem do upstream:** um `npx shadcn@<versão> add <x> --overwrite` desfaz as adaptações do STEP 0.6 (alvo ≥ 40px, foco, cores, pt-BR). Atualizar primitivo é por `add <x> --diff`, aplicando à mão o que valer.
+- **`npm audit` de desenvolvimento:** 12 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
 
 ## 9. Status dos Entregáveis
 
@@ -253,7 +256,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ✅ |
 | 4 | Lint, formatação e testes do frontend | 0.4 | ✅ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ✅ |
-| 6 | shadcn/ui no tema | 0.6 | ⬜ |
+| 6 | shadcn/ui no tema | 0.6 | ✅ |
 | 7 | Formatadores pt-BR com testes | 0.7 | ⬜ |
 | 8 | Tema ECharts e wrapper | 0.8 | ⬜ |
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ⬜ |
