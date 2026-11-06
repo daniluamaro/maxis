@@ -1,7 +1,6 @@
 @import 'tailwindcss';
-/* Animações (`animate-in`, `fade-in-0`…) e variantes (`data-open:`…) dos primitivos do shadcn */
+/* Animações dos primitivos do shadcn (`animate-in`, `fade-in-0`, `zoom-in-95`…) */
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 @import './theme/tokens.css';
 
 /* Fontes self-hosted (decisão #6 da Fase 0): só os pesos do contrato, sem requisição a terceiros */
@@ -21,6 +20,51 @@
  * componente novo fica inerte em vez de mudar a tela de quem usa o SO no escuro.
  */
 @custom-variant dark (&:is(.dark *));
+
+/*
+ * Variantes de estado dos primitivos, copiadas do `shadcn/tailwind.css` (shadcn 4.23.0) para o
+ * build não depender do pacote do CLI. Só as usadas: componente novo que use outra traz a
+ * definição de lá (sem ela, a classe não gera CSS e o estado some em silêncio).
+ */
+@custom-variant data-open {
+  &:where([data-state='open']),
+  &:where([data-open]:not([data-open='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state='closed']),
+  &:where([data-closed]:not([data-closed='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled='true']),
+  &:where([data-disabled]:not([data-disabled='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-active {
+  &:where([data-state='active']),
+  &:where([data-active]:not([data-active='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation='horizontal']) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation='vertical']) {
+    @slot;
+  }
+}
 
 /*
  * Desliga o tema padrão do Tailwind onde o contrato decide: sem isto, `bg-blue-500`,
@@ -175,9 +219,18 @@
   }
 
   /* Cursor de clique nos botões, como no mockup (opção `--pointer` do shadcn) */
-  button:not(:disabled),
-  [role='button']:not(:disabled) {
+  button:not(:disabled, [aria-disabled='true'], [data-disabled]),
+  [role='button']:not([aria-disabled='true'], [data-disabled]) {
     cursor: pointer;
+  }
+
+  /* Abaixo de `md` (48rem): o iOS Safari dá zoom ao focar campo com fonte menor que 16px */
+  @media (width < 48rem) {
+    input,
+    select,
+    textarea {
+      font-size: var(--font-size-touch-input);
+    }
   }
 
   /* frontend/CLAUDE.md §6: sem movimento para quem pede menos movimento no sistema */
