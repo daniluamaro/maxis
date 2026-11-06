@@ -37,6 +37,32 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'error',
       // CLAUDE.md §6: funções e métodos públicos com tipo de retorno explícito
       '@typescript-eslint/explicit-module-boundary-types': 'error',
+      // Os primitivos `Label` e `Input` contam como rótulo e campo: o app não usa um sem o outro
+      'jsx-a11y/label-has-associated-control': [
+        'error',
+        { labelComponents: ['Label'], controlComponents: ['Input'] },
+      ],
+    },
+  },
+  {
+    // Primitivos do shadcn exportam as variantes que outros primitivos reutilizam
+    files: ['src/components/ui/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        {
+          allowConstantExport: true,
+          allowCompoundComponents: true,
+          allowExportNames: ['buttonVariants', 'badgeVariants', 'tabsListVariants'],
+        },
+      ],
+    },
+  },
+  {
+    // O Label genérico recebe o `htmlFor` de quem o usa; lá a regra acima vale
+    files: ['src/components/ui/label.tsx'],
+    rules: {
+      'jsx-a11y/label-has-associated-control': 'off',
     },
   },
   {

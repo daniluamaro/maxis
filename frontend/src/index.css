@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+/* Animações (`animate-in`, `fade-in-0`…) e variantes (`data-open:`…) dos primitivos do shadcn */
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 @import './theme/tokens.css';
 
 /* Fontes self-hosted (decisão #6 da Fase 0): só os pesos do contrato, sem requisição a terceiros */
@@ -11,6 +14,13 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 @import '@fontsource/jetbrains-mono/700.css';
+
+/*
+ * Sem tema escuro (o §7 só define o claro). Por padrão, `dark:` valeria com o sistema em modo
+ * escuro; assim só vale sob `.dark`, que o Maxis não usa — um `dark:` que chegue com um
+ * componente novo fica inerte em vez de mudar a tela de quem usa o SO no escuro.
+ */
+@custom-variant dark (&:is(.dark *));
 
 /*
  * Desliga o tema padrão do Tailwind onde o contrato decide: sem isto, `bg-blue-500`,
@@ -65,17 +75,43 @@
   --color-blue: var(--blue);
   --color-blue-text: var(--blue-text);
 
+  /*
+   * Nomes semânticos que os primitivos do shadcn usam, apontando direto para os tokens (sem
+   * variável intermediária, para a redefinição local de token valer também neles).
+   * `destructive` é a variante de texto: o shadcn o usa como texto e em fundos translúcidos,
+   * e o vermelho vivo como texto sobre claro não passa no AA (4,4:1).
+   */
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-panel);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-panel);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--navy);
+  --color-primary-foreground: var(--bg-panel);
+  --color-secondary: var(--bg-panel-alt);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--bg-panel-alt);
+  --color-muted-foreground: var(--text-secondary);
+  --color-accent: var(--bg-hover);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--red-text);
+  --color-input: var(--border);
+  --color-ring: var(--gold-strong);
+
   /* Só as duas sombras do §7, com a cor já no token: `shadow-<cor>` não tinge, de propósito */
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
 
   /* Derivados de --radius como no shadcn: 6 · 8 · 10 · 14px, os raios do mockup */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
 
   --font-display: var(--font-display);
+  /* Nome que os primitivos do shadcn usam para título */
+  --font-heading: var(--font-display);
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
   --font-mono--font-feature-settings: 'tnum';
@@ -137,4 +173,44 @@
     outline: 2px solid var(--gold-strong);
     outline-offset: 2px;
   }
+
+  /* Cursor de clique nos botões, como no mockup (opção `--pointer` do shadcn) */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* frontend/CLAUDE.md §6: sem movimento para quem pede menos movimento no sistema */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+ * Toast (sonner): a biblioteca injeta CSS próprio em runtime, sem camada e depois deste arquivo,
+ * com cores literais. Para vencê-lo sem `!important` nem cor em `style`, estas regras ficam fora
+ * de camada e com um `:root` a mais de especificidade.
+ */
+:root [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--bg-panel);
+  --normal-text: var(--text-primary);
+  --normal-border: var(--border-soft);
+  --border-radius: var(--radius);
+  font-family: var(--font-body);
+}
+
+:root [data-sonner-toast][data-styled='true'] {
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-sm);
+}
+
+:root [data-sonner-toast][data-styled='true'] [data-description] {
+  color: var(--text-secondary);
 }
