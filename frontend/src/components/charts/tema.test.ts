@@ -1,34 +1,16 @@
-import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { echarts } from '@/components/charts/echarts';
-import { montarOpcoesCartesiano } from '@/components/charts/opcoesCartesiano';
+import {
+  EXEMPLO_FRETES as FRETES,
+  EXEMPLO_SEIS_SERIES as SEIS_SERIES,
+} from '@/components/charts/exemplos';
+import { desenharGrafico, mostrarDica } from '@/components/charts/graficoDeTeste';
 import type { DadosCartesianos } from '@/components/charts/opcoesCartesiano';
-import { criarTemaECharts, lerTokensDoGrafico } from '@/theme/echarts';
+import { lerTokensDoGrafico } from '@/theme/echarts';
 import tokensCss from '@/theme/tokens.css?raw';
 
 // Verificação do STEP 0.8: nenhuma cor padrão do ECharts aparece. Desenha de verdade (SVG no
 // jsdom) e confere cada cor e fonte usada contra o tokens.css.
-
-const FRETES: DadosCartesianos = {
-  categorias: ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'],
-  tipoCategoria: 'data',
-  formato: 'moeda',
-  series: [
-    { nome: 'Realizado', tipo: 'barra', valores: [41250.5, 48320, null, 39870.25, 52110] },
-    { nome: 'Meta', tipo: 'linha', valores: [45000, 45000, 45000, 45000, 45000] },
-  ],
-};
-
-// As seis cores do contrato, em barras e em linhas
-const SEIS_SERIES: DadosCartesianos = {
-  categorias: ['Jan', 'Fev', 'Mar'],
-  formato: 'numero',
-  series: ['A', 'B', 'C', 'D', 'E', 'F'].map((nome, i) => ({
-    nome,
-    tipo: i % 2 === 0 ? 'barra' : 'linha',
-    valores: [10 + i, 20 + i, 15 + i],
-  })),
-};
 
 const HEX_DOS_TOKENS = new Set(tokensCss.toLowerCase().match(/#[0-9a-f]{6}\b/g));
 
@@ -43,28 +25,11 @@ function paraHex(cor: string): string {
     .join('')}`;
 }
 
-beforeEach(() => {
-  // O jsdom não tem canvas: sem contexto 2D, o zrender estima a largura do texto
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-});
-
 function desenhar(dados: DadosCartesianos, comTema: boolean): HTMLElement {
-  const elemento = document.createElement('div');
-  document.body.append(elemento);
-  const tokens = lerTokensDoGrafico();
-  const grafico = echarts.init(elemento, comTema ? criarTemaECharts(tokens) : undefined, {
-    renderer: 'svg',
-    width: 640,
-    height: 320,
-  });
-  grafico.setOption(montarOpcoesCartesiano(dados, tokens));
+  const desenhado = desenharGrafico(dados, comTema);
   // Dica aberta: entram também a faixa do eixo (axisPointer) e a caixa da dica
-  grafico.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 1 });
-  onTestFinished(() => {
-    grafico.dispose();
-    elemento.remove();
-  });
-  return elemento;
+  mostrarDica(desenhado, 1);
+  return desenhado.elemento;
 }
 
 // A geometria de recorte (`clipPath`) leva preenchimento, mas não pinta nada

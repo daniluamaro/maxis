@@ -13,7 +13,7 @@ import {
   formatarNumeroCompacto,
   formatarPercentual,
 } from '@/lib/format';
-import { CORES_DAS_SERIES } from '@/theme/echarts';
+import { CORES_DAS_SERIES, RAIO_DA_PONTA_DA_BARRA } from '@/theme/echarts';
 import type { TokensDoGrafico } from '@/theme/echarts';
 
 /** Unidade do eixo de valor. Uma só por gráfico: duas unidades pedem dois gráficos, não dois eixos. */
@@ -32,7 +32,10 @@ export type DadosCartesianos = {
   tipoCategoria?: 'texto' | 'data';
   series: readonly SerieCartesiana[];
   formato: FormatoDoValor;
-  /** Casas decimais do valor exato (dica e tabela). Padrão: as do formatador. */
+  /**
+   * Casas decimais do valor exato (dica e tabela) em número e percentual; padrão: as do
+   * formatador. Moeda sai sempre com centavos.
+   */
   casas?: number;
 };
 
@@ -58,7 +61,9 @@ function casasDoPercentual(fracao: number): number {
   return casas ?? 2;
 }
 
-// O eixo mostra valor compacto ("R$ 40 mil"); o exato fica na dica e na tabela
+// O eixo mostra valor compacto ("R$ 40 mil"); o exato fica na dica e na tabela. O eixo parte do
+// zero e o ECharts escolhe passos de 1, 2, 3 ou 5 × 10ⁿ: em até ~8 marcas, cada rótulo cabe na
+// forma compacta sem dois iguais. Um eixo que não parta do zero (`scale`) quebraria essa conta.
 function formatadorDoEixo(formato: FormatoDoValor): (valor: number) => string {
   switch (formato) {
     case 'moeda':
@@ -118,6 +123,20 @@ function montarDica(params: ParametrosDaDica, dados: DadosCartesianos): HTMLElem
   return dica;
 }
 
+// O raio do tema vale para os cantos de cima; a barra negativa cresce para baixo e tem a ponta
+// embaixo — sem isto, arredondaria a base e deixaria a ponta reta
+const PONTA_DA_BARRA_NEGATIVA = {
+  borderRadius: [0, 0, RAIO_DA_PONTA_DA_BARRA, RAIO_DA_PONTA_DA_BARRA],
+};
+
+function dadosDaBarra(
+  valores: readonly (number | null)[],
+): (number | null | { value: number; itemStyle: typeof PONTA_DA_BARRA_NEGATIVA })[] {
+  return valores.map((valor) =>
+    valor !== null && valor < 0 ? { value: valor, itemStyle: PONTA_DA_BARRA_NEGATIVA } : valor,
+  );
+}
+
 export function montarOpcoesCartesiano(
   dados: DadosCartesianos,
   tokens: TokensDoGrafico,
@@ -154,7 +173,7 @@ export function montarOpcoesCartesiano(
     },
     series: dados.series.map((serie) =>
       serie.tipo === 'barra'
-        ? { type: 'bar', name: serie.nome, data: [...serie.valores] }
+        ? { type: 'bar', name: serie.nome, data: dadosDaBarra(serie.valores) }
         : { type: 'line', name: serie.nome, data: [...serie.valores] },
     ),
   };

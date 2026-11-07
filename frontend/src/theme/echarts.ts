@@ -78,6 +78,9 @@ export function lerTokensDoGrafico(): TokensDoGrafico {
   };
 }
 
+/** Raio da ponta da barra, em px (a base, na linha de base, fica reta). */
+export const RAIO_DA_PONTA_DA_BARRA = 4;
+
 /**
  * Tema do produto para os gráficos registrados em `components/charts`: paleta do §7, eixos e grade
  * recessivos em --border, rótulos em --text-tertiary, dica clara com a sombra dos flutuantes e as
@@ -155,8 +158,10 @@ export function criarTemaECharts(t: TokensDoGrafico): TemaECharts {
 
     bar: {
       barMaxWidth: 24,
-      // Ponta arredondada, base reta na linha de base
-      itemStyle: { borderRadius: [4, 4, 0, 0] },
+      // Ponta arredondada, base reta na linha de base (barra negativa: opcoesCartesiano inverte)
+      itemStyle: {
+        borderRadius: [RAIO_DA_PONTA_DA_BARRA, RAIO_DA_PONTA_DA_BARRA, 0, 0],
+      },
     },
     line: {
       symbol: 'circle',

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import tokensCss from '@/theme/tokens.css?raw';
 
@@ -15,6 +15,14 @@ beforeEach(() => {
     estilo.id = ID_DOS_TOKENS;
     estilo.textContent = tokensCss;
     document.head.append(estilo);
+  }
+});
+
+// O jsdom não tem canvas: sem contexto 2D, o zrender (ECharts) estima a largura do texto em vez
+// de o jsdom acusar "not implemented" a cada medida
+beforeEach(() => {
+  if (typeof HTMLCanvasElement !== 'undefined') {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
   }
 });
 

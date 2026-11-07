@@ -1,65 +1,17 @@
 import { within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { echarts } from '@/components/charts/echarts';
+import { EXEMPLO_FRETES as FRETES } from '@/components/charts/exemplos';
+import { desenharGrafico, mostrarDica } from '@/components/charts/graficoDeTeste';
 import { montarOpcoesCartesiano } from '@/components/charts/opcoesCartesiano';
-import type { DadosCartesianos } from '@/components/charts/opcoesCartesiano';
-import { criarTemaECharts, lerTokensDoGrafico } from '@/theme/echarts';
+import { lerTokensDoGrafico } from '@/theme/echarts';
 
 const NBSP = ' ';
 
-// Exemplo do STEP 0.8 (fictício): barras e linha na mesma unidade, num eixo só
-const FRETES: DadosCartesianos = {
-  categorias: ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'],
-  tipoCategoria: 'data',
-  formato: 'moeda',
-  series: [
-    { nome: 'Realizado', tipo: 'barra', valores: [41250.5, 48320, null, 39870.25, 52110] },
-    { nome: 'Meta', tipo: 'linha', valores: [45000, 45000, 45000, 45000, 45000] },
-  ],
-};
-
-beforeEach(() => {
-  // O jsdom não tem canvas: sem contexto 2D, o zrender estima a largura do texto
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-});
-
-type Renderizado = { grafico: ReturnType<typeof echarts.init>; elemento: HTMLDivElement };
-
-function renderizar(dados: DadosCartesianos): Renderizado {
-  const elemento = document.createElement('div');
-  document.body.append(elemento);
-  const tokens = lerTokensDoGrafico();
-  const grafico = echarts.init(elemento, criarTemaECharts(tokens), {
-    renderer: 'svg',
-    width: 640,
-    height: 320,
-  });
-  grafico.setOption(montarOpcoesCartesiano(dados, tokens));
-  onTestFinished(() => {
-    grafico.dispose();
-    elemento.remove();
-  });
-  return { grafico, elemento };
-}
+const renderizar = desenharGrafico;
 
 function textosDoSvg(elemento: HTMLElement): string[] {
   return [...elemento.querySelectorAll('svg text')].map((texto) => texto.textContent);
-}
-
-// A dica é o HTML que o ECharts põe ao lado do desenho (o SVG, onde também estão as legendas).
-// Sobre um ponto sem dado o ECharts não abre dica: aponta-se uma série que tenha valor ali.
-function mostrarDica(
-  { grafico, elemento }: Renderizado,
-  dataIndex: number,
-  seriesIndex = 0,
-): HTMLElement {
-  grafico.dispatchAction({ type: 'showTip', seriesIndex, dataIndex });
-  const dica = [...elemento.children].find((filho) => filho.querySelector('svg') === null);
-  if (!(dica instanceof HTMLElement)) {
-    throw new Error('Dica não exibida.');
-  }
-  return dica;
 }
 
 describe('eixo de categoria', () => {
@@ -116,6 +68,34 @@ it('o desenho não tem legenda', () => {
   const { elemento } = renderizar(FRETES);
 
   expect(textosDoSvg(elemento)).not.toContain('Realizado');
+});
+
+// Onde ficam os cantos arredondados de uma barra desenhada: "ponta" (longe da linha de base)
+// ou "base". O ECharts desenha cada canto arredondado como um arco (A) no caminho do SVG.
+function cantosArredondados(caminho: string, valor: number): 'ponta' | 'base' {
+  const ys = [...caminho.matchAll(/[ML]-?[\d.]+ (-?[\d.]+)/g)].map((m) => Number(m[1]));
+  const arcos = [...caminho.matchAll(/A[\d.\s-]+ (-?[\d.]+)(?=[A-Z])/g)].map((m) => Number(m[1]));
+  // No SVG o y cresce para baixo: a ponta de uma barra positiva é o menor y
+  const ponta = valor >= 0 ? Math.min(...ys) : Math.max(...ys);
+  return arcos.every((y) => Math.abs(y - ponta) <= 4) ? 'ponta' : 'base';
+}
+
+describe('barras', () => {
+  it('arredondam a ponta, nunca a base — também quando o valor é negativo', () => {
+    const { elemento } = renderizar({
+      categorias: ['Jan', 'Fev'],
+      formato: 'numero',
+      series: [{ nome: 'Saldo', tipo: 'barra', valores: [50, -30] }],
+    });
+    const caminhos = [...elemento.querySelectorAll('path')]
+      .filter((caminho) => caminho.getAttribute('fill') === lerTokensDoGrafico().series[0])
+      .map((caminho) => caminho.getAttribute('d') ?? '');
+
+    expect(caminhos.map((d, i) => cantosArredondados(d, i === 0 ? 50 : -30))).toEqual([
+      'ponta',
+      'ponta',
+    ]);
+  });
 });
 
 // Uma sétima série repetiria a cor da primeira: agrupar em "Outros" ou dividir o gráfico
