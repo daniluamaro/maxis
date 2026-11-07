@@ -83,6 +83,20 @@
   /* Só os pesos com arquivo em alguma família; sem arquivo na família, o navegador usa o mais
      próximo, como no mockup (Inter 700 → 600) */
   --font-weight-*: initial;
+
+  /* frontend/CLAUDE.md §6: abaixo de 900px a sidebar vira gaveta (variante `sidebar:`). As telas
+     fora do shell seguem o mesmo corte, para o dual-tone mudar no mesmo ponto em todo o produto. */
+  --breakpoint-sidebar: 56.25rem;
+}
+
+/* Fundo do workspace do mockup (o `body` dele): brilho do painel no alto, à esquerda, até a base */
+@utility bg-workspace {
+  background-color: var(--bg-base);
+  background-image: radial-gradient(
+    ellipse 1200px 800px at 20% -10%,
+    var(--bg-panel) 0%,
+    var(--bg-base) 60%
+  );
 }
 
 /*

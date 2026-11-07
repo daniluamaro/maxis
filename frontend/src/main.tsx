@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 
 import '@/index.css';
 import { App } from '@/app/App';
@@ -12,6 +13,9 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    {/* Rota por segmento com a History API (CLAUDE.md §2); o fallback da hospedagem é do deploy */}
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>,
 );
