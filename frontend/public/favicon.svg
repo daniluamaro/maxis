@@ -2,7 +2,9 @@
   <!-- Monograma do mockup aprovado. Favicon não lê CSS variables: as cores são cópia dos
        tokens do CLAUDE.md §7 (degradê do logo gold-bright → gold-dim; letra text-primary).
        O "M" é desenhado em path para não depender da fonte instalada.
-       Comentário XML não aceita hífen duplo: por isso os tokens aparecem sem o prefixo. -->
+       Comentário XML não aceita hífen duplo: por isso os tokens aparecem sem o prefixo.
+       favicon-32.png e apple-touch-icon.png são este desenho rasterizado no Chromium (o do iOS
+       sem o arredondamento, que o sistema aplica): mudou aqui, gere os dois de novo. -->
   <defs>
     <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#F0CC5C" />
