@@ -127,18 +127,18 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.8 — Tema ECharts
 **Entrega:** gráficos já nascem no padrão do produto.
-- [ ] `echarts` + `echarts-for-react`, com importação **modular** (só os tipos de gráfico usados, para conter o bundle)
-- [ ] `theme/echarts.ts`: tema registrado a partir das CSS variables — série `[navy, gold, green, blue, amber, cinza]`, grid/eixos `--border`, rótulos `--text-tertiary`, tooltip claro com sombra, fontes do produto
-- [ ] Wrapper em `components/charts` que aplica o tema e formata eixos/tooltip via `lib/format`
-- [ ] Exemplo (barras + linha) com dados fictícios na página de referência
+- [x] `echarts` + `echarts-for-react`, com importação **modular** (só os tipos de gráfico usados, para conter o bundle) — echarts **6.1.0** e echarts-for-react **3.0.6** (a 3.0.7 foi marcada pelo autor como "publicada por engano"); registrados só barra, linha, grade, dica e o renderizador **SVG** (`components/charts/echarts.ts`). Lint barra qualquer import do ECharts fora de `components/charts` e, dentro, as entradas inteiras (`echarts`, `echarts-for-react`, `echarts-for-react/lib/*`); importação só de tipo de `echarts` é permitida
+- [x] `theme/echarts.ts`: tema a partir das CSS variables — série `[navy, gold, green, blue, amber, cinza]` (cinza = `--text-tertiary`), grid/eixos `--border`, rótulos `--text-tertiary`, tooltip claro com sombra, fontes do produto — `criarTemaECharts(lerTokensDoGrafico())`; o tema é **criado por gráfico** com os tokens lidos ao montar, não registrado no módulo (sem estado global; o tamanho de fonte da raiz vale para o próximo gráfico). Também: dica `--bg-panel` + `--border-soft` + `var(--shadow-md)` + `--radius`, presa ao gráfico (`confine`); faixa do indicador `--bg-hover` por baixo das séries; barra ≤ 24px com ponta arredondada (negativa: embaixo); linha 2px; ponto 8px com anel `--bg-panel`; altura de linha dos rótulos pelo `--line-height-body`; sem animação de entrada; token ausente = erro com mensagem
+- [x] Wrapper em `components/charts` que aplica o tema e formata eixos/tooltip via `lib/format` — `GraficoCartesiano`: recebe **dados, não opções do ECharts** (sem prop de cor, um eixo de valor só — `moeda`/`numero`/`percentual` —, até 6 séries); eixo em valor compacto (`formatarMoedaCompacta`/`formatarNumeroCompacto`, novos em `lib/format`), dica e tabela com o valor exato; categoria de data em `dd/mm/aaaa` e mono; dica montada com `textContent` (nome do banco nunca vira HTML); legenda em HTML; tabela equivalente para leitor de tela; desenho carregado **sob demanda** (`lazy`) com skeleton e limite de erro
+- [x] Exemplo (barras + linha) com dados fictícios — `components/charts/exemplos.ts`, usado nos testes e conferido por sonda no build de produção (Chromium, 900px e 360px). A página de referência é do STEP 0.9 e o recebe lá
 
-**Verificação:** nenhuma cor default do ECharts aparece; tooltip mostra moeda e data em pt-BR.
+**Verificação:** nenhuma cor default do ECharts aparece; tooltip mostra moeda e data em pt-BR. *(Feito: o teste desenha o gráfico de verdade — SVG no jsdom — e confere toda cor e fonte contra o `tokens.css`, com prova negativa sem o tema; no Chromium, a dica mostra "03/11/2026 · R$ 48.320,00", com a sombra `--shadow-md` computada. 24 mutações realistas, todas pegas.)*
 
 ### STEP 0.9 — Rotas mínimas, abertura e página de referência
 **Entrega:** SPA com roteamento por segmento pronto para o GitHub Pages.
 - [ ] React Router com `BrowserRouter`. Rotas desta fase: `/` (abertura), `/dev/tema` (**só em desenvolvimento**), `*` (404 com a marca)
 - [ ] Página de abertura: marca Maxis em layout dual-tone discreto, sem texto de template
-- [ ] Página de referência do tema: paleta com nomes dos tokens, escala tipográfica, primitivos shadcn, skeleton, números formatados, gráfico de exemplo — comparada lado a lado com `docs/design/maxis-tema-claro.html`
+- [ ] Página de referência do tema: paleta com nomes dos tokens, escala tipográfica, primitivos shadcn, skeleton, números formatados, gráfico de exemplo (`GraficoCartesiano` com `components/charts/exemplos.ts`) — comparada lado a lado com `docs/design/maxis-tema-claro.html`
 - [ ] 404 com a marca e link para o início (a versão no shell vem na Fase 3)
 - [ ] Ícones complementares: `apple-touch-icon` 180×180 e favicon PNG de reserva para navegadores sem favicon SVG (Safari < 26) — achado do code-review do 0.3, aprovado pelo Danilo em 03/11/2026
 
@@ -245,6 +245,9 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **jsx-a11y parado:** a 6.10.2 (out/2024) não declara suporte ao ESLint 10, embora funcione (testado). A versão do ESLint mora só no `package.json` raiz, e o `overrides` do jsx-a11y aponta para ela (`$eslint`): atualizar o ESLint é mudar uma linha. Revisar quando o jsx-a11y publicar suporte ao 10.
 - **`cn` pré-1.0:** o utilitário de classes do shadcn 4 (`cn` 0.5.2, mantido pelo shadcn) é jovem. Mitigação: versão exata e `src/theme/cn.test.ts`, que prova a mesclagem com os nomes do tema — rodar a cada atualização do pacote.
 - **Primitivos adaptados divergem do upstream:** um `npx shadcn@<versão> add <x> --overwrite` desfaz as adaptações do STEP 0.6 (alvo ≥ 40px, foco, cores, pt-BR). Atualizar primitivo é por `add <x> --diff`, aplicando à mão o que valer.
+- **Peso do ECharts:** mesmo modular, barra + linha + grade + dica + SVG somam ~547 kB (~187 kB gzip; o pacote inteiro daria ~1.144 kB). Mitigação: o desenho é carregado sob demanda (`lazy`), num pedaço à parte, só nas telas com gráfico. Gráfico novo = registrar o tipo em `components/charts/echarts.ts` e estender o tema (o tema só cobre o que está registrado).
+- **`echarts-for-react` com manutenção esparsa:** 3.0.6 (jan/2026) é a `latest`; a 3.0.7 saiu marcada "publicada por engano" e as 3.1.7/3.2.7 foram despublicadas no mesmo dia. Mitigação: versão exata, só a entrada `esm/core`, e o wrapper isola o pacote — trocar por um componente próprio (`init` + `setOption` + `ResizeObserver`) mexe só em `DesenhoCartesiano.tsx`.
+- **Pedaço do gráfico após deploy:** quem está com a aba aberta durante um deploy pode pedir um pedaço que não existe mais. O limite de erro do gráfico mostra "Recarregar a página" no lugar do desenho; a Fase 3 trata o mesmo para as rotas.
 - **`npm audit` de desenvolvimento:** 12 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
 
 ## 9. Status dos Entregáveis
@@ -258,7 +261,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ✅ |
 | 6 | shadcn/ui no tema | 0.6 | ✅ |
 | 7 | Formatadores pt-BR com testes | 0.7 | ✅ |
-| 8 | Tema ECharts e wrapper | 0.8 | ⬜ |
+| 8 | Tema ECharts e wrapper | 0.8 | ✅ |
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ⬜ |
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ⬜ |
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ⬜ |
