@@ -52,6 +52,25 @@ export function formatarPercentual(valor: ValorNumerico, casas = 1): string {
   });
 }
 
+/*
+ * Compactos: rótulo de eixo de gráfico, onde o valor exato fica no tooltip e na tabela. Até 2
+ * algarismos significativos (45.678 → "46 mil"); nunca para mostrar um valor isolado.
+ */
+
+/** "R$ 40 mil", "R$ 1,5 mi". */
+export function formatarMoedaCompacta(valor: ValorNumerico): string {
+  return formatarNumerico(valor, 'moeda-compacta', {
+    style: 'currency',
+    currency: 'BRL',
+    notation: 'compact',
+  });
+}
+
+/** "40 mil", "1,5 mi". */
+export function formatarNumeroCompacto(valor: ValorNumerico): string {
+  return formatarNumerico(valor, 'numero-compacto', { notation: 'compact' });
+}
+
 type ValorData = string | Date | null | undefined;
 
 const OPCOES_DATA: Intl.DateTimeFormatOptions = {

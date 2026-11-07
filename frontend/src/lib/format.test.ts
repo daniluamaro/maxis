@@ -4,7 +4,9 @@ import {
   formatarData,
   formatarDataHora,
   formatarMoeda,
+  formatarMoedaCompacta,
   formatarNumero,
+  formatarNumeroCompacto,
   formatarPercentual,
 } from '@/lib/format';
 
@@ -83,6 +85,49 @@ describe('formatarPercentual', () => {
 
   it.each(AUSENTES)('%s → —', (valor) => {
     expect(formatarPercentual(valor)).toBe('—');
+  });
+});
+
+// Também entre o número e a escala ("40 mil"): espaço inseparável
+const NBSP = ' ';
+
+describe('formatarMoedaCompacta', () => {
+  it.each([
+    [40000, `${R$}40${NBSP}mil`],
+    [1500, `${R$}1,5${NBSP}mil`],
+    // Até 2 algarismos significativos: é rótulo de eixo, não valor exato
+    [45678, `${R$}46${NBSP}mil`],
+    [1500000, `${R$}1,5${NBSP}mi`],
+    [1234567890, `${R$}1,2${NBSP}bi`],
+    [999, `${R$}999`],
+    [0, `${R$}0`],
+    [-0, `${R$}0`],
+    [-45000, `-${R$}45${NBSP}mil`],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarMoedaCompacta(valor)).toBe(esperado);
+  });
+
+  it.each(AUSENTES)('%s → —', (valor) => {
+    expect(formatarMoedaCompacta(valor)).toBe('—');
+  });
+});
+
+describe('formatarNumeroCompacto', () => {
+  it.each([
+    [40000, `40${NBSP}mil`],
+    [1234, `1,2${NBSP}mil`],
+    [1500000, `1,5${NBSP}mi`],
+    [999, '999'],
+    [0.5, '0,5'],
+    [0, '0'],
+    [-0, '0'],
+    [-45000, `-45${NBSP}mil`],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarNumeroCompacto(valor)).toBe(esperado);
+  });
+
+  it.each(AUSENTES)('%s → —', (valor) => {
+    expect(formatarNumeroCompacto(valor)).toBe('—');
   });
 });
 
