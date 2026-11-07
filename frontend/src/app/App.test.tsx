@@ -1,14 +1,13 @@
 import { render, screen } from '@testing-library/react';
-import type { JSX } from 'react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { App } from '@/app/App';
 
-function abrir(caminho: string, Aplicacao: () => JSX.Element = App): void {
+function abrir(caminho: string): void {
   render(
     <MemoryRouter initialEntries={[caminho]}>
-      <Aplicacao />
+      <App />
     </MemoryRouter>,
   );
 }
@@ -33,6 +32,19 @@ describe('rotas', () => {
     expect(document.title).toBe('Página não encontrada | Maxis');
   });
 
+  // O navegador entrega o caminho codificado; a pessoa digitou acentos
+  it('mostra o endereço pedido legível, com acentos', () => {
+    abrir('/opera%C3%A7%C3%B5es/gest%C3%A3o');
+
+    expect(screen.getByText('/operações/gestão')).toBeInTheDocument();
+  });
+
+  it('mostra como veio o endereço que não decodifica', () => {
+    abrir('/relatorio%E0%A4%A');
+
+    expect(screen.getByText('/relatorio%E0%A4%A')).toBeInTheDocument();
+  });
+
   // A página vem sob demanda; a primeira transformação dela no Vitest passa de 1 s
   it('abre a referência do tema em desenvolvimento', async () => {
     abrir('/dev/tema');
@@ -51,9 +63,17 @@ describe('rotas', () => {
   it('não tem a referência do tema fora do desenvolvimento', async () => {
     vi.stubEnv('DEV', false);
     vi.resetModules();
-    const { App: AppDeProducao } = await import('@/app/App');
+    // Roteador e App do mesmo carregamento: o contexto do roteador é o mesmo dos dois lados
+    const [{ App: AppDeProducao }, { MemoryRouter: RoteadorDeProducao }] = await Promise.all([
+      import('@/app/App'),
+      import('react-router'),
+    ]);
 
-    abrir('/dev/tema', AppDeProducao);
+    render(
+      <RoteadorDeProducao initialEntries={['/dev/tema']}>
+        <AppDeProducao />
+      </RoteadorDeProducao>,
+    );
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Página não encontrada' }),

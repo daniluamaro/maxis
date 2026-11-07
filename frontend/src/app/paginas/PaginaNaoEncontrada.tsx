@@ -4,9 +4,19 @@ import { Link, useLocation } from 'react-router';
 import { MolduraDaMarca } from '@/components/shell/MolduraDaMarca';
 import { buttonVariants } from '@/components/ui/button';
 
+// O navegador entrega o caminho codificado ("/opera%C3%A7%C3%B5es"); o que não decodifica
+// aparece como veio. `decodeURI` mantém codificado o que separa partes do endereço (%2F, %3F)
+function legivel(caminho: string): string {
+  try {
+    return decodeURI(caminho);
+  } catch {
+    return caminho;
+  }
+}
+
 /** 404 fora do shell; a versão dentro do shell, com a navegação, vem na Fase 3. */
 export function PaginaNaoEncontrada(): JSX.Element {
-  const { pathname } = useLocation();
+  const pathname = legivel(useLocation().pathname);
 
   return (
     <MolduraDaMarca>
