@@ -2,7 +2,8 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 #
 # Maxis: fonte única da configuração dos DOIS projetos online (não há Supabase local). A base vale
-# para a produção; o bloco [remotes.dev], no fim, só acrescenta o que é do projeto de dev.
+# para a produção (`maxis-producao`, ref ktcryodtgxpmgatihaic, São Paulo); o bloco [remotes.dev],
+# no fim, só acrescenta o que é do projeto de dev (`maxis`, ref ddaqbcfrplzdywpgilbf).
 # Aplicar sempre com o projeto explícito, nunca com `link`:
 #   npx supabase config diff --remote=<ref>   (só leitura: confere o projeto contra este arquivo)
 #   npx supabase config push --remote=<ref>   (mostra a diferença e pede confirmação)
