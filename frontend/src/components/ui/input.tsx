@@ -4,7 +4,8 @@ import type { ComponentProps, JSX } from 'react';
 
 // Branco com sombra suave, como os filtros do mockup; placeholder em --text-secondary (AA).
 // Abaixo de `md` o tamanho vem da base (16px, contra o zoom do iOS); daí para cima, `text-sm`.
-// Campo inválido focado: o anel de foco vence o de erro (senão o foco não muda nada na tela).
+// Campo inválido focado: o anel de foco vence o de erro (senão o foco não muda nada na tela); a
+// borda segue vermelha, para o erro continuar à vista.
 function Input({ className, type, ...props }: ComponentProps<'input'>): JSX.Element {
   return (
     <InputPrimitive
