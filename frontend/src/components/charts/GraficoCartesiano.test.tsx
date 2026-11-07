@@ -1,5 +1,5 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GraficoCartesiano } from '@/components/charts/GraficoCartesiano';
 import type { GraficoCartesianoProps } from '@/components/charts/GraficoCartesiano';
@@ -15,11 +15,6 @@ const FRETES: GraficoCartesianoProps = {
     { nome: 'Meta', tipo: 'linha', valores: [45000, 45000, 45000] },
   ],
 };
-
-beforeEach(() => {
-  // O jsdom não tem canvas: sem contexto 2D, o zrender estima a largura do texto
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-});
 
 // O desenho não chega ao leitor de tela; quem chega é a tabela com os mesmos valores
 describe('GraficoCartesiano', () => {
@@ -56,6 +51,27 @@ describe('GraficoCartesiano', () => {
       ['03/11/2026', 'R$ 48.320,00', 'R$ 45.000,00'],
       ['04/11/2026', '—', 'R$ 45.000,00'],
     ]);
+  });
+
+  // Nome vem do banco e pode repetir (duas unidades homônimas): a posição é a identidade
+  it('categorias e séries de nome repetido saem todas, sem chave duplicada', () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(
+      <GraficoCartesiano
+        {...FRETES}
+        categorias={['2026-11-02', '2026-11-02']}
+        series={[
+          { nome: 'Meta', tipo: 'barra', valores: [1, 2] },
+          { nome: 'Meta', tipo: 'linha', valores: [3, 4] },
+        ]}
+      />,
+    );
+
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3);
+    expect(
+      within(screen.getByRole('list', { name: 'Legenda' })).getAllByRole('listitem'),
+    ).toHaveLength(2);
+    expect(erro).not.toHaveBeenCalled();
   });
 
   it('mostra a legenda com duas séries ou mais', () => {

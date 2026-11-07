@@ -53,8 +53,9 @@ export function formatarPercentual(valor: ValorNumerico, casas = 1): string {
 }
 
 /*
- * Compactos: rótulo de eixo de gráfico, onde o valor exato fica no tooltip e na tabela. Até 2
- * algarismos significativos (45.678 → "46 mil"); nunca para mostrar um valor isolado.
+ * Compactos: rótulo de eixo de gráfico, onde o valor exato fica na dica e na tabela; nunca para
+ * mostrar um valor isolado. Na unidade da escala (mil, mi, bi) sai inteiro, com uma casa só
+ * abaixo de 10: 45.678 → "46 mil", 123.456 → "123 mil", 1.234 → "1,2 mil".
  */
 
 /** "R$ 40 mil", "R$ 1,5 mi". */

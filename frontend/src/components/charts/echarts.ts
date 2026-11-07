@@ -1,7 +1,8 @@
 /*
  * Único ponto de entrada do ECharts no app (frontend/CLAUDE.md §10). Importação modular: só os
  * tipos de gráfico e componentes registrados aqui entram no bundle. Gráfico novo = registrar aqui
- * e estender o tema em `theme/echarts.ts` (o tema só cobre o que está registrado).
+ * e estender o tema em `theme/echarts.ts` (o tema só cobre o que está registrado). O tema é
+ * criado por gráfico, a partir dos tokens lidos ao montar (DesenhoCartesiano).
  */
 import { BarChart, LineChart } from 'echarts/charts';
 import type { BarSeriesOption, LineSeriesOption } from 'echarts/charts';
@@ -10,9 +11,6 @@ import type { GridComponentOption, TooltipComponentOption } from 'echarts/compon
 import * as echarts from 'echarts/core';
 import type { ComposeOption } from 'echarts/core';
 import { SVGRenderer } from 'echarts/renderers';
-
-import { criarTemaECharts, lerTokensDoGrafico } from '@/theme/echarts';
-import type { TokensDoGrafico } from '@/theme/echarts';
 
 // SVG em vez de canvas: o texto do SVG é redesenhado pelo navegador quando a fonte self-hosted
 // termina de carregar (no canvas ficaria a fonte reserva até o próximo redesenho), sai nítido em
@@ -26,19 +24,3 @@ export { echarts };
 export type OpcoesDoGrafico = ComposeOption<
   BarSeriesOption | LineSeriesOption | GridComponentOption | TooltipComponentOption
 >;
-
-export const NOME_DO_TEMA = 'maxis';
-
-let tokensDoTema: TokensDoGrafico | undefined;
-
-/**
- * Registra o tema no primeiro gráfico desenhado — não na importação: os tokens são lidos do CSS
- * já aplicado à página. Devolve os tokens usados, para as opções saírem dos mesmos valores.
- */
-export function prepararTema(): TokensDoGrafico {
-  if (tokensDoTema === undefined) {
-    tokensDoTema = lerTokensDoGrafico();
-    echarts.registerTheme(NOME_DO_TEMA, criarTemaECharts(tokensDoTema));
-  }
-  return tokensDoTema;
-}

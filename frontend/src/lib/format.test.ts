@@ -95,7 +95,7 @@ describe('formatarMoedaCompacta', () => {
   it.each([
     [40000, `${R$}40${NBSP}mil`],
     [1500, `${R$}1,5${NBSP}mil`],
-    // Até 2 algarismos significativos: é rótulo de eixo, não valor exato
+    // Inteiro na unidade da escala (uma casa abaixo de 10): é rótulo de eixo, não valor exato
     [45678, `${R$}46${NBSP}mil`],
     [1500000, `${R$}1,5${NBSP}mi`],
     [1234567890, `${R$}1,2${NBSP}bi`],
