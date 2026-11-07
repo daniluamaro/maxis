@@ -17,7 +17,7 @@ frontend/src/
     ui/                         ← primitivos shadcn
     shell/                      ← Sidebar, SidebarModule, SidebarItem, Breadcrumb, PageHeader, TabLayout, Tab, Workspace
     feedback/                   ← skeletons, EmptyState, ErrorState
-    charts/                     ← wrapper ECharts com o tema registrado
+    charts/                     ← wrapper ECharts com o tema do produto, criado a partir dos tokens
   lib/                          ← cliente Supabase, QueryClient, formatadores pt-BR
   theme/                        ← tokens CSS (espelho do §7) e tema ECharts
   types/database.ts             ← tipos gerados do schema (nunca editar à mão)
@@ -102,7 +102,7 @@ frontend/src/
 
 ## 10. Gráficos (ECharts)
 
-- Sempre pelo wrapper de `components/charts`, com o tema registrado (série na ordem do `§7`). Componente nunca passa cor.
+- Sempre pelo wrapper de `components/charts`, com o tema do produto, criado a partir dos tokens (série na ordem do `§7`). Componente nunca passa cor.
 - Eixos, rótulos e tooltip formatados por `lib/format`; tooltip claro com sombra.
 - Dados chegam prontos de view/RPC.
 
