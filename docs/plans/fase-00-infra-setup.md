@@ -137,13 +137,13 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.9 — Rotas mínimas, abertura e página de referência
 **Entrega:** SPA com roteamento por segmento pronto para o GitHub Pages.
-- [ ] React Router com `BrowserRouter`. Rotas desta fase: `/` (abertura), `/dev/tema` (**só em desenvolvimento**), `*` (404 com a marca)
-- [ ] Página de abertura: marca Maxis em layout dual-tone discreto, sem texto de template
-- [ ] Página de referência do tema: paleta com nomes dos tokens, escala tipográfica, primitivos shadcn, skeleton, números formatados, gráfico de exemplo (`GraficoCartesiano` com `components/charts/exemplos.ts`) — comparada lado a lado com `docs/design/maxis-tema-claro.html`
-- [ ] 404 com a marca e link para o início (a versão no shell vem na Fase 3)
-- [ ] Ícones complementares: `apple-touch-icon` 180×180 e favicon PNG de reserva para navegadores sem favicon SVG (Safari < 26) — achado do code-review do 0.3, aprovado pelo Danilo em 03/11/2026
+- [x] React Router com `BrowserRouter`. Rotas desta fase: `/` (abertura), `/dev/tema` (**só em desenvolvimento**), `*` (404 com a marca) — React Router **8.5.1** (exato), modo declarativo, tudo de `react-router` (o 8 removeu o `react-router-dom`); `BrowserRouter` no `main.tsx`, rotas em `app/App.tsx`. A rota de referência só existe com `import.meta.env.DEV`: no build, o import some junto
+- [x] Página de abertura: marca Maxis em layout dual-tone discreto, sem texto de template — `MolduraDaMarca` (`components/shell/`), a moldura das telas fora do shell: marca na navy da sidebar, conteúdo no claro do workspace (fundo radial do mockup, utilitário `bg-workspace`), lado a lado a partir de 900px (breakpoint `sidebar:`, o corte do `frontend/CLAUDE.md §6`) e empilhadas abaixo; `Marca` (monograma em degradê sRGB `--gold-bright` → `--gold-dim` + nome) em dois tamanhos. Texto: só a marca como título e uma frase sobre o produto
+- [x] Página de referência do tema: paleta com nomes dos tokens, escala tipográfica, primitivos shadcn, skeleton, números formatados, gráfico de exemplo (`GraficoCartesiano` com `components/charts/exemplos.ts`) — comparada lado a lado com `docs/design/maxis-tema-claro.html` — `app/referencia/`: KPIs com o fio de ouro, as 24 cores com o valor lido da página (token ausente aparece como tal, sem derrubar a página), sombras e raios, famílias e escala em px, botões, campos, selos, abas, diálogo, notificação, skeleton, tabela dos formatadores e o gráfico. Um teste prova que toda cor e todo passo da escala do `tokens.css` têm amostra com o utilitário do próprio token
+- [x] 404 com a marca e link para o início (a versão no shell vem na Fase 3) — mostra o endereço pedido, decodificado (acentos legíveis; malformado aparece como veio), e "Voltar para o início"; título da aba pelo `<title>` do React 19
+- [x] Ícones complementares: `apple-touch-icon` 180×180 e favicon PNG de reserva para navegadores sem favicon SVG (Safari < 26) — achado do code-review do 0.3, aprovado pelo Danilo em 03/11/2026 — rasterizados no Chromium a partir do `favicon.svg` (`favicon-32.png` com cantos transparentes, listado antes do SVG e com `sizes`; `apple-touch-icon.png` opaco e sem arredondamento, que o iOS aplica)
 
-**Verificação:** `/dev/tema` inexistente no build de produção; contraste e foco visível conferidos; checklist de tela (`frontend/CLAUDE.md §13`) nos itens aplicáveis.
+**Verificação:** `/dev/tema` inexistente no build de produção; contraste e foco visível conferidos; checklist de tela (`frontend/CLAUDE.md §13`) nos itens aplicáveis. *(Feito: nenhum texto da referência no `dist` e `/dev/tema` cai na 404 no build servido; sonda no Chromium por CDP a 1280 e 360px — todo par texto/fundo no AA (menor: selo "Entregue", 4,51:1), foco por Tab real com anel `--gold-strong` 2px em todas as paradas, diálogo pelo teclado (Enter abre, foco preso dentro, Escape devolve ao gatilho), sem rolagem horizontal, sem erro no console. 21 + 4 mutações realistas, todas pegas.)*
 
 ### STEP 0.10 — Projetos Supabase online, MCP e teste guardião
 **Entrega:** backend versionado e operado direto nos projetos online — desenvolvimento (`maxis`) e produção (São Paulo) —, sem nada local (decisão #11).
@@ -263,7 +263,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 6 | shadcn/ui no tema | 0.6 | ✅ |
 | 7 | Formatadores pt-BR com testes | 0.7 | ✅ |
 | 8 | Tema ECharts e wrapper | 0.8 | ✅ |
-| 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ⬜ |
+| 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ✅ |
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ⬜ |
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ⬜ |
 | 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ⬜ |
