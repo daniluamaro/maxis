@@ -31,6 +31,15 @@ describe('lerTokenEmPx', () => {
     expect(lerTokenEmPx('--radius')).toBe(10);
   });
 
+  // Outra unidade daria um número errado em silêncio (`em` lido como px, `calc()` como NaN)
+  it('falha com mensagem clara quando o token não está em px nem em rem', () => {
+    document.documentElement.style.setProperty('--tamanho-de-teste', '1.2em');
+
+    expect(() => lerTokenEmPx('--tamanho-de-teste')).toThrow(
+      'Token --tamanho-de-teste em "1.2em": só px e rem são aceitos.',
+    );
+  });
+
   // A escala é em rem para respeitar o tamanho de fonte que a pessoa escolheu no navegador
   it('converte rem para px pelo tamanho de fonte da raiz', () => {
     expect(lerTokenEmPx('--font-size-2xs')).toBe(10.5);
