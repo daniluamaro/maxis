@@ -45,6 +45,56 @@ export default defineConfig([
     },
   },
   {
+    // frontend/CLAUDE.md §10: gráfico só pelo wrapper, que aplica o tema e os formatadores
+    files: ['**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/components/charts/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              // Regex ancorada no nome do pacote: o padrão de .gitignore casaria @/theme/echarts
+              regex: '^echarts(-for-react)?(/|$)',
+              message: 'Gráfico só pelo wrapper de @/components/charts (frontend/CLAUDE.md §10).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Importação modular: as entradas inteiras puxam o ECharts todo (~1 MB) para o bundle
+    files: ['src/components/charts/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'echarts',
+              message:
+                'Importe de echarts/core, echarts/charts, echarts/components e echarts/renderers.',
+              // Tipo é apagado no build; alguns só existem nesta entrada
+              allowTypeImports: true,
+            },
+            {
+              name: 'echarts-for-react',
+              message:
+                'Use echarts-for-react/esm/core: a entrada padrão importa o ECharts inteiro.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['echarts-for-react/lib/*'],
+              message: 'Use echarts-for-react/esm/core: lib/ é a versão CommonJS.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Primitivos do shadcn exportam as variantes que outros primitivos reutilizam
     files: ['src/components/ui/**/*.tsx'],
     rules: {
