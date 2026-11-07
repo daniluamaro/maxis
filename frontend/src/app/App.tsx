@@ -23,7 +23,8 @@ export function App(): JSX.Element {
         <Route
           path="/dev/tema"
           element={
-            <Suspense>
+            // Enquanto a página carrega, o fundo dela (sem clarão branco)
+            <Suspense fallback={<div className="min-h-dvh bg-workspace" />}>
               <ReferenciaDoTema />
             </Suspense>
           }
