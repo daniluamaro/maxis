@@ -1,0 +1,161 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import {
+  formatarData,
+  formatarDataHora,
+  formatarMoeda,
+  formatarNumero,
+  formatarPercentual,
+} from '@/lib/format';
+
+// O Intl separa "R$" do valor com espaço inseparável (U+00A0), não com espaço comum
+const R$ = 'R$ ';
+const AUSENTES = [null, undefined, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
+
+describe('formatarMoeda', () => {
+  it.each([
+    [1234.5, `${R$}1.234,50`],
+    [1234567.891, `${R$}1.234.567,89`],
+    [0, `${R$}0,00`],
+    [-1234.5, `-${R$}1.234,50`],
+    // Meio arredonda para longe do zero, sobre o valor decimal escrito
+    [0.005, `${R$}0,01`],
+    [1.005, `${R$}1,01`],
+    // Negativo que arredonda para zero não vira "-R$ 0,00"
+    [-0.001, `${R$}0,00`],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarMoeda(valor)).toBe(esperado);
+  });
+
+  it.each(AUSENTES)('%s → —', (valor) => {
+    expect(formatarMoeda(valor)).toBe('—');
+  });
+});
+
+describe('formatarNumero', () => {
+  it.each([
+    [1234, '1.234'],
+    [1234567, '1.234.567'],
+    [0, '0'],
+    [-0, '0'],
+    [-1234, '-1.234'],
+    // Inteiro por padrão: arredonda, meio para longe do zero
+    [1234.5, '1.235'],
+    [-2.5, '-3'],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarNumero(valor)).toBe(esperado);
+  });
+
+  it.each([
+    [1234.5, 2, '1.234,50'],
+    [0.1, 3, '0,100'],
+    // toFixed daria "1.00": o arredondamento é sobre o decimal escrito, não sobre o binário
+    [1.005, 2, '1,01'],
+    [-0.001, 2, '0,00'],
+  ])('%s com %s casas → %s', (valor, casas, esperado) => {
+    expect(formatarNumero(valor, casas)).toBe(esperado);
+  });
+
+  it.each(AUSENTES)('%s → —', (valor) => {
+    expect(formatarNumero(valor)).toBe('—');
+  });
+});
+
+describe('formatarPercentual', () => {
+  // Recebe fração: 0,125 é 12,5%
+  it.each([
+    [0.125, '12,5%'],
+    [1, '100,0%'],
+    [0, '0,0%'],
+    [-0.034, '-3,4%'],
+    [12.345, '1.234,5%'],
+    [-0.0001, '0,0%'],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarPercentual(valor)).toBe(esperado);
+  });
+
+  it.each([
+    [0.5, 0, '50%'],
+    [0.08, 2, '8,00%'],
+  ])('%s com %s casas → %s', (valor, casas, esperado) => {
+    expect(formatarPercentual(valor, casas)).toBe(esperado);
+  });
+
+  it.each(AUSENTES)('%s → —', (valor) => {
+    expect(formatarPercentual(valor)).toBe('—');
+  });
+});
+
+// Os testes rodam em America/Sao_Paulo (UTC−3), fixado no vite.config.ts
+describe('formatarData', () => {
+  // Data do banco (YYYY-MM-DD) é dia de calendário: não muda com o fuso de quem vê
+  it.each([
+    'America/Sao_Paulo',
+    'America/Rio_Branco',
+    'Pacific/Pago_Pago',
+    'UTC',
+    'Asia/Tokyo',
+    'Pacific/Kiritimati',
+  ])('2026-11-06 é 06/11/2026 em %s', (fuso) => {
+    vi.stubEnv('TZ', fuso);
+    expect(formatarData('2026-11-06')).toBe('06/11/2026');
+  });
+
+  it('1º de janeiro não volta para o ano anterior', () => {
+    expect(formatarData('2026-01-01')).toBe('01/01/2026');
+  });
+
+  // Instante (data com hora) mostra o dia no fuso de quem vê
+  it.each([
+    ['2026-11-06T02:00:00Z', '05/11/2026'],
+    ['2026-11-06T02:00:00-03:00', '06/11/2026'],
+  ])('instante %s → %s', (valor, esperado) => {
+    expect(formatarData(valor)).toBe(esperado);
+  });
+
+  it('Date mostra o dia local', () => {
+    expect(formatarData(new Date(2026, 10, 6, 23, 30))).toBe('06/11/2026');
+  });
+
+  it.each([
+    null,
+    undefined,
+    '',
+    'abc',
+    '2026-02-30',
+    '2026-13-01',
+    // Formato brasileiro na entrada: o Date do JS leria como 11 de junho
+    '06/11/2026',
+    new Date('inválida'),
+  ])('%s → —', (valor) => {
+    expect(formatarData(valor)).toBe('—');
+  });
+});
+
+describe('formatarDataHora', () => {
+  it.each([
+    ['2026-11-06T16:45:00Z', '06/11 13:45'],
+    ['2026-11-06T13:45:00-03:00', '06/11 13:45'],
+    // Meia-noite é 00, não 24
+    ['2026-11-06T03:05:00Z', '06/11 00:05'],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarDataHora(valor)).toBe(esperado);
+  });
+
+  it('Date mostra a hora local', () => {
+    expect(formatarDataHora(new Date(2026, 0, 2, 9, 7))).toBe('02/01 09:07');
+  });
+
+  it.each([
+    null,
+    undefined,
+    '',
+    'abc',
+    // Só a data: não há hora para mostrar
+    '2026-11-06',
+    '06/11/2026 13:45',
+    new Date('inválida'),
+  ])('%s → —', (valor) => {
+    expect(formatarDataHora(valor)).toBe('—');
+  });
+});
