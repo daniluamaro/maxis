@@ -6,9 +6,10 @@ import type { JSX } from 'react';
 // Tamanhos com alvo de clique ≥ 40px (frontend/CLAUDE.md §9); foco com --gold-strong cheio (≥ 3:1).
 // `outline-hidden`, não `outline-none`: no alto contraste do Windows o anel (sombra) some e o
 // outline é o que resta como indicador de foco. `data-disabled:` cobre o desabilitado do Base UI
-// sem o atributo nativo (`focusableWhenDisabled`, ou `render` para outro elemento).
+// sem o atributo nativo (`focusableWhenDisabled`, ou `render` para outro elemento). Inválido e
+// focado: o anel de foco vence o de erro, como no campo.
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-hidden select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-disabled:pointer-events-none data-disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-hidden select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-disabled:pointer-events-none data-disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 aria-invalid:focus-visible:ring-2 aria-invalid:focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
