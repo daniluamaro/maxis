@@ -159,3 +159,61 @@ describe('formatarDataHora', () => {
     expect(formatarDataHora(valor)).toBe('—');
   });
 });
+
+describe('formatos de instante que chegam do banco', () => {
+  it.each([
+    // JSON do Supabase (PostgREST): microssegundos e offset com dois-pontos
+    ['2026-11-06T16:45:00.123456+00:00', '06/11 13:45'],
+    // Texto do Postgres (`::text`): espaço no lugar do T e offset curto
+    ['2026-11-06 16:45:00.123456+00', '06/11 13:45'],
+    ['2026-11-06 13:45:00-03', '06/11 13:45'],
+  ])('%s → %s', (valor, esperado) => {
+    expect(formatarDataHora(valor)).toBe(esperado);
+  });
+
+  it('dia impossível com hora também é inválido', () => {
+    expect(formatarData('2026-02-30T10:00:00Z')).toBe('—');
+    expect(formatarDataHora('2026-02-30T10:00:00Z')).toBe('—');
+  });
+});
+
+describe('fuso de quem vê', () => {
+  // O mesmo instante, visto de três fusos — e de volta, para o formatador não ficar preso
+  it.each([
+    ['America/Rio_Branco', '06/11 11:45', '06/11/2026'],
+    ['Asia/Tokyo', '07/11 01:45', '07/11/2026'],
+    ['America/Sao_Paulo', '06/11 13:45', '06/11/2026'],
+  ])('em %s, 2026-11-06T16:45Z é %s', (fuso, dataHora, data) => {
+    vi.stubEnv('TZ', fuso);
+    expect(formatarDataHora('2026-11-06T16:45:00Z')).toBe(dataHora);
+    expect(formatarData('2026-11-06T16:45:00Z')).toBe(data);
+  });
+});
+
+it('ano com menos de 4 dígitos significativos aparece como está', () => {
+  expect(formatarData('0026-01-01')).toBe('01/01/0026');
+});
+
+// Firefox < 116 (o alvo do build vai até o 114) recusa `signDisplay: 'negative'` com RangeError
+it('formata sem "-0" num navegador sem `signDisplay: "negative"`', async () => {
+  const Original = Intl.NumberFormat;
+  class SemSinalNegativo extends Original {
+    constructor(locales?: Intl.LocalesArgument, opcoes?: Intl.NumberFormatOptions) {
+      if (opcoes?.signDisplay === 'negative') {
+        throw new RangeError('signDisplay inválido');
+      }
+      super(locales, opcoes);
+    }
+  }
+  vi.stubGlobal(
+    'Intl',
+    Object.assign(Object.create(Intl) as typeof Intl, { NumberFormat: SemSinalNegativo }),
+  );
+  vi.resetModules();
+  const formato = await import('@/lib/format');
+
+  expect(formato.formatarNumero(-0.001, 2)).toBe('0,00');
+  expect(formato.formatarMoeda(-0.001)).toBe('R$ 0,00');
+  expect(formato.formatarPercentual(-0.0001)).toBe('0,0%');
+  expect(formato.formatarNumero(-1234.5, 1)).toBe('-1.234,5');
+});
