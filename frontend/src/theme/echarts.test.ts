@@ -8,13 +8,13 @@ afterEach(() => {
 });
 
 describe('lerTokensDoGrafico', () => {
-  it('lê as cores das séries na ordem do contrato: navy, ouro, verde, azul, âmbar, cinza', () => {
+  // Sem âmbar: ao lado do ouro, os dois mal se distinguem (pendência #15)
+  it('lê as cores das séries na ordem do contrato: navy, ouro, verde, azul, cinza', () => {
     expect(lerTokensDoGrafico().series).toEqual([
       '#14294d',
       '#c79a2e',
       '#1f9d57',
       '#2563c4',
-      '#e0a106',
       '#8a94a9',
     ]);
   });
@@ -27,7 +27,6 @@ describe('lerTokensDoGrafico', () => {
       realce: '#e8ecf4',
       textoPrimario: '#0f1a2e',
       textoSecundario: '#52607a',
-      textoTerciario: '#8a94a9',
     });
   });
 

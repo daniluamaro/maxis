@@ -14,11 +14,11 @@ export const EXEMPLO_FRETES = {
   ],
 } as const satisfies DadosCartesianos;
 
-/** As seis cores do contrato, alternando barra e linha, sobre categorias de texto. */
-export const EXEMPLO_SEIS_SERIES: DadosCartesianos = {
+/** As cinco cores do contrato, alternando barra e linha, sobre categorias de texto. */
+export const EXEMPLO_CINCO_SERIES: DadosCartesianos = {
   categorias: ['Jan', 'Fev', 'Mar'],
   formato: 'numero',
-  series: ['A', 'B', 'C', 'D', 'E', 'F'].map((nome, i) => ({
+  series: ['A', 'B', 'C', 'D', 'E'].map((nome, i) => ({
     nome,
     tipo: i % 2 === 0 ? 'barra' : 'linha',
     valores: [10 + i, 20 + i, 15 + i],

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { EXEMPLO_FRETES as FRETES } from '@/components/charts/exemplos';
 import { desenharGrafico, mostrarDica } from '@/components/charts/graficoDeTeste';
 import { montarOpcoesCartesiano } from '@/components/charts/opcoesCartesiano';
+import type { DadosCartesianos } from '@/components/charts/opcoesCartesiano';
 import { lerTokensDoGrafico } from '@/theme/echarts';
 
 const NBSP = ' ';
@@ -98,16 +99,27 @@ describe('barras', () => {
   });
 });
 
-// Uma sétima série repetiria a cor da primeira: agrupar em "Outros" ou dividir o gráfico
+// Uma série além das cores do contrato repetiria a primeira: agrupar em "Outros" ou dividir o
+// gráfico. O limite acompanha a paleta, cujo tamanho é testado em theme/echarts.test.ts
 it('recusa mais séries do que cores do contrato', () => {
+  const tokens = lerTokensDoGrafico();
+  const limite = tokens.series.length;
   const serie = { nome: 'Unidade', tipo: 'barra', valores: [1] } as const;
+  const series = (quantas: number): DadosCartesianos['series'] =>
+    Array.from({ length: quantas }, () => serie);
 
   expect(() =>
     montarOpcoesCartesiano(
-      { categorias: ['Jan'], formato: 'numero', series: Array.from({ length: 7 }, () => serie) },
-      lerTokensDoGrafico(),
+      { categorias: ['Jan'], formato: 'numero', series: series(limite) },
+      tokens,
     ),
-  ).toThrow('no máximo 6 séries');
+  ).not.toThrow();
+  expect(() =>
+    montarOpcoesCartesiano(
+      { categorias: ['Jan'], formato: 'numero', series: series(limite + 1) },
+      tokens,
+    ),
+  ).toThrow(`no máximo ${String(limite)} séries`);
 });
 
 // O Testing Library normaliza o texto do elemento (o espaço inseparável do Intl vira espaço comum),
