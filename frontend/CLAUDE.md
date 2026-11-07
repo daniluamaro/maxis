@@ -108,7 +108,7 @@ frontend/src/
 
 ## 11. Segurança no cliente
 
-- Variáveis de ambiente: só `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (nome sujeito à pendência de governança #3). Nenhum outro segredo em `import.meta.env`. Em desenvolvimento apontam para o projeto de **dev** (`.env.local`); no build de produção, para o de **produção** (variables do GitHub).
+- Variáveis de ambiente: só `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. Nenhum outro segredo em `import.meta.env`. Em desenvolvimento apontam para o projeto de **dev** (`.env.local`); no build de produção, para o de **produção** (variables do GitHub).
 - Nunca logar token ou sessão. Sem `dangerouslySetInnerHTML`. Link externo com `rel="noopener noreferrer"`.
 - Login: só e-mail, senha e "Entrar" (raiz §4).
 

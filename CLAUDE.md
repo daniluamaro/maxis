@@ -29,7 +29,7 @@ Maxis é um **SaaS multi-tenant por assinatura** para empresas de transporte, lo
 | Ícones | lucide-react |
 | Rotas | React Router (`BrowserRouter` + fallback SPA via `404.html`) |
 | Backend/Dados | Supabase: Postgres + Auth + RLS + Edge Functions (Deno) |
-| Cliente API | `@supabase/supabase-js` (somente `anon` key no frontend) |
+| Cliente API | `@supabase/supabase-js` (somente a chave publishable no frontend) |
 | Formatação | `Intl` pt-BR (moeda, número, data) |
 | Deploy | GitHub Actions → GitHub Pages (domínio custom). Build estático, agnóstico de hospedagem — pronto para migrar para a Vercel (`@frontend/CLAUDE.md §14`) |
 
@@ -76,17 +76,18 @@ Não há servidor Node próprio. O "backend" **é** o Supabase, versionado na pa
 
 ## 5. Segurança de chaves (CRÍTICO)
 
-- `service_role` **nunca** no frontend, no build, em secret do frontend ou em arquivo versionado. Só como **secret de Edge Function**.
-- `anon` key é pública por design; a **RLS** é quem protege. Nenhum dado de um tenant acessível por outro, em hipótese alguma.
-- Criação de usuário e qualquer escrita privilegiada: só em **Edge Function** com `service_role`. Escrita em `profiles` só via Edge Function/RPC restrito (única exceção: RPC de troca da própria senha).
+- A **chave secreta** (`sb_secret_…`) **nunca** no frontend, no build, em secret do frontend ou em arquivo versionado. Só no ambiente das **Edge Functions**, onde a plataforma a injeta.
+- A chave **publishable** (`sb_publishable_…`) é pública por design; a **RLS** é quem protege. Nenhum dado de um tenant acessível por outro, em hipótese alguma.
+- Chaves legadas (`anon`/`service_role`, JWT): **desativadas** nos dois projetos.
+- Criação de usuário e qualquer escrita privilegiada: só em **Edge Function** com a chave secreta. Escrita em `profiles` só via Edge Function/RPC restrito (única exceção: RPC de troca da própria senha).
 - Supabase → Auth → Email, **nos dois projetos**: **cadastro público desabilitado**. Site URL e Redirect = `https://maxis.performargestao.com.br` (o dev aceita também o localhost de desenvolvimento).
 - Segredos locais em `.env.local` (no `.gitignore`). Nenhum segredo versionado.
 
 | Variável | Onde vive | Público? |
 |---|---|---|
 | `VITE_SUPABASE_URL` | build frontend / GH Actions | Sim |
-| `VITE_SUPABASE_ANON_KEY` | build frontend / GH Actions | Sim |
-| `SUPABASE_SERVICE_ROLE_KEY` | secret de Edge Function apenas | **NÃO** |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | build frontend / GH Actions | Sim |
+| `SUPABASE_SECRET_KEYS` | ambiente das Edge Functions apenas (injetada pela plataforma) | **NÃO** |
 
 Valores do projeto de **dev** só no `.env.local`; os de **produção** só nas variables do GitHub. Chave de um projeto nunca é usada no outro.
 

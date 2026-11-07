@@ -110,8 +110,8 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 
 ## 9. Chaves e segredos
 
-- A **chave secreta** (`service_role` legada ou secret key nova — pendência de governança #3) existe **só** no ambiente das Edge Functions. Nunca em migration, seed, teste versionado, `config.toml` ou log.
-- As Edge Functions recebem URL e chaves pelo ambiente da plataforma. Nomes atuais na documentação: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS`, `SUPABASE_JWKS` (legado: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Qual conjunto cada projeto usa → confirmar via MCP nos dois (pendência #3).
+- A **chave secreta** (`sb_secret_…`) existe **só** no ambiente das Edge Functions. Nunca em migration, seed, teste versionado, `config.toml` ou log.
+- As Edge Functions recebem URL e chaves pelo ambiente da plataforma: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS` e `SUPABASE_JWKS`. As duas de chaves são JSON por nome (a chave padrão é `default`). Os dois projetos usam as chaves novas; as legadas (`SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) ficam desativadas. Como as chaves novas não são JWT, o `verify_jwt` e o SDK `@supabase/server` se decidem no STEP 0.11.
 - Segredos adicionais só via gerenciamento de secrets do Supabase — nunca em arquivo versionado.
 - Dev e produção têm chaves próprias; chave de um projeto nunca é usada no outro.
 
