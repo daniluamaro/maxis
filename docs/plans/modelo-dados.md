@@ -440,8 +440,11 @@ Toda leitura de tenant passa por `private.tenant_atual()` → usuário inativo o
 13. Escrita em tabelas de negócio exige `tem_permissao(…edit)` no banco (defesa em profundidade).
 14. `profiles.telefone` opcional para o repasse da senha provisória.
 
-## 13. Pendências a confirmar via Supabase MCP
+## 13. Estado dos projetos Supabase (confirmado via MCP no STEP 0.10, 07/11/2026)
 
-- Estado real dos dois projetos: `maxis` (desenvolvimento, informado como vazio) e produção (nova, São Paulo).
-- Versão do Postgres — a mesma major nos dois (dev hoje em 17.6) → define `gen_random_uuid()` × `uuidv7()`.
-- Formato das chaves de API (legadas `anon`/`service_role` × `sb_publishable_…`/`sb_secret_…`) → pendência de governança do `CLAUDE.md §5`.
+- `maxis` (desenvolvimento, us-west-2) e `maxis-producao` (produção, sa-east-1): vazios — nada em `public`, nenhuma migration, nenhum usuário no Auth.
+- Postgres **17.11** nos dois (mesma major) → PK com `gen_random_uuid()`; `uuidv7()` só quando os dois estiverem em PG 18+.
+- Extensões iguais nos dois: `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`. O pgTAP (1.3.3 disponível) só existe durante os testes.
+- Privilégios padrão iguais nos dois: tabela, sequência e função nova em `public` nasce com grant para `anon` e `authenticated`. Por isso toda migration revoga de `anon` e concede o mínimo (`supabase/CLAUDE.md §5`); o teste guardião acusa o que escapar.
+- O dev nasceu com a RLS automática (event trigger `ensure_rls` + `public.rls_auto_enable()`); a produção, não. Removida pela migration `f00_remove_rls_automatica`: a RLS é sempre explícita na migration da tabela, igual nos dois projetos.
+- Chaves de API: as duas famílias nasceram ativas nos dois projetos. O Maxis usa só as novas (`sb_publishable_…` / `sb_secret_…`); as legadas ficam desativadas (pendência #3).

@@ -8,7 +8,9 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage']),
+  // Os tipos do banco são gerados pelo Supabase a partir do dev e nunca editados à mão; o `tsc`
+  // continua checando o arquivo
+  globalIgnores(['dist', 'coverage', 'src/types/database.ts']),
   {
     // Sem `eslint-disable` no código: exceção a uma regra só aqui, onde é revisada.
     // Um comentário de desativação vira aviso, e o `--max-warnings=0` reprova.
