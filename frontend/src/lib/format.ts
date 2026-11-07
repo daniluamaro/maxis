@@ -52,6 +52,26 @@ export function formatarPercentual(valor: ValorNumerico, casas = 1): string {
   });
 }
 
+/*
+ * Compactos: rótulo de eixo de gráfico, onde o valor exato fica na dica e na tabela; nunca para
+ * mostrar um valor isolado. Na unidade da escala (mil, mi, bi) sai inteiro, com uma casa só
+ * abaixo de 10: 45.678 → "46 mil", 123.456 → "123 mil", 1.234 → "1,2 mil".
+ */
+
+/** "R$ 40 mil", "R$ 1,5 mi". */
+export function formatarMoedaCompacta(valor: ValorNumerico): string {
+  return formatarNumerico(valor, 'moeda-compacta', {
+    style: 'currency',
+    currency: 'BRL',
+    notation: 'compact',
+  });
+}
+
+/** "40 mil", "1,5 mi". */
+export function formatarNumeroCompacto(valor: ValorNumerico): string {
+  return formatarNumerico(valor, 'numero-compacto', { notation: 'compact' });
+}
+
 type ValorData = string | Date | null | undefined;
 
 const OPCOES_DATA: Intl.DateTimeFormatOptions = {

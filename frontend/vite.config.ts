@@ -32,5 +32,8 @@ export default defineConfig({
     // Data com hora sai no fuso local: fixo aqui (UTC−3, o da maioria dos usuários) para o
     // resultado não depender da máquina nem do CI
     env: { TZ: 'America/Sao_Paulo' },
+    // Nos testes, CSS vira string vazia — inclusive com `?raw`. O tokens.css é a exceção: o setup
+    // o aplica ao documento, como o index.css faz no app, e o tema do ECharts lê os tokens dele.
+    css: { include: [/\/src\/theme\/tokens\.css\?raw$/] },
   },
 });
