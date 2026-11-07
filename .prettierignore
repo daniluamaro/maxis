@@ -3,5 +3,7 @@
 docs/
 # Gerado pelo npm
 package-lock.json
+# Gerado pelo Supabase a partir do dev (tipos do banco), nunca editado à mão
+frontend/src/types/database.ts
 # Edge Functions são formatadas pelo deno fmt
 supabase/
