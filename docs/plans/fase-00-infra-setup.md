@@ -119,11 +119,11 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.7 — Formatação pt-BR (`lib/format`)
 **Entrega:** os únicos formatadores permitidos na UI.
-- [ ] Moeda BRL, número (casas configuráveis), percentual, data `dd/mm/aaaa`, data-hora `dd/mm HH:mm`, todos com `Intl` pt-BR
-- [ ] Valor ausente/inválido (`null`, `undefined`, `NaN`) → "—"
-- [ ] Testes unitários: milhar, negativo, zero, arredondamento, ausentes, e **data `YYYY-MM-DD` sem deslocamento de fuso** (não pode virar o dia anterior em UTC−3)
+- [x] Moeda BRL, número (casas configuráveis), percentual, data `dd/mm/aaaa`, data-hora `dd/mm HH:mm`, todos com `Intl` pt-BR — `src/lib/format.ts`: `formatarMoeda`, `formatarNumero` (inteiro por padrão), `formatarPercentual` (recebe **fração**: 0,125 → 12,5%; 1 casa por padrão), `formatarData` (data de calendário `YYYY-MM-DD` ou instante), `formatarDataHora` (instante, no fuso de quem vê); aceita o JSON do Supabase e o texto do Postgres; outros formatos de data são recusados
+- [x] Valor ausente/inválido (`null`, `undefined`, `NaN`) → "—" — também `Infinity`, data impossível e formato não ISO; constante `VALOR_AUSENTE` exportada; nunca "-0"
+- [x] Testes unitários: milhar, negativo, zero, arredondamento, ausentes, e **data `YYYY-MM-DD` sem deslocamento de fuso** (não pode virar o dia anterior em UTC−3) — 79 casos em tabela, fuso dos testes fixo em `America/Sao_Paulo` (`vite.config.ts`); data de calendário provada em 6 fusos (UTC−11 a UTC+14) e instante em 3
 
-**Verificação:** testes verdes (escritos antes da implementação — recomendado já aqui).
+**Verificação:** testes verdes (escritos antes da implementação — recomendado já aqui). *(Feito: TDD com RED conferido antes de cada GREEN e teste de mutação — 11 mutações realistas, todas pegas.)*
 
 ### STEP 0.8 — Tema ECharts
 **Entrega:** gráficos já nascem no padrão do produto.
@@ -257,7 +257,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 4 | Lint, formatação e testes do frontend | 0.4 | ✅ |
 | 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ✅ |
 | 6 | shadcn/ui no tema | 0.6 | ✅ |
-| 7 | Formatadores pt-BR com testes | 0.7 | ⬜ |
+| 7 | Formatadores pt-BR com testes | 0.7 | ✅ |
 | 8 | Tema ECharts e wrapper | 0.8 | ⬜ |
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ⬜ |
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ⬜ |
