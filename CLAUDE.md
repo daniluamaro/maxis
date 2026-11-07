@@ -139,7 +139,7 @@ Forma        --radius:10px
 
 Item ativo da sidebar: `--gold` com transparência (nunca outro tom de ouro).
 
-Gráficos ECharts: grid/eixos `--border`, rótulos `--text-tertiary`, série `[navy, gold, green, blue, amber, cinza]`, tooltip branco com sombra. **Nunca** usar cores default do ECharts.
+Gráficos ECharts: grid/eixos `--border`, rótulos `--text-secondary`, série `[navy, gold, green, blue, cinza]` (cinza = `--text-tertiary`), tooltip branco com sombra. **Nunca** usar cores default do ECharts.
 
 ---
 

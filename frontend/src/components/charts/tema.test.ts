@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   EXEMPLO_FRETES as FRETES,
-  EXEMPLO_SEIS_SERIES as SEIS_SERIES,
+  EXEMPLO_CINCO_SERIES as CINCO_SERIES,
 } from '@/components/charts/exemplos';
 import { desenharGrafico, mostrarDica } from '@/components/charts/graficoDeTeste';
 import type { DadosCartesianos } from '@/components/charts/opcoesCartesiano';
@@ -59,7 +59,7 @@ function fontesDesenhadas(elemento: HTMLElement): Map<string, string> {
 describe('tema do ECharts', () => {
   it.each([
     ['barras e linha', FRETES],
-    ['as seis séries', SEIS_SERIES],
+    ['as cinco séries', CINCO_SERIES],
   ])('%s: toda cor desenhada é de um token', (_, dados) => {
     const cores = coresDesenhadas(desenhar(dados, true));
 
@@ -74,15 +74,16 @@ describe('tema do ECharts', () => {
     expect([...cores].filter((cor) => !HEX_DOS_TOKENS.has(cor))).not.toEqual([]);
   });
 
-  it('as séries seguem a ordem do contrato', () => {
-    const cores = coresDesenhadas(desenhar(SEIS_SERIES, true));
+  // A ordem é provada na leitura dos tokens e no `color` do tema (theme/echarts.test.ts)
+  it('todas as cores do contrato aparecem no desenho', () => {
+    const cores = coresDesenhadas(desenhar(CINCO_SERIES, true));
 
     expect([...cores]).toEqual(expect.arrayContaining([...lerTokensDoGrafico().series]));
   });
 
-  // SEIS_SERIES tem categorias de texto ("Jan") e valores numéricos no eixo
+  // CINCO_SERIES tem categorias de texto ("Jan") e valores numéricos no eixo
   it('categoria de texto em Inter, valores do eixo em JetBrains Mono', () => {
-    const fontes = fontesDesenhadas(desenhar(SEIS_SERIES, true));
+    const fontes = fontesDesenhadas(desenhar(CINCO_SERIES, true));
 
     expect(fontes.get('Jan')).toContain('Inter');
     expect(fontes.get('20')).toContain('JetBrains Mono');
@@ -99,6 +100,16 @@ describe('tema do ECharts', () => {
 
     expect(fontes.length).toBeGreaterThan(0);
     expect(fontes.filter((fonte) => !/Inter|JetBrains Mono/.test(fonte))).toEqual([]);
+  });
+
+  // --text-tertiary daria 3,05:1 sobre o painel, abaixo do AA de texto (pendência #16)
+  it('todo texto do eixo usa --text-secondary', () => {
+    const elemento = desenhar(FRETES, true);
+    const cores = new Set(
+      [...elemento.querySelectorAll('svg text')].map((texto) => texto.getAttribute('fill')),
+    );
+
+    expect([...cores]).toEqual([lerTokensDoGrafico().textoSecundario]);
   });
 
   it('a dica é clara, com a sombra e o raio dos tokens', () => {

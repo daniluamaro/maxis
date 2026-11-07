@@ -6,7 +6,7 @@
 
 /** Valores dos tokens já resolvidos, no formato que o ECharts aceita (cor em texto, tamanho em px). */
 export type TokensDoGrafico = {
-  /** Cores das séries, na ordem do CLAUDE.md §7: navy, ouro, verde, azul, âmbar, cinza. */
+  /** Cores das séries, na ordem do CLAUDE.md §7: navy, ouro, verde, azul, cinza. */
   series: readonly string[];
   superficie: string;
   borda: string;
@@ -14,7 +14,6 @@ export type TokensDoGrafico = {
   realce: string;
   textoPrimario: string;
   textoSecundario: string;
-  textoTerciario: string;
   fonteCorpo: string;
   fonteMono: string;
   tamanhoRotulo: number;
@@ -36,7 +35,6 @@ export const CORES_DAS_SERIES = [
   { token: '--gold', classe: 'bg-gold' },
   { token: '--green', classe: 'bg-green' },
   { token: '--blue', classe: 'bg-blue' },
-  { token: '--amber', classe: 'bg-amber' },
   // "cinza" do contrato: o neutro mais claro que ainda dá 3:1 sobre o painel
   { token: '--text-tertiary', classe: 'bg-text-tertiary' },
 ] as const;
@@ -68,7 +66,6 @@ export function lerTokensDoGrafico(): TokensDoGrafico {
     realce: ler('--bg-hover'),
     textoPrimario: ler('--text-primary'),
     textoSecundario: ler('--text-secondary'),
-    textoTerciario: ler('--text-tertiary'),
     fonteCorpo: ler('--font-body'),
     fonteMono: ler('--font-mono'),
     tamanhoRotulo: lerPx('--font-size-xs'),
@@ -83,7 +80,7 @@ export const RAIO_DA_PONTA_DA_BARRA = 4;
 
 /**
  * Tema do produto para os gráficos registrados em `components/charts`: paleta do §7, eixos e grade
- * recessivos em --border, rótulos em --text-tertiary, dica clara com a sombra dos flutuantes e as
+ * recessivos em --border, rótulos em --text-secondary, dica clara com a sombra dos flutuantes e as
  * marcas finas do padrão (barra ≤ 24px com ponta arredondada, linha de 2px, ponto de 8px).
  */
 export function criarTemaECharts(t: TokensDoGrafico): TemaECharts {
@@ -96,7 +93,8 @@ export function criarTemaECharts(t: TokensDoGrafico): TemaECharts {
     fontSize: tamanho,
     lineHeight: Math.ceil(tamanho * t.entrelinha),
   });
-  const rotulo = texto(t.textoTerciario, t.tamanhoRotulo);
+  // --text-secondary: o --text-tertiary daria 3,05:1 sobre o painel, abaixo do AA de texto
+  const rotulo = texto(t.textoSecundario, t.tamanhoRotulo);
   const traco = { color: t.borda, width: 1, type: 'solid' };
   const eixo = {
     axisLine: { show: false, lineStyle: traco },
