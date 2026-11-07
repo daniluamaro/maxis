@@ -16,9 +16,16 @@ export function lerToken(nome: string, estilo: CSSStyleDeclaration = estiloDaRai
   return valor;
 }
 
-/** Token de tamanho em px; o que está em rem é convertido pelo tamanho de fonte da raiz. */
+/**
+ * Token de tamanho em px; o que está em rem é convertido pelo tamanho de fonte da raiz. Outra
+ * unidade (ou `calc()`) falha: viraria um número errado em silêncio.
+ */
 export function lerTokenEmPx(nome: string, estilo: CSSStyleDeclaration = estiloDaRaiz()): number {
   const valor = lerToken(nome, estilo);
-  const numero = Number.parseFloat(valor);
-  return valor.endsWith('rem') ? numero * Number.parseFloat(estilo.fontSize) : numero;
+  const medida = /^(-?\d*\.?\d+)(px|rem)$/.exec(valor);
+  if (medida === null) {
+    throw new Error(`Token ${nome} em "${valor}": só px e rem são aceitos.`);
+  }
+  const [, numero = '', unidade] = medida;
+  return unidade === 'rem' ? Number(numero) * Number.parseFloat(estilo.fontSize) : Number(numero);
 }
