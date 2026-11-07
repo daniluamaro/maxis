@@ -3,10 +3,11 @@ import type { JSX } from 'react';
 
 import { Bloco } from '@/app/referencia/Bloco';
 import { GRUPOS_DE_CORES } from '@/app/referencia/catalogo';
+import { criarLeitorDeTokens } from '@/app/referencia/leitorDeTokens';
 import { Secao } from '@/app/referencia/Secao';
+import { ValorDoToken } from '@/app/referencia/ValorDoToken';
 import { Marca } from '@/components/shell/Marca';
 import { cn } from '@/lib/utils';
-import { lerToken } from '@/theme/lerToken';
 
 const SOMBRAS = [
   { token: '--shadow-sm', classe: 'shadow-sm', uso: 'Painel' },
@@ -22,10 +23,7 @@ const RAIOS = [
 
 export function SecaoCores(): JSX.Element {
   // Valor lido do tokens.css aplicado à página: o que aparece aqui é o que o app usa
-  const ler = useMemo(() => {
-    const estilo = getComputedStyle(document.documentElement);
-    return (nome: string): string => lerToken(nome, estilo);
-  }, []);
+  const leitor = useMemo(() => criarLeitorDeTokens(), []);
 
   return (
     <Secao
@@ -47,7 +45,9 @@ export function SecaoCores(): JSX.Element {
                 <div className={cn('h-12 border-b border-border-soft', cor.classe)} />
                 <div className="px-3 pt-2 pb-2.5 text-xs">
                   <p className="font-mono font-medium">{cor.token}</p>
-                  <p className="font-mono text-text-secondary">{ler(cor.token)}</p>
+                  <p className="font-mono text-text-secondary">
+                    <ValorDoToken>{leitor.valor(cor.token)}</ValorDoToken>
+                  </p>
                   <p className="mt-1 text-text-secondary">{cor.uso}</p>
                 </div>
               </li>
@@ -66,7 +66,9 @@ export function SecaoCores(): JSX.Element {
               </div>
               <div className="border-t border-border-soft px-3 pt-2 pb-2.5 text-xs">
                 <p className="font-mono font-medium">{sombra.token}</p>
-                <p className="font-mono text-text-secondary">{ler(sombra.token)}</p>
+                <p className="font-mono text-text-secondary">
+                  <ValorDoToken>{leitor.valor(sombra.token)}</ValorDoToken>
+                </p>
                 <p className="mt-1 text-text-secondary">{sombra.uso}</p>
               </div>
             </li>
@@ -74,7 +76,10 @@ export function SecaoCores(): JSX.Element {
         </ul>
         <p className="mt-4 text-xs text-text-secondary">
           Raios derivados de <span className="font-mono">--radius</span>, que vale{' '}
-          <span className="font-mono">{ler('--radius')}</span>:
+          <span className="font-mono">
+            <ValorDoToken>{leitor.valor('--radius')}</ValorDoToken>
+          </span>
+          :
         </p>
         <ul className="mt-2 flex flex-wrap gap-5">
           {RAIOS.map((raio) => (

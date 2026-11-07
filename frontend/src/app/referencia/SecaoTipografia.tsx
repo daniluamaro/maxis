@@ -9,22 +9,24 @@ import {
   ESTILO_DO_CABECALHO,
   ESTILO_DO_CORPO_DA_TABELA,
 } from '@/app/referencia/estilos';
+import { criarLeitorDeTokens } from '@/app/referencia/leitorDeTokens';
 import { Secao } from '@/app/referencia/Secao';
+import { ValorDoToken } from '@/app/referencia/ValorDoToken';
 import { formatarNumero } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { lerTokenEmPx } from '@/theme/lerToken';
 
 function formatarPx(px: number): string {
   return `${formatarNumero(px, Number.isInteger(px) ? 0 : 1)}\u00a0px`;
 }
 
 export function SecaoTipografia(): JSX.Element {
-  // Em px pelo tamanho de fonte da raiz: muda se a pessoa aumentar a fonte do navegador
+  // Em px pelo tamanho de fonte da raiz, lido ao abrir a página: com a fonte do navegador maior,
+  // os valores sobem junto
   const escala = useMemo(() => {
-    const estilo = getComputedStyle(document.documentElement);
+    const leitor = criarLeitorDeTokens();
     return ESCALA_TIPOGRAFICA.map((passo) => ({
       ...passo,
-      px: lerTokenEmPx(`--font-size-${passo.passo}`, estilo),
+      px: leitor.px(`--font-size-${passo.passo}`),
     }));
   }, []);
 
@@ -92,7 +94,7 @@ export function SecaoTipografia(): JSX.Element {
                       'font-mono whitespace-nowrap text-text-secondary',
                     )}
                   >
-                    {formatarPx(passo.px)}
+                    <ValorDoToken>{passo.px === null ? null : formatarPx(passo.px)}</ValorDoToken>
                   </td>
                   <td className={cn(ESTILO_DA_CELULA, 'text-text-secondary')}>{passo.uso}</td>
                   <td className={cn(ESTILO_DA_CELULA, passo.classe)}>{passo.amostra}</td>

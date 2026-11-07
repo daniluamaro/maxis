@@ -24,6 +24,17 @@ describe('ReferenciaDoTema', () => {
     }
   });
 
+  // A página existe para conferir os tokens: o que falta aparece marcado, sem derrubar a tela
+  it('aponta o token ausente em vez de quebrar', () => {
+    document.getElementById('tokens-css')?.remove();
+
+    render(<ReferenciaDoTema />);
+
+    const ausentes = within(secao('Cores')).getAllByText('Token ausente');
+    expect(ausentes.length).toBeGreaterThan(0);
+    expect(within(secao('Tipografia')).getAllByText('Token ausente').length).toBeGreaterThan(0);
+  });
+
   it('mostra a escala tipográfica com o tamanho de cada passo em px', () => {
     render(<ReferenciaDoTema />);
     const tipografia = secao('Tipografia');
