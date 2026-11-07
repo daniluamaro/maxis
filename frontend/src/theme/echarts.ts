@@ -3,6 +3,7 @@
  * fonte ou tamanho é repetido aqui. O registro no ECharts fica em `components/charts`, o único
  * lugar que importa o ECharts.
  */
+import { lerToken, lerTokenEmPx } from '@/theme/lerToken';
 
 /** Valores dos tokens já resolvidos, no formato que o ECharts aceita (cor em texto, tamanho em px). */
 export type TokensDoGrafico = {
@@ -42,21 +43,9 @@ export const CORES_DAS_SERIES = [
 /** Lê os tokens do documento. Falha se faltar um: sem ele, o ECharts usaria as próprias cores. */
 export function lerTokensDoGrafico(): TokensDoGrafico {
   const estilo = getComputedStyle(document.documentElement);
-  const pxPorRem = Number.parseFloat(estilo.fontSize);
-
-  const ler = (nome: string): string => {
-    const valor = estilo.getPropertyValue(nome).trim();
-    if (valor === '') {
-      throw new Error(`Token ${nome} ausente: o tokens.css não foi carregado.`);
-    }
-    return valor;
-  };
+  const ler = (nome: string): string => lerToken(nome, estilo);
   // O ECharts só aceita px; a escala é em rem para respeitar o tamanho de fonte do navegador
-  const lerPx = (nome: string): number => {
-    const valor = ler(nome);
-    const numero = Number.parseFloat(valor);
-    return valor.endsWith('rem') ? numero * pxPorRem : numero;
-  };
+  const lerPx = (nome: string): number => lerTokenEmPx(nome, estilo);
 
   return {
     series: CORES_DAS_SERIES.map((cor) => ler(cor.token)),
