@@ -29,5 +29,8 @@ export default defineConfig({
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,
+    // Data com hora sai no fuso local: fixo aqui (UTC−3, o da maioria dos usuários) para o
+    // resultado não depender da máquina nem do CI
+    env: { TZ: 'America/Sao_Paulo' },
   },
 });
