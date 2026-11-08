@@ -7,8 +7,11 @@ export type Json =
   | { [chave: string]: Json | undefined }
   | Json[];
 
-/** Status dos erros previstos (`supabase/CLAUDE.md §8`); o 500 só sai por `erroInterno`. */
-const STATUS_DE_ERRO = [400, 401, 403, 404, 409] as const;
+/**
+ * Status dos erros previstos (`supabase/CLAUDE.md §8`, mais o 405 do método recusado pelo
+ * `comCors`); o 500 só sai por `erroInterno`.
+ */
+const STATUS_DE_ERRO = [400, 401, 403, 404, 405, 409] as const;
 type StatusDeErro = (typeof STATUS_DE_ERRO)[number];
 
 const MENSAGEM_DO_ERRO_INTERNO =

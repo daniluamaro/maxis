@@ -48,6 +48,12 @@ export function comCors(handler: Handler): Handler {
       return comCabecalhosCors(resposta, origem);
     }
 
+    if (req.method !== 'POST') {
+      const resposta = erro(405, 'metodo_nao_permitido', 'Esta operação só aceita POST.');
+      resposta.headers.set('Allow', METODOS_PERMITIDOS);
+      return comCabecalhosCors(resposta, origem);
+    }
+
     let resposta: Response;
     try {
       resposta = await handler(req);
