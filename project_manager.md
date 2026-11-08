@@ -225,6 +225,19 @@ Fora do commit: `.claude/`. Próximo: STEP 0.12, aguardando aprovação. |
 - **§9:** a frase "se decidem no STEP 0.11" sai. No lugar dela: o `verify_jwt` confere o JWT de sessão, as chaves novas vão só no `apikey`, e o SDK exige ES256.
 
 Item (c) do STEP 0.11 resolvido: a extensão do Deno para o VS Code (`denoland.vscode-deno` 3.53.1) foi instalada no WSL, com `deno.enablePaths`, `deno.path` e `deno.config` no `.vscode/settings.json` local, fora do git. O painel de problemas deixou de acusar `Deno` e `@std/assert` em `supabase/functions/`. |
+| 08/11/2026 | Danilo aprova o STEP 0.11 (PR #10).
+
+**Desvios aceitos:**
+- o 405 na resposta padrão;
+- `Cache-Control: no-store` em toda resposta padrão;
+- o 500 da exceção com CORS e, no log, só o tipo e a pilha;
+- a correção do entregável 10 na §9 do plano.
+
+**Também aceitas:** as decisões 1–7 do STEP e os achados mantidos do code-review.
+
+**Proposta (a) aprovada:** o localhost passa a valer só no projeto de dev, decidido pelo `SUPABASE_URL` que a plataforma injeta, no mesmo desenho do `[remotes.dev]` do `config.toml`. Entra na Fase 1, com a primeira função publicada no dev, onde dá para provar o ambiente real. Até lá, o `comCors` aceita as duas origens nos dois projetos.
+
+**Segue pendente com o Danilo:** 📋 confirmar no Dashboard dos dois projetos (Project Settings → JWT Keys) que a chave atual é a ECC P-256, antes da abertura da Fase 1. |
 
 ---
 
