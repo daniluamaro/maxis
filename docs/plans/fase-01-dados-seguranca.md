@@ -96,8 +96,8 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.6 — Configuração do Auth e política de senha
 **Entrega:** Auth endurecido, igual em local e produção.
-- [ ] `config.toml`: senha com mínimo 8 e letras + números; cadastro público desligado (já na Fase 0) — chaves de configuração conferidas com `--help`/docs da versão do CLI
-- [ ] Produção igual ao `config.toml` (mesmo mecanismo definido no STEP 0.10)
+- [x] `config.toml`: senha com mínimo 8 e letras + números; cadastro público desligado (já na Fase 0) — chaves de configuração conferidas com `--help`/docs da versão do CLI *(antecipado no STEP 0.10, 07/11/2026: `minimum_password_length = 8`, `password_requirements = "letters_digits"`)*
+- [x] Produção igual ao `config.toml` (mesmo mecanismo definido no STEP 0.10) *(dev e produção com `config push --remote` e `config diff --exit-code` sem diferença, 07/11/2026)*
 - [ ] Registrar em `supabase/CLAUDE.md` *(sob autorização)* se o mecanismo de sincronização mudar algo da convenção
 
 **Verificação:** no ambiente local, cadastro público pela API é recusado e senha fraca é recusada pelo Auth; Dashboard de produção confere.
