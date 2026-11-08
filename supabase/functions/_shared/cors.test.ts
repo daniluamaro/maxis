@@ -119,6 +119,29 @@ Deno.test('preflight de origem negada responde 403 sem cabeçalhos CORS', async 
   }
 });
 
+Deno.test('método fora de POST recebe 405 com Allow, e o handler não roda', async () => {
+  const casos: [string, Record<string, string>][] = [
+    ['GET', { Origin: PRODUCAO }],
+    ['PUT', { Origin: PRODUCAO }],
+    ['PATCH', { Origin: DESENVOLVIMENTO }],
+    ['DELETE', { Origin: DESENVOLVIMENTO }],
+    ['GET', {}],
+  ];
+
+  for (const [metodo, cabecalhos] of casos) {
+    const { handler, chamadas } = handlerEspiao();
+    const rotulo = `${metodo} ${cabecalhos.Origin ?? 'sem Origin'}`;
+
+    const resposta = await comCors(handler)(requisicao(metodo, cabecalhos));
+
+    assertEquals(chamadas.length, 0, rotulo);
+    assertEquals(resposta.status, 405, rotulo);
+    assertEquals((await resposta.json()).error.codigo, 'metodo_nao_permitido', rotulo);
+    assertEquals(resposta.headers.get('allow'), 'POST, OPTIONS', rotulo);
+    assertEquals(resposta.headers.get('access-control-allow-origin'), cabecalhos.Origin ?? null);
+  }
+});
+
 Deno.test('chamada sem Origin (servidor a servidor) chega ao handler sem cabeçalhos CORS', async () => {
   const { handler, chamadas } = handlerEspiao();
 
