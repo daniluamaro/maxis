@@ -24,7 +24,7 @@ create extension if not exists pgtap with schema extensions;
 -- `select` do fim entrega a saída inteira, em ordem, aos dois caminhos (MCP e pg_prove)
 create temporary table tap (ordem integer generated always as identity, linha text);
 
-insert into tap (linha) select plan(12);
+insert into tap (linha) select plan(14);
 
 -- Regra 1: tabelas (comuns e particionadas) de `public` sem RLS habilitada
 create function pg_temp.tabelas_sem_rls() returns setof text
@@ -47,8 +47,12 @@ as $$
   join pg_catalog.pg_namespace as n on n.oid = c.relnamespace
   where n.nspname = 'public'
     and c.relkind in ('r', 'p', 'v', 'm', 'f')
-    and pg_catalog.has_table_privilege(
-      'anon', c.oid, 'select, insert, update, delete, truncate, references, trigger'
+    and (
+      pg_catalog.has_table_privilege(
+        'anon', c.oid, 'select, insert, update, delete, truncate, references, trigger, maintain'
+      )
+      -- O grant numa coluna não aparece no privilégio da tabela
+      or pg_catalog.has_any_column_privilege('anon', c.oid, 'select, insert, update, references')
     )
   union all
   select 'sequência ' || c.relname
@@ -116,6 +120,16 @@ as 'select 1';
 grant execute on function public.guardiao_violacao_funcao() to anon;
 create view public.guardiao_violacao_view as select id from public.guardiao_violacao;
 create materialized view public.guardiao_violacao_mat as select 1 as id;
+-- Grants que escapam ao privilégio da tabela: só numa coluna, e o MAINTAIN do PG 17 (VACUUM,
+-- ANALYZE, LOCK), que o `grant all` padrão inclui
+create table public.guardiao_violacao_coluna (id integer, nome text);
+alter table public.guardiao_violacao_coluna enable row level security;
+revoke all on public.guardiao_violacao_coluna from anon, public;
+grant select (nome) on public.guardiao_violacao_coluna to anon;
+create table public.guardiao_violacao_maintain (id integer);
+alter table public.guardiao_violacao_maintain enable row level security;
+revoke all on public.guardiao_violacao_maintain from anon, public;
+grant maintain on public.guardiao_violacao_maintain to anon;
 
 insert into tap (linha) select ok(
   'guardiao_violacao' in (select * from pg_temp.tabelas_sem_rls()),
@@ -124,6 +138,14 @@ insert into tap (linha) select ok(
 insert into tap (linha) select ok(
   'relação guardiao_violacao' in (select * from pg_temp.privilegios_de_anon()),
   'acusa tabela acessível a anon'
+);
+insert into tap (linha) select ok(
+  'relação guardiao_violacao_coluna' in (select * from pg_temp.privilegios_de_anon()),
+  'acusa coluna acessível a anon'
+);
+insert into tap (linha) select ok(
+  'relação guardiao_violacao_maintain' in (select * from pg_temp.privilegios_de_anon()),
+  'acusa MAINTAIN concedido a anon'
 );
 insert into tap (linha) select ok(
   'sequência guardiao_violacao_seq' in (select * from pg_temp.privilegios_de_anon()),
@@ -150,6 +172,8 @@ create view public.guardiao_conforme_view
 with (security_invoker = true)
 as select id from public.guardiao_conforme;
 revoke all on public.guardiao_conforme_view from anon, public;
+create sequence public.guardiao_conforme_seq;
+revoke all on sequence public.guardiao_conforme_seq from anon, public;
 create function public.guardiao_conforme_funcao() returns integer
 language sql
 as 'select 1';
