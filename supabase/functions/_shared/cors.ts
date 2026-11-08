@@ -58,11 +58,21 @@ export function comCors(handler: Handler): Handler {
     try {
       resposta = await handler(req);
     } catch (falha) {
-      console.error('Exceção não tratada na Edge Function:', falha);
+      console.error('Exceção não tratada na Edge Function:', tipoEPilha(falha));
       resposta = erroInterno();
     }
     return comCabecalhosCors(resposta, origem);
   };
+}
+
+/**
+ * O log leva o tipo e a pilha, nunca a mensagem: ela pode trazer dado pessoal ou segredo (o
+ * `JSON.parse` do V8, por exemplo, cita o trecho da entrada que recusou).
+ */
+function tipoEPilha(falha: unknown): string {
+  if (!(falha instanceof Error)) return `valor lançado do tipo ${typeof falha}`;
+  const quadros = (falha.stack ?? '').split('\n').filter((linha) => /^\s+at /.test(linha));
+  return [falha.name, ...quadros].join('\n');
 }
 
 function comCabecalhosCors(resposta: Response, origem: string | null): Response {

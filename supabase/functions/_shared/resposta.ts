@@ -24,7 +24,10 @@ export function sucesso(data: Json, status: 200 | 201 = 200): Response {
 /** Erro previsto — validação, sessão, permissão, ausência ou conflito —, com mensagem para a tela. */
 export function erro(status: StatusDeErro, codigo: string, mensagem: string): Response {
   // O tipo já barra o 500; a checagem cobre o status que chegue por conversão de tipo.
-  if (!STATUS_DE_ERRO.includes(status)) return erroInterno();
+  if (!STATUS_DE_ERRO.includes(status)) {
+    console.error(`erro() recebeu o status ${status}, fora dos previstos: virou erro interno.`);
+    return erroInterno();
+  }
   return corpoDeErro(status, codigo, mensagem);
 }
 
