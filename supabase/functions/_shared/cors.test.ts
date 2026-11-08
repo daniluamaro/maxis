@@ -1,4 +1,5 @@
 import { assertEquals, assertStringIncludes } from '@std/assert';
+import { capturandoConsoleError } from './consoleDeTeste.ts';
 import { comCors } from './cors.ts';
 import { sucesso } from './resposta.ts';
 
@@ -154,25 +155,41 @@ Deno.test('chamada sem Origin (servidor a servidor) chega ao handler sem cabeça
 });
 
 Deno.test('exceção no handler vira 500 genérico com CORS, para o navegador conseguir ler', async () => {
-  const falha = new Error('connect ECONNREFUSED 10.0.0.12:5432');
-  const handler: Handler = () => Promise.reject(falha);
-  const registrados: unknown[][] = [];
-  const consoleErrorOriginal = console.error;
-  console.error = (...argumentos: unknown[]): void => {
-    registrados.push(argumentos);
-  };
+  const handler: Handler = () => Promise.reject(new Error('connect ECONNREFUSED 10.0.0.12:5432'));
 
-  try {
-    const resposta = await comCors(handler)(requisicao('POST', { Origin: PRODUCAO }));
+  const { resultado: resposta } = await capturandoConsoleError(() =>
+    comCors(handler)(requisicao('POST', { Origin: PRODUCAO }))
+  );
 
-    assertEquals(resposta.status, 500);
-    const corpo = await resposta.json();
-    assertEquals(corpo.error.codigo, 'erro_interno');
-    assertEquals(JSON.stringify(corpo).includes('ECONNREFUSED'), false);
-    assertEquals(resposta.headers.get('access-control-allow-origin'), PRODUCAO);
-    assertEquals(registrados.length, 1);
-    assertStringIncludes(String(registrados[0]?.at(-1)), 'ECONNREFUSED');
-  } finally {
-    console.error = consoleErrorOriginal;
+  assertEquals(resposta.status, 500);
+  const corpo = await resposta.json();
+  assertEquals(corpo.error.codigo, 'erro_interno');
+  assertEquals(JSON.stringify(corpo).includes('ECONNREFUSED'), false);
+  assertEquals(resposta.headers.get('access-control-allow-origin'), PRODUCAO);
+});
+
+Deno.test('exceção vai para o log só com tipo e pilha, sem a mensagem', async () => {
+  // O JSON.parse do V8 cita a entrada na mensagem: um corpo malformado levaria a senha ao log.
+  const casos: { rotulo: string; falha: unknown; noLog: string[] }[] = [
+    {
+      rotulo: 'Error',
+      falha: new SyntaxError(`Unexpected token 's', "senha=Kq7mR2xa" is not valid JSON`),
+      noLog: ['SyntaxError', 'cors.test.ts'],
+    },
+    { rotulo: 'valor lançado', falha: 'senha=Kq7mR2xa', noLog: ['string'] },
+  ];
+
+  for (const { rotulo, falha, noLog } of casos) {
+    const handler: Handler = () => Promise.reject(falha);
+
+    const { registros } = await capturandoConsoleError(async () => {
+      const resposta = await comCors(handler)(requisicao('POST', { Origin: PRODUCAO }));
+      await resposta.body?.cancel();
+    });
+
+    assertEquals(registros.length, 1, rotulo);
+    const registro = registros[0] ?? '';
+    for (const trecho of noLog) assertStringIncludes(registro, trecho, rotulo);
+    assertEquals(registro.includes('Kq7mR2xa'), false, rotulo);
   }
 });

@@ -1,4 +1,5 @@
-import { assertEquals, assertMatch } from '@std/assert';
+import { assertEquals, assertMatch, assertStringIncludes } from '@std/assert';
+import { capturandoConsoleError } from './consoleDeTeste.ts';
 import { erro, erroInterno, sucesso } from './resposta.ts';
 
 const MENSAGEM_DO_ERRO_INTERNO =
@@ -48,11 +49,17 @@ Deno.test('nenhuma resposta padrão fica em cache (a senha provisória volta uma
 });
 
 Deno.test('erro com 500 não repassa o detalhe: o 500 sai só pela mensagem genérica', async () => {
-  // @ts-expect-error: o tipo de erro() não aceita 500; o teste prova a barreira em execução
-  const resposta = erro(500, 'falha_no_banco', 'duplicate key value violates unique constraint');
+  const { resultado: resposta, registros } = await capturandoConsoleError(() =>
+    // @ts-expect-error: o tipo de erro() não aceita 500; o teste prova a barreira em execução
+    Promise.resolve(erro(500, 'falha_no_banco', 'Key (email)=(ana@alfa.com.br) already exists'))
+  );
 
   assertEquals(resposta.status, 500);
   assertEquals(await resposta.json(), {
     error: { codigo: 'erro_interno', mensagem: MENSAGEM_DO_ERRO_INTERNO },
   });
+  // Quem trocou o status por conversão de tipo acha o motivo no log, sem o detalhe recusado.
+  assertEquals(registros.length, 1);
+  assertStringIncludes(registros[0] ?? '', '500');
+  assertEquals((registros[0] ?? '').includes('ana@alfa.com.br'), false);
 });
