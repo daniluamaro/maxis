@@ -120,7 +120,7 @@
 | 18 | `CLAUDE.md §7` | Tokens da sidebar para os neutros sobre a navy, hoje valores literais no `.sidebar` do mockup: texto primário `#FFFFFF`, secundário `#A9B4CC`, terciário **revisto** (o `#6B7793` dá 3,86:1 sobre `--sidebar-bg`, abaixo do AA para o rótulo de grupo de 10,5px; valor definido na aplicação, com contraste medido) e bordas brancas translúcidas. São os valores que a sidebar redefine localmente (`frontend/CLAUDE.md §6`). No mesmo commit, o `tokens.css` e a referência do tema. | Aprovada (07/11/2026) · aplicar sob autorização (antes da abertura da Fase 3) |
 | 19 | `supabase/CLAUDE.md §2` | Caminho de reserva para aplicar migration no dev: quando o `apply_migration` do MCP voltar "declined" (o servidor pede confirmação para instrução destrutiva, e ela não chega à sessão), criar o arquivo com `npx supabase migration new <nome>` e aplicar com `npx supabase db push --remote=<ref do dev> --skip-vault`. A versão do arquivo continua sendo a registrada no dev, conferida no `list_migrations`. Aconteceu na primeira migration (STEP 0.10). | ✅ Aplicada em 07/11/2026 |
 | 20 | `CLAUDE.md §8` | A regra "ferramentas de escrita do MCP nunca na allowlist" distingue o servidor: o `execute_sql` do `supabase-prod` (`read_only=true`; roda como `supabase_read_only_user` em transação somente leitura, e recusar escrita foi provado no STEP 0.10) pode ficar na allowlist. O do `supabase-dev`, nunca. | ✅ Aplicada em 07/11/2026 |
-| 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | Proposta (07/11/2026) · aplicar sob autorização (antes da abertura da Fase 1) |
+| 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | ✅ Aplicada em 08/11/2026 |
 
 ---
 
@@ -219,6 +219,12 @@ Mantidos:
 - Fase 1: `deno.json` da `provisionar-usuario` com o `@supabase/server` exato; `[functions.provisionar-usuario] verify_jwt = true` explícito no `config.toml`; provar no dev publicado o preflight com `verify_jwt`; provar que o 401 da plataforma chega legível ao navegador.
 
 Fora do commit: `.claude/`. Próximo: STEP 0.12, aguardando aprovação. |
+| 08/11/2026 | Com autorização do Danilo: pendência **#21** aplicada no `supabase/CLAUDE.md`, no PR do STEP 0.11.
+- **§8, autenticação:** `@supabase/server` com `createSupabaseContext` dentro do `comCors`; o `withSupabase` fica de fora; `verify_jwt` ligado, em duas camadas.
+- **§8, resposta padrão:** inclui o 405.
+- **§9:** a frase "se decidem no STEP 0.11" sai. No lugar dela: o `verify_jwt` confere o JWT de sessão, as chaves novas vão só no `apikey`, e o SDK exige ES256.
+
+Item (c) do STEP 0.11 resolvido: a extensão do Deno para o VS Code (`denoland.vscode-deno` 3.53.1) foi instalada no WSL, com `deno.enablePaths`, `deno.path` e `deno.config` no `.vscode/settings.json` local, fora do git. O painel de problemas deixou de acusar `Deno` e `@std/assert` em `supabase/functions/`. |
 
 ---
 

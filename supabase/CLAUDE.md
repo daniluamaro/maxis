@@ -91,7 +91,7 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 ## 8. Edge Functions (Deno)
 
 - **Uma função por capacidade privilegiada.** O `index.ts` só recebe a requisição e delega; a regra de negócio fica em módulo puro, testável sem rede.
-- **Autenticação:** usar o padrão oficial vigente (`@supabase/server` com `withSupabase` e modo `auth` explícito — `'user'` nas funções chamadas pelo app). `verify_jwt` ligado nas funções de usuário. Essa API muda com frequência: confirmar na documentação (Context7) ao implementar.
+- **Autenticação:** usar o padrão oficial vigente (`@supabase/server` com `createSupabaseContext` e modo `auth` explícito — `'user'` nas funções chamadas pelo app), dentro do `comCors` do `_shared`. Não usar o `withSupabase`: o CORS dele é fixo (sem allowlist por origem) e o erro sai no formato do SDK, não na resposta padrão. `verify_jwt` ligado nas funções de usuário — são duas camadas. Essa API muda com frequência: confirmar na documentação (Context7) ao implementar.
 - **Fluxo obrigatório de toda função:**
   1. CORS liberado só para o domínio de produção e o localhost de desenvolvimento;
   2. identificar quem chama a partir do JWT;
@@ -103,7 +103,7 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 - **Cliente admin (chave secreta):** criado por requisição, nunca exportado de `_shared`, nunca usado para leitura que o cliente sob RLS resolveria. Toda consulta feita com ele filtra explicitamente pelo tenant do chamador.
 - **Criação de usuário:** `email_confirm: true` sempre. Se a criação do profile falhar, remover o usuário recém-criado do Auth (compensação) — nunca deixar usuário de Auth sem profile.
 - **Senha provisória:** gerada no servidor com gerador criptográfico; devolvida **uma única vez** ao chamador para repasse; nunca logada, persistida em claro nem gravada em auditoria. Reset de senha e desativação **encerram as sessões ativas** do usuário afetado.
-- **Resposta padrão:** sucesso `{ data }`; erro `{ error: { codigo, mensagem } }` com mensagem pt-BR amigável e status HTTP correto (400 validação, 401 sem sessão, 403 sem permissão, 404, 409 conflito, 500). Nunca stack trace, mensagem do Postgres ou detalhe interno.
+- **Resposta padrão:** sucesso `{ data }`; erro `{ error: { codigo, mensagem } }` com mensagem pt-BR amigável e status HTTP correto (400 validação, 401 sem sessão, 403 sem permissão, 404, 405 método fora de POST — recusado pelo `comCors` —, 409 conflito, 500). Nunca stack trace, mensagem do Postgres ou detalhe interno.
 - TypeScript strict, sem `any`, retorno explícito. Dependências `npm:`/`jsr:` com **versão fixada** no `deno.json` da função; lockfile versionado.
 - Logs sem senha, token, chave ou dado pessoal desnecessário.
 - `deno test` para a lógica (regras de cascata, validação, geração de senha) — TDD a partir da Fase 1.
@@ -112,7 +112,7 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 ## 9. Chaves e segredos
 
 - A **chave secreta** (`sb_secret_…`) existe **só** no ambiente das Edge Functions. Nunca em migration, seed, teste versionado, `config.toml` ou log.
-- As Edge Functions recebem URL e chaves pelo ambiente da plataforma: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS` e `SUPABASE_JWKS`. As duas de chaves são JSON por nome (a chave padrão é `default`). Os dois projetos usam as chaves novas; as legadas (`SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) ficam desativadas. Como as chaves novas não são JWT, o `verify_jwt` e o SDK `@supabase/server` se decidem no STEP 0.11.
+- As Edge Functions recebem URL e chaves pelo ambiente da plataforma: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS` e `SUPABASE_JWKS`. As duas de chaves são JSON por nome (a chave padrão é `default`). Os dois projetos usam as chaves novas; as legadas (`SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) ficam desativadas. O `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas não são JWT e vão só no cabeçalho `apikey`. O `@supabase/server` exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS.
 - Segredos adicionais só via gerenciamento de secrets do Supabase — nunca em arquivo versionado.
 - Dev e produção têm chaves próprias; chave de um projeto nunca é usada no outro.
 
