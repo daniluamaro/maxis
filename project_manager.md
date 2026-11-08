@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `░░░░░░░░░░` 0% · 0 de 9 fases concluídas
-**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.10 ✅; próximo: 0.11)
+**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.11 ✅; próximo: 0.12)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Fase ativa — Fase 0: Infraestrutura & Setup
 
-**Status:** 🔄 Em andamento (STEPs 0.1–0.10 ✅ · próximo: 0.11)
+**Status:** 🔄 Em andamento (STEPs 0.1–0.11 ✅ · próximo: 0.12)
 **Objetivo:** deixar o repositório pronto para desenvolvimento — build, lint, testes, CI/CD, Supabase local e tema visual — sem nenhuma lógica de negócio.
 
 **Plano:** `docs/plans/fase-00-infra-setup.md` (14 STEPs). Pendências #1, #2 e #4 já aplicadas. MCPs Supabase e Context7 autorizados e verificados em 02/11/2026 (pré-requisito do plano, §2). Plano revisado em 03/11/2026: decisões #5 (TypeScript 6.0.x), #11 (Supabase só online, dev + produção) e #12 (hospedagem portátil para Vercel).
@@ -85,7 +85,7 @@
 | 8 | Tema ECharts e wrapper | 0.8 | ✅ |
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ✅ |
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
-| 11 | Base Deno das Edge Functions com testes | 0.11 | ⬜ |
+| 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
 | 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ⬜ |
 | 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
 | 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
@@ -120,6 +120,7 @@
 | 18 | `CLAUDE.md §7` | Tokens da sidebar para os neutros sobre a navy, hoje valores literais no `.sidebar` do mockup: texto primário `#FFFFFF`, secundário `#A9B4CC`, terciário **revisto** (o `#6B7793` dá 3,86:1 sobre `--sidebar-bg`, abaixo do AA para o rótulo de grupo de 10,5px; valor definido na aplicação, com contraste medido) e bordas brancas translúcidas. São os valores que a sidebar redefine localmente (`frontend/CLAUDE.md §6`). No mesmo commit, o `tokens.css` e a referência do tema. | Aprovada (07/11/2026) · aplicar sob autorização (antes da abertura da Fase 3) |
 | 19 | `supabase/CLAUDE.md §2` | Caminho de reserva para aplicar migration no dev: quando o `apply_migration` do MCP voltar "declined" (o servidor pede confirmação para instrução destrutiva, e ela não chega à sessão), criar o arquivo com `npx supabase migration new <nome>` e aplicar com `npx supabase db push --remote=<ref do dev> --skip-vault`. A versão do arquivo continua sendo a registrada no dev, conferida no `list_migrations`. Aconteceu na primeira migration (STEP 0.10). | ✅ Aplicada em 07/11/2026 |
 | 20 | `CLAUDE.md §8` | A regra "ferramentas de escrita do MCP nunca na allowlist" distingue o servidor: o `execute_sql` do `supabase-prod` (`read_only=true`; roda como `supabase_read_only_user` em transação somente leitura, e recusar escrita foi provado no STEP 0.10) pode ficar na allowlist. O do `supabase-dev`, nunca. | ✅ Aplicada em 07/11/2026 |
+| 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | Proposta (07/11/2026) · aplicar sob autorização (antes da abertura da Fase 1) |
 
 ---
 
@@ -158,6 +159,66 @@
 | 07/11/2026 | Com autorização do Danilo: pendências **#19** (caminho de reserva para aplicar migration no dev, `migration new` + `db push --remote --skip-vault`, no `supabase/CLAUDE.md §2`) e **#20** (o `execute_sql` do `supabase-prod`, somente leitura, pode ficar na allowlist; o do `supabase-dev` nunca — `CLAUDE.md §8`) aplicadas no PR do STEP 0.10. |
 | 07/11/2026 | Danilo aprova o STEP 0.10 (PR #9) com os desvios registrados: migration aplicada no dev por `db push --remote` (o `apply_migration` voltou "declined" sem diálogo; caminho registrado pela pendência #19), guardião assumindo o papel `postgres` e juntando a saída TAP numa tabela temporária para o MCP, tipos gerados fora do ESLint e do Prettier, Auth conferido pelo `config diff` (a API do Dashboard), `pg_prove` em contêiner Docker no `test db --remote`, linha do `frontend/CLAUDE.md §11` incluída na pendência #3 e `supabase-prod` sem a feature `functions`. Mantidos do code-review: seed com `enabled = true` (a proteção é o CI sem `--include-seed`), TOTP no padrão da plataforma e CLI na raiz. Ficam para o STEP 0.11 o `verify_jwt` e o SDK `@supabase/server`; para o 0.12, CI sem `--include-seed`, com `--skip-vault`, Docker no runner para o `test db` e o custo do download do CLI. |
 | 07/11/2026 | **Achado da conferência pós-merge do STEP 0.10:** `npm audit` com **12 vulnerabilidades moderadas, só em desenvolvimento**; produção (`npm audit --omit=dev`) com **0**. Todas vêm do `minimatch` **10.2.6** (GHSA-g3hv-75wg-m249, faixa `>=7.0.0 <11.0.1`), puxado pelo typescript-eslint 8.72.1 (`@typescript-eslint/typescript-estree`) e pelo ESLint 10.14 (direto e via `@eslint/config-array`); a cópia 3.1.5 do jsx-a11y fica fora da faixa. O lockfile anterior ao 0.10 (`4b10f6b`) já tinha essa versão: o 0.10 não a trouxe. **Decisão adiada para o STEP 0.12** (política de audit do CI). |
+| 07/11/2026 | **STEP 0.11 ✅** (branch `chore/step-0.11-edge-functions`, PR).
+
+**Versões:** Deno **2.9.8** (a instalada é a última estável, de 21/10/2026); `@std/assert` **1.0.19** (jsr, só testes; puxa `@std/internal` 1.0.14). Consultados para a decisão: `@supabase/server` 1.9.2 (12/10) e `@supabase/supabase-js` 2.119.0 (04/11).
+
+**Decisão do Danilo:** as funções do app usam **`verify_jwt` ligado + `@supabase/server`**, com `createSupabaseContext({ auth: 'user' })` dentro do `comCors`. São duas camadas: a plataforma barra a chamada sem JWT de usuário antes do código, e o SDK confere de novo no JWKS. O `withSupabase` não entra: o CORS dele é fixo (`*` ou cabeçalho estático) e o erro sai no formato do SDK. O SDK entra só na Fase 1, com a primeira função. Pendência **#21** proposta, para o `supabase/CLAUDE.md §8/§9`.
+
+**Base da decisão** (search_docs do `supabase-dev` + Context7):
+- O `verify_jwt` confere o JWT **de sessão do usuário**, HS256 ou ES256. O "as chaves novas não são JWT" só pesa se a chave for no `Authorization`, e no app ela vai no `apikey`.
+- A página "Securing Edge Functions" manda manter o `verify_jwt` com `auth: 'user'`; o guia de migração das chaves manda desligar. Prevaleceu a referência de cabeçalhos ("Authorization headers"): ligado nas funções chamadas só com JWT de usuário.
+- O `@supabase/server` recusa JWT HS256 legado (exige `kid`). O JWKS público dos dois projetos (`/auth/v1/.well-known/jwks.json`, só leitura) tem uma chave ES256.
+- O runtime embutido no CLI 3.0.0 pula a checagem de JWT no `OPTIONS`.
+
+**Entregue:**
+- `supabase/functions/deno.json`: rigor do `tsconfig.base.json`, lint `recommended` + 9 regras, fmt como o Prettier e `deno.lock` congelado.
+- `_shared/resposta.ts`: `sucesso`, `erro` (400/401/403/404/405/409) e `erroInterno` (500 genérico); `Cache-Control: no-store` em todas.
+- `_shared/cors.ts`: `comCors`, com allowlist por igualdade exata, preflight, 405 e exceção → 500 com CORS.
+- `_shared/consoleDeTeste.ts`, só para testes.
+
+**Decisões tomadas no STEP (para conferência):**
+1. O 500 só sai por `erroInterno()`. O tipo de `erro` não o aceita, e em execução um status fora da lista vira o 500 genérico.
+2. Origem negada recebe **403** antes de qualquer trabalho, inclusive no preflight. A chamada sem `Origin` (servidor a servidor) passa sem cabeçalhos CORS: o JWT continua exigido.
+3. Só **POST** (as funções são comandos). Outro método recebe 405 com `Allow`.
+4. Os cabeçalhos permitidos são a lista do supabase-js 2.119.0 (`@supabase/supabase-js/cors`), copiada à mão. `Max-Age` 7200 (teto do Chrome).
+5. `Vary: Origin` em toda resposta e `Cache-Control: no-store` em toda resposta padrão.
+6. O log de exceção leva só o tipo e a pilha, nunca a mensagem.
+7. Nomes em pt-BR, como no frontend; testes em `*.test.ts`, como no frontend.
+
+**Verificado:**
+- `deno fmt --check`, `deno lint`, `deno check` e `deno test` com saída 0 (14 testes).
+- TDD com RED por asserção antes de cada GREEN. O contrato de tipo teve o RED pelo `deno check` (`@ts-expect-error` sem uso), e a exceção, pelo erro escapando do wrapper. O teste "sem `Origin`" passou já no esqueleto, que só repassava a chamada: a garantia de passagem foi provada pela mutação.
+- Sonda temporária barrada pelas 7 regras (`any`, retorno sem tipo, `enum`, variável sem uso, índice sem checagem, `!`, `==`).
+- O lockfile congelado recusou a instalação até ser gerado de propósito.
+- **Teste de mutação:** 33 mutações realistas, todas pegas, entre elas origem por prefixo e por sufixo de domínio, preflight caindo no handler, curinga no Allow-Origin, exceção escapando e log com a mensagem.
+- Os cinco portões do frontend verdes (178 testes), com o Prettier e o ESLint da raiz fora de `supabase/`.
+- `list_edge_functions` do dev vazio; nada mudou nos dois projetos.
+
+**Code-review (medium), 8 achados.**
+
+Corrigidos:
+- o método fora de POST chegava ao handler (agora 405);
+- a exceção ia inteira para o log: a mensagem pode trazer dado pessoal ou segredo, e o `JSON.parse` do V8 cita a entrada;
+- a barreira do `erro()` virava 500 em silêncio (agora registra o status; o 405 entrou na lista).
+
+Mantidos:
+- **localhost aceito também na produção:** decisão do Danilo neste STEP e no §8. A autenticação é por token no cabeçalho, não por cookie: uma página em localhost não tem o token da sessão de produção. Fica como proposta abaixo.
+- **lista de cabeçalhos copiada à mão:** o supabase-js ainda não está em lugar nenhum. Na Fase 1 a lista passa a vir do `corsHeaders` do pacote.
+- **preflight negado com corpo JSON:** o navegador o descarta.
+- **`Vary` acrescentado sem checar o do handler:** nenhum handler define `Vary`.
+- **`deno.json` único:** o código de produção do `_shared` só usa import relativo; o `deno.json` por função entra com a primeira função.
+
+**Para o Danilo:**
+- (a) Restringir o localhost ao projeto de dev, pelo `SUPABASE_URL` que a plataforma injeta: o mesmo desenho do `[remotes.dev]` do `config.toml`.
+- (b) 📋 Conferir no Dashboard dos dois projetos (Project Settings → JWT Keys) que a **chave atual** é a ECC P-256. O SDK recusa token HS256, e o JWKS também mostraria uma chave de reserva.
+- (c) No VS Code, a extensão do Deno com `deno.enablePaths: ["supabase/functions"]`: sem ela, o TypeScript do editor marca `Deno` e `@std/assert` como desconhecidos nessa pasta (só no editor; o `deno check` é o portão).
+
+**Para os próximos STEPs:**
+- 0.12: o job `edge-functions` com Deno 2.9.8 fixado, rodando os quatro portões em `supabase/functions`. Proposta: falhar se aparecer `deno-lint-ignore`, `@ts-ignore` ou `@ts-nocheck`.
+- Fase 1: `deno.json` da `provisionar-usuario` com o `@supabase/server` exato; `[functions.provisionar-usuario] verify_jwt = true` explícito no `config.toml`; provar no dev publicado o preflight com `verify_jwt`; provar que o 401 da plataforma chega legível ao navegador.
+
+Fora do commit: `.claude/`. Próximo: STEP 0.12, aguardando aprovação. |
 
 ---
 
