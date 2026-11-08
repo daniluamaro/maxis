@@ -159,7 +159,7 @@ Nenhuma skill/MCP está pré-instalada. Para **cada uma** abaixo, antes de usar:
 | `typescript-lsp` | `goToDefinition`/`findReferences`/`hover` em vez de `grep` | leitura cuidadosa |
 | `/revise-claude-md` | ao final de tarefas relevantes (respeitando §10) | proposta manual de mudança |
 
-MCPs Supabase e Context7 autenticam via **OAuth** pelo `/mcp` (login no navegador, feito pelo Danilo) — nenhum token ou API key no chat nem em arquivo; o `.mcp.json` do projeto não guarda segredo. MCP pedindo autenticação → **pare e peça ao Danilo** para autorizar. Ferramentas de escrita do MCP (`apply_migration`, `execute_sql`, `deploy_edge_function`…) **nunca** entram na allowlist de permissões: toda escrita passa pela aprovação do Danilo.
+MCPs Supabase e Context7 autenticam via **OAuth** pelo `/mcp` (login no navegador, feito pelo Danilo) — nenhum token ou API key no chat nem em arquivo; o `.mcp.json` do projeto não guarda segredo. MCP pedindo autenticação → **pare e peça ao Danilo** para autorizar. Ferramentas de escrita do MCP (`apply_migration`, `execute_sql`, `deploy_edge_function`…) **nunca** entram na allowlist de permissões: toda escrita passa pela aprovação do Danilo. Exceção: o `execute_sql` do `supabase-prod`, que roda somente leitura (`read_only=true`), pode entrar; o do `supabase-dev`, nunca.
 
 ---
 
