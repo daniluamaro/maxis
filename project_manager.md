@@ -238,6 +238,9 @@ Item (c) do STEP 0.11 resolvido: a extensão do Deno para o VS Code (`denoland.v
 **Proposta (a) aprovada:** o localhost passa a valer só no projeto de dev, decidido pelo `SUPABASE_URL` que a plataforma injeta, no mesmo desenho do `[remotes.dev]` do `config.toml`. Entra na Fase 1, com a primeira função publicada no dev, onde dá para provar o ambiente real. Até lá, o `comCors` aceita as duas origens nos dois projetos.
 
 **Segue pendente com o Danilo:** 📋 confirmar no Dashboard dos dois projetos (Project Settings → JWT Keys) que a chave atual é a ECC P-256, antes da abertura da Fase 1. |
+| 08/11/2026 | Confirmações do Danilo depois do merge do PR #10 (STEP 0.11), registradas na abertura do STEP 0.12:
+- **Localhost só no dev** (proposta (a) do 0.11): confirmado. Entra na Fase 1, com a primeira função publicada no dev, decidido pelo `SUPABASE_URL` que a plataforma injeta (o mesmo desenho do `[remotes.dev]` do `config.toml`).
+- 📋 **Chave atual de assinatura de JWT = ECC P-256 nos dois projetos** (dev `maxis` e `maxis-producao`), conferida pelo Danilo no Dashboard (Project Settings → JWT Keys). Fecha o 📋 pendente do registro anterior e resolve o risco "JWT de usuário assinado com ES256" da §8 do plano da Fase 0. |
 
 ---
 
