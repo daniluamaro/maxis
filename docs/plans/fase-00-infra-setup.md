@@ -163,12 +163,30 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.11 — Base das Edge Functions (Deno)
 **Entrega:** toolchain Deno e o código compartilhado que toda função da Fase 1 em diante usa.
-- [ ] `supabase/functions/deno.json`: strict, lint, fmt; lockfile versionado
-- [ ] `_shared/`: resposta padrão (`{ data }` / `{ error: { codigo, mensagem } }` + status HTTP) e CORS com allowlist (produção + localhost) — conforme `supabase/CLAUDE.md §8`
-- [ ] Testes `deno test` da resposta padrão e do CORS (origem permitida, negada, preflight)
-- [ ] Nenhuma função publicada ainda (a primeira é a `provisionar-usuario`, Fase 1)
+- [x] `supabase/functions/deno.json`: strict, lint, fmt; lockfile versionado — Deno **2.9.8** (a última estável, de 21/10/2026). O rigor do `tsconfig.base.json` do frontend: `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUnusedLocals`/`noUnusedParameters`, `verbatimModuleSyntax`, `erasableSyntaxOnly`. Lint `recommended` mais retorno explícito, `eqeqeq` e sem non-null. Fmt como o Prettier (aspas simples, 100 colunas). Única dependência: `@std/assert` **1.0.19**, só nos testes. `deno.lock` congelado (`lock.frozen`): dependência nova só entra com `--frozen=false`, de propósito. Este `deno.json` configura as ferramentas; cada função terá o seu, com as próprias dependências (`supabase/CLAUDE.md §8`), e o código de produção do `_shared` só usa import relativo
+- [x] `_shared/`: resposta padrão (`{ data }` / `{ error: { codigo, mensagem } }` + status HTTP) e CORS com allowlist (produção + localhost) — conforme `supabase/CLAUDE.md §8`. `resposta.ts`:
+  - `sucesso(data, 200 | 201)` responde `{ data }`.
+  - `erro(status, codigo, mensagem)`, com 400/401/403/404/405/409, responde `{ error: { codigo, mensagem } }`.
+  - `erroInterno()` responde 500 com mensagem genérica. O tipo de `erro` não aceita 500, e em execução um status fora da lista vira o 500 genérico, com o status no log.
+  - `Cache-Control: no-store` em toda resposta (a senha provisória volta uma única vez).
 
-**Verificação:** `deno fmt --check`, `deno lint`, `deno check` e `deno test` verdes.
+  `cors.ts`, com `comCors(handler)`:
+  - Origem por igualdade exata com `https://maxis.performargestao.com.br` e `http://localhost:5173`. Fora da lista: 403 `origem_nao_permitida`, antes do handler.
+  - Preflight: 204 com os cabeçalhos do supabase-js 2.119.0, só `POST, OPTIONS`, `Max-Age` 7200.
+  - Outro método: 405 com `Allow`.
+  - Sem `Origin` (servidor a servidor): passa, sem cabeçalhos CORS.
+  - `Vary: Origin` em toda resposta.
+  - Exceção no handler: 500 genérico com CORS e, no log, só o tipo e a pilha.
+- [x] Testes `deno test` da resposta padrão e do CORS (origem permitida, negada, preflight) — 14 testes; também método recusado, chamada sem `Origin`, exceção e o que vai para o log
+- [x] Nenhuma função publicada ainda (a primeira é a `provisionar-usuario`, Fase 1) — `list_edge_functions` do dev vazio; nada mudou nos dois projetos
+- [x] **Decisão do Danilo (07/11/2026):** as funções do app usam **`verify_jwt` ligado + `@supabase/server`** — `createSupabaseContext({ auth: 'user' })` dentro do `comCors`, duas camadas. O `withSupabase` fica de fora: o CORS dele é fixo e o erro sai no formato do SDK. O SDK entra na Fase 1, com a primeira função (pendência #21)
+
+**Verificação:** `deno fmt --check`, `deno lint`, `deno check` e `deno test` verdes. *(Feito em 07/11/2026:*
+- *os quatro com saída 0;*
+- *TDD com RED por asserção antes de cada GREEN. O contrato de tipo teve o RED pelo `deno check` (`@ts-expect-error` sem uso), e a exceção, pelo erro escapando do wrapper;*
+- *sonda temporária barrada pelas 7 regras (`any`, retorno sem tipo, `enum`, variável sem uso, índice sem checagem, `!`, `==`);*
+- *lockfile congelado recusando a instalação;*
+- *33 mutações realistas, todas pegas.)*
 
 ### STEP 0.12 — Pipeline CI/CD
 **Entrega:** todo PR validado; todo merge na `main` publicado em ordem.
@@ -249,6 +267,11 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **Peso do ECharts:** mesmo modular, barra + linha + grade + dica + SVG somam ~547 kB (~187 kB gzip; o pacote inteiro daria ~1.144 kB). Mitigação: o desenho é carregado sob demanda (`lazy`), num pedaço à parte, só nas telas com gráfico. Gráfico novo = registrar o tipo em `components/charts/echarts.ts` e estender o tema (o tema só cobre o que está registrado).
 - **`echarts-for-react` com manutenção esparsa:** 3.0.6 (jan/2026) é a `latest`; a 3.0.7 saiu marcada "publicada por engano" e as 3.1.7/3.2.7 foram despublicadas no mesmo dia. Mitigação: versão exata, só a entrada `esm/core`, e o wrapper isola o pacote — trocar por um componente próprio (`init` + `setOption` + `ResizeObserver`) mexe só em `DesenhoCartesiano.tsx`.
 - **Pedaço do gráfico após deploy:** quem está com a aba aberta durante um deploy pode pedir um pedaço que não existe mais. O limite de erro do gráfico mostra "Recarregar a página" no lugar do desenho; a Fase 3 trata o mesmo para as rotas.
+- **Runtime das Edge Functions × Deno local:** o `deno check`/`deno test` roda no Deno 2.9.8, e o runtime hospedado pode estar numa versão anterior: uma API aceita aqui pode não existir lá. Mitigação: o `_shared` usa só as APIs da web (`Request`, `Response`, `Headers`); a primeira função é provada publicada no dev (Fase 1).
+- **Preflight com `verify_jwt` ligado:** o runtime embutido no CLI 3.0.0 pula a checagem de JWT no `OPTIONS` (`method !== "OPTIONS" && verifyJWT`), e a documentação não diz isso da plataforma. Provar com a primeira função publicada no dev (Fase 1).
+- **JWT de usuário assinado com ES256:** o `@supabase/server` recusa JWT HS256 legado (exige `kid`). Os dois projetos publicam uma chave ES256 no JWKS, mas uma chave de reserva também apareceria ali. Conferir que é a chave atual antes da primeira função (Fase 1): 📋 no Dashboard (JWT Keys) ou pelo cabeçalho do primeiro token emitido.
+- **Cabeçalhos do CORS copiados à mão:** a lista do `comCors` é a do supabase-js 2.119.0. Um cabeçalho novo do cliente derruba o preflight no navegador, e o teste, também copiado à mão, não percebe. Mitigação: na Fase 1, com o supabase-js entrando pelo SDK, a lista passa a vir do `corsHeaders` do pacote fixado; na Fase 2, o frontend fica na mesma versão.
+- **`deno-lint-ignore` não é barrado:** o `deno lint` não tem equivalente ao `noInlineConfig` do ESLint. Mitigação: code-review; proposta para o 0.12, o job `edge-functions` falhar se aparecer `deno-lint-ignore`, `@ts-ignore` ou `@ts-nocheck` em `supabase/functions/`.
 - **`npm audit` de desenvolvimento:** 12 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
 
 ## 9. Status dos Entregáveis
@@ -264,8 +287,8 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 7 | Formatadores pt-BR com testes | 0.7 | ✅ |
 | 8 | Tema ECharts e wrapper | 0.8 | ✅ |
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ✅ |
-| 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ⬜ |
-| 11 | Base Deno das Edge Functions com testes | 0.11 | ⬜ |
+| 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
+| 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
 | 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ⬜ |
 | 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
 | 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
