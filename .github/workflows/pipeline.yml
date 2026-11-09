@@ -1,0 +1,298 @@
+# Pipeline único do Maxis (STEP 0.12 da Fase 0).
+# PR para a `main`: valida as três camadas (frontend, banco, edge-functions).
+# Push na `main`: valida de novo e publica em ordem — backend em produção, depois o frontend.
+#
+# Repositório público: os logs são públicos. Nenhum `echo` de segredo; os segredos entram só
+# no `env` do passo que os usa. Actions fixadas por SHA de commit (decisão #10).
+
+name: Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Nada por padrão: cada job declara só o que usa.
+permissions: {}
+
+# PR: um run por PR, e o run antigo é cancelado. `main`: um por vez, sem cancelar (um deploy
+# nunca é interrompido no meio).
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Sem scripts de instalação: no Linux nenhuma dependência precisa deles hoje, e um pacote
+      # comprometido não roda nada só por ser instalado.
+      - name: Instalação limpa
+        run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatação
+        run: npm run format:check
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # `-l` lista só o arquivo: o valor nunca vai para o log público.
+      - name: Nenhuma chave secreta do Supabase no build
+        run: |
+          if grep -rlE 'sb_secret_[A-Za-z0-9_-]{8,}' frontend/dist; then
+            echo "::error::Chave secreta do Supabase no build do frontend"
+            exit 1
+          fi
+
+      - name: Assinaturas do registro npm
+        run: npm audit signatures
+
+      # Produção: qualquer alerta barra. Desenvolvimento: só alto ou crítico (as ferramentas de
+      # desenvolvimento rodam aqui, ao lado de segredos). Os moderados do minimatch são risco
+      # aceito (plano da Fase 0, §8).
+      - name: Auditoria das dependências de produção
+        run: npm audit --omit=dev
+
+      - name: Auditoria de todas as dependências (alto ou crítico)
+        run: npm audit --audit-level=high
+
+  banco:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # Credencial do projeto de dev. Sem registro de deployment a cada PR.
+    environment:
+      name: development
+      deployment: false
+    env:
+      # Projeto de dev (`maxis`). Nunca a produção: os testes pgTAP só rodam no dev.
+      PROJECT_REF: ddaqbcfrplzdywpgilbf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalação limpa
+        run: npm ci --ignore-scripts
+
+      # O `migration list` sai 0 mesmo com diferença: a conferência é feita aqui, sobre o JSON.
+      # Migration no dev sem arquivo, ou arquivo sem aplicação no dev, é falha
+      # (supabase/CLAUDE.md §2).
+      - name: Repositório e dev com as mesmas migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          npx --no supabase migration list --remote="$PROJECT_REF" --output-format json \
+            > "$RUNNER_TEMP/migrations.json"
+          if ! jq -e '.migrations | all(.local == .remote)' "$RUNNER_TEMP/migrations.json" > /dev/null; then
+            echo "::error::Repositório e projeto de dev com migrations diferentes"
+            jq -r '.migrations[]? | select(.local != .remote)
+              | "repositório: \(if .local == "" then "—" else .local end) · dev: \(if .remote == "" then "—" else .remote end)"' \
+              "$RUNNER_TEMP/migrations.json"
+            exit 1
+          fi
+
+      # O CLI roda o pg_prove num contêiner Docker do runner; o banco é o do dev, online. Cada
+      # arquivo de teste roda em transação com rollback.
+      - name: Testes pgTAP no dev
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npx --no supabase test db --remote="$PROJECT_REF"
+
+  edge-functions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: supabase/functions
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: 2.9.8
+
+      # O `deno lint` não tem equivalente ao `noInlineConfig` do ESLint. O `@ts-expect-error`
+      # continua permitido: ele falha quando o erro esperado some (usado nos testes de contrato).
+      - name: Sem supressão de lint ou de tipos
+        run: |
+          if grep -rnE 'deno-lint-ignore|@ts-ignore|@ts-nocheck' .; then
+            echo "::error::Supressão proibida em supabase/functions (deno-lint-ignore, @ts-ignore, @ts-nocheck)"
+            exit 1
+          fi
+
+      - name: Formatação
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      - name: Tipos
+        run: deno check
+
+      - name: Testes
+        run: deno test
+
+  deploy-backend:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [frontend, banco, edge-functions]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    environment: production
+    env:
+      # Projeto de produção (`maxis-producao`, São Paulo).
+      PROJECT_REF: ktcryodtgxpmgatihaic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalação limpa
+        run: npm ci --ignore-scripts
+
+      # Nunca `--include-seed`: o seed é só do dev (supabase/CLAUDE.md §10). Sem migration nova,
+      # nada é aplicado.
+      - name: Migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npx --no supabase db push --remote="$PROJECT_REF" --skip-vault --yes
+
+      - name: Configuração do config.toml
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npx --no supabase config push --remote="$PROJECT_REF" --yes
+
+      # Sem nenhuma função, o `functions deploy` sai com erro. A primeira chega na Fase 1.
+      - name: Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if compgen -G 'supabase/functions/[a-z]*/index.ts' > /dev/null; then
+            npx --no supabase functions deploy --remote="$PROJECT_REF" --use-api --yes
+          else
+            echo "::notice::Nenhuma Edge Function para publicar"
+          fi
+
+  # Build agnóstico de hospedagem: o mesmo `dist` serve ao Pages hoje e à Vercel no futuro.
+  # Roda junto com o deploy-backend; a publicação espera os dois.
+  build-frontend:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [frontend, banco, edge-functions]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    environment:
+      name: production
+      deployment: false
+    env:
+      PROJECT_REF: ktcryodtgxpmgatihaic
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      # As variáveis vão para o JavaScript público: barra a URL de outro projeto e qualquer chave
+      # que não seja a publishable (uma secreta colada por engano).
+      - name: Variáveis públicas de produção
+        run: |
+          if [ "$VITE_SUPABASE_URL" != "https://$PROJECT_REF.supabase.co" ]; then
+            echo "::error::VITE_SUPABASE_URL não é a URL do projeto de produção"
+            exit 1
+          fi
+          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+            sb_publishable_?*) ;;
+            *)
+              echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY não é uma chave publishable"
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalação limpa
+        run: npm ci --ignore-scripts
+
+      - name: Build de produção
+        run: npm run build
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  # Único job específico da hospedagem (decisão #12): migrar para a Vercel troca só este job.
+  # `pages`/`id-token` existem só aqui, e aqui não roda código de dependência.
+  deploy-frontend:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [deploy-backend, build-frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend-dist
+          path: dist
+
+      # Fallback SPA do Pages: rota inexistente no servidor serve o app, que mostra a própria 404.
+      - name: Fallback SPA
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+
+      - id: publicacao
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
