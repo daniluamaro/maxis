@@ -130,11 +130,12 @@ jobs:
           fi
 
       # O CLI roda o pg_prove num contêiner Docker do runner; o banco é o do dev, online. Cada
-      # arquivo de teste roda em transação com rollback.
+      # arquivo de teste roda em transação com rollback. Sem terminal, o CLI só roda em projeto
+      # hospedado com `--yes`.
       - name: Testes pgTAP no dev
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: npx --no supabase test db --remote="$REF_DEV"
+        run: npx --no supabase test db --remote="$REF_DEV" --yes
 
   edge-functions:
     runs-on: ubuntu-24.04
