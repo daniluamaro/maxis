@@ -190,19 +190,26 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.12 — Pipeline CI/CD
 **Entrega:** todo PR validado; todo merge na `main` publicado em ordem.
-- [ ] Workflow único com jobs:
-  - **frontend:** Node pela `.nvmrc`, instalação limpa, lint, format, tipos, testes, build
-  - **banco:** contra o projeto de **dev** — `migration list --remote` (repositório × dev alinhados; diferença = falha) + testes pgTAP (`test db --remote`)
-  - **edge-functions:** Deno — fmt, lint, check, test
-  - **deploy-backend** *(só push na `main`, após os três)*: no projeto de **produção**, com `--remote=<ref>` explícito — `db push`, `config push` e `functions deploy --use-api`
-  - **deploy-frontend** *(após o backend)*: build com as variáveis públicas de **produção**; passo de hospedagem isolado (hoje: cópia de `index.html` → `404.html` + publicação no Pages — decisão #12)
-- [ ] Environments no GitHub: `development` (credenciais do dev, usado pelo job **banco**) e `production` (credenciais da produção, só nos jobs de deploy)
-- [ ] 📋 Danilo cadastra (nunca pelo chat): por projeto, o **token de menor escopo** que o CLI aceitar (não o token clássico do login), a senha do banco e o project ref. Variáveis públicas do Supabase de produção como *variables* (nomes conforme a pendência #3)
-- [ ] `.env.example` com os nomes das variáveis públicas (sem valores); consumo começa na Fase 2
-- [ ] `concurrency`: um deploy por vez; runs antigos de PR cancelados
-- [ ] Actions fixadas por SHA; `permissions` mínimas por job
+- [x] Workflow único com jobs — `.github/workflows/pipeline.yml`, runner fixo `ubuntu-24.04`, `timeout-minutes` em todo job:
+  - **frontend:** Node pela `.nvmrc`, instalação limpa, lint, format, tipos, testes, build — instalação com `npm ci --ignore-scripts` (no Linux nenhuma dependência precisa de script); depois do build, varredura de chave secreta (`sb_secret_…`) no `dist`; `npm audit signatures`; auditoria (decisão do Danilo): produção barra qualquer alerta (`--omit=dev`), todas as dependências barram alto ou crítico (`--audit-level=high`)
+  - **banco:** contra o projeto de **dev** — `migration list --remote` (repositório × dev alinhados; diferença = falha) + testes pgTAP (`test db --remote`) — o `migration list` sai 0 mesmo com diferença: a conferência é um `jq` sobre o JSON (`--output-format json`, lado ausente = `""`), e o erro do CLI aparece no log. O `test db` exige `--yes` sem terminal e roda o `pg_prove` num contêiner Docker do runner
+  - **edge-functions:** Deno — fmt, lint, check, test — Deno **2.9.8** fixado; antes dos quatro, falha com `deno-lint-ignore`, `@ts-ignore` ou `@ts-nocheck` em `supabase/functions/` (proposta do 0.11; o `@ts-expect-error` segue permitido)
+  - **deploy-backend** *(só push na `main`, após os três)*: no projeto de **produção**, com `--remote=<ref>` explícito — `db push`, `config push` e `functions deploy --use-api` — `db push --skip-vault --yes`, nunca `--include-seed`; `config push --yes`; o `functions deploy` é pulado enquanto não houver função (sem nenhuma, o CLI sai 1 — provado no dev), sem `--prune`
+  - **deploy-frontend** *(após o backend)*: build com as variáveis públicas de **produção**; passo de hospedagem isolado (hoje: cópia de `index.html` → `404.html` + publicação no Pages — decisão #12) — dividido em dois jobs: **build-frontend** (agnóstico de hospedagem; confere que a URL é a do projeto de produção e que a chave é publishable, faz o build, varre o `dist` e o guarda como artefato; roda junto com o deploy-backend) e **deploy-frontend** (espera os dois; `404.html` + `upload-pages-artifact` + `deploy-pages`; é o único job com `pages`/`id-token`, e nele não roda código de dependência)
+- [x] Environments no GitHub: `development` (credenciais do dev, usado pelo job **banco**) e `production` (credenciais da produção, só nos jobs de deploy) — `development` sem restrição de branch (os PRs o usam); `production` **só para a `main`** (regra de branch), usado pelo deploy-backend e, só pelas variáveis, pelo build-frontend; `github-pages` criado pelo próprio Pages, também só para a `main`. O banco e o build-frontend usam `deployment: false` (sem registro de deployment a cada PR); a regra de branch vale assim mesmo (provado)
+- [x] 📋 Danilo cadastra (nunca pelo chat): por projeto, o **token de menor escopo** que o CLI aceitar (não o token clássico do login), a senha do banco e o project ref. Variáveis públicas do Supabase de produção como *variables* (nomes conforme a pendência #3) — **decisão do Danilo: só o token, sem a senha do banco**: sem senha, o CLI cria um papel de login temporário pela API de gestão (o `test db` nem aceita senha). Tokens **com escopo** (alpha público do Supabase), um por projeto, como segredo `SUPABASE_ACCESS_TOKEN` em cada environment — permissões na §8. O project ref fica fixo no workflow (público; `--remote` explícito em cada comando), não em variável. As variáveis públicas (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) foram cadastradas no `production` pelo Claude, por serem públicas por desenho
+- [x] `.env.example` com os nomes das variáveis públicas (sem valores); consumo começa na Fase 2 — em `frontend/` (o `envDir` do Vite)
+- [x] `concurrency`: um deploy por vez; runs antigos de PR cancelados — um grupo por ref: no PR, o run novo cancela o antigo; na `main`, um por vez, sem cancelar o que está rodando (um run novo que chega enquanto outro espera toma o lugar dele, e publica o estado mais recente)
+- [x] Actions fixadas por SHA; `permissions` mínimas por job — `permissions: {}` no topo e `contents: read` por job (deploy-frontend: só `pages` e `id-token`); checkout sem credencial persistida; segredo só no `env` do passo que o usa. No repositório (decisão do Danilo): **SHA obrigatório** e lista fechada de Actions (as do GitHub + `denoland/setup-deno`)
+- [x] Pages habilitado com origem "GitHub Actions" (antecipado do 0.13 por decisão do Danilo: sem ele, o deploy-frontend não publica) — sem domínio; até o 0.13, o site responde em `daniluamaro.github.io/maxis/` em branco (o build usa `base: '/'`)
 
-**Verificação:** PR mostra os 3 checks verdes; merge dispara deploy-backend (sem migrations = no-op) e depois deploy-frontend; nenhum segredo aparece nos logs públicos.
+**Verificação:** PR mostra os 3 checks verdes; merge dispara deploy-backend (sem migrations = no-op) e depois deploy-frontend; nenhum segredo aparece nos logs públicos. *(PR, feito em 12/11/2026:*
+- *PR #11 com `frontend`, `banco` e `edge-functions` verdes e os três jobs de deploy pulados; pgTAP 14/14 pelo CI;*
+- *log público sem token, chave ou URL com senha (o token aparece como `***`);*
+- *PR descartável #12, fechado sem merge: cada job falhou no passo esperado (chave no build, migration sem aplicação no dev, `@ts-ignore`), e duas sondas que usavam o `production` num PR foram recusadas pelo GitHub antes de rodar, com e sem `deployment: false`;*
+- *`actionlint` 1.7.12 + `shellcheck` 0.11.0 sem achado; cada passo de shell testado à parte, com casos de falha.*
+
+*Merge: só a `main` alcança o `production`, então o deploy é provado no primeiro push na `main`, conferido e registrado no log logo depois. Esse primeiro deploy não é no-op: aplica em produção a `f00_remove_rls_automatica`, que lá não muda nada (dois `if exists`).)*
 
 ### STEP 0.13 — Domínio, HTTPS e fallback SPA
 **Entrega:** produto no ar no domínio oficial.
@@ -255,7 +262,9 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 ## 8. Riscos e atenção
 
 - **Repositório público:** qualquer `echo` de variável no CI pode vazar segredo — usar só secrets mascarados; revisar logs no primeiro deploy.
-- **Token do CI:** o login do CLI pelo navegador gera token clássico com acesso à conta inteira; no CI usar o token de **menor escopo** que o CLI aceitar, um por projeto.
+- **Token do CI:** o login do CLI pelo navegador gera token clássico com acesso à conta inteira; no CI usar o token de **menor escopo** que o CLI aceitar, um por projeto. *(STEP 0.12: tokens com escopo, alpha público do Supabase, cada um restrito ao próprio projeto. **Dev** (job banco, que roda em PR): Database leitura-escrita (o papel de login temporário), Connection Pooling e Production Branches em leitura. **Produção** (deploy-backend): os mesmos três, Project Settings em leitura, a leitura que o `config push` exige para comparar (Add-ons, Database Config, SSL Enforcement, Network Restrictions, Auth Config, Data API Config, Realtime Config, Storage Config) e Edge Functions leitura-escrita. Um token clássico no `development` deixaria um PR alcançar a produção: se o escopo deixar de existir, a decisão volta ao Danilo.)*
+- **`config push` sem permissão de escrita:** hoje o `config.toml` não difere dos dois projetos, e o token de produção só lê a configuração. Quando o arquivo mudar o Auth, o deploy-backend falha no `config push`, já depois do `db push`. Aí se decide: dar ao token Auth Config **e** Project Settings em leitura-escrita (o segundo também permite pausar e apagar o projeto) ou aplicar à mão, com aprovação. A falha é visível e o frontend não sai.
+- **Deploy parcial:** os passos do deploy-backend não formam uma transação; se o `config push` ou o `functions deploy` falhar depois do `db push`, a produção fica com o schema novo e o frontend anterior. Mitigação: migration compatível com o frontend publicado (expandir antes, contrair depois) e re-executar o job que falhou (o `db push` repetido não faz nada).
 - **CLI do Supabase muda entre versões:** conferir comandos e flags com `--help` antes de usar (skill `supabase`).
 - **DNS:** propagação pode levar horas; o STEP 0.13 só fecha com HTTPS válido.
 - **Plano free pausa projeto parado há 7 dias:** o dev pausa se o trabalho parar; a produção, sem uso até o go-live, também — reativar antes de um deploy. Deixa de acontecer com o plano Pro, na conclusão do SaaS.
@@ -271,8 +280,10 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **Preflight com `verify_jwt` ligado:** o runtime embutido no CLI 3.0.0 pula a checagem de JWT no `OPTIONS` (`method !== "OPTIONS" && verifyJWT`), e a documentação não diz isso da plataforma. Provar com a primeira função publicada no dev (Fase 1).
 - **JWT de usuário assinado com ES256:** o `@supabase/server` recusa JWT HS256 legado (exige `kid`). Os dois projetos publicam uma chave ES256 no JWKS, mas uma chave de reserva também apareceria ali. Conferir que é a chave atual antes da primeira função (Fase 1): 📋 no Dashboard (JWT Keys) ou pelo cabeçalho do primeiro token emitido. ✅ **Resolvido em 08/11/2026:** o Danilo conferiu no Dashboard que a chave atual é a ECC P-256 nos dois projetos.
 - **Cabeçalhos do CORS copiados à mão:** a lista do `comCors` é a do supabase-js 2.119.0. Um cabeçalho novo do cliente derruba o preflight no navegador, e o teste, também copiado à mão, não percebe. Mitigação: na Fase 1, com o supabase-js entrando pelo SDK, a lista passa a vir do `corsHeaders` do pacote fixado; na Fase 2, o frontend fica na mesma versão.
-- **`deno-lint-ignore` não é barrado:** o `deno lint` não tem equivalente ao `noInlineConfig` do ESLint. Mitigação: code-review; proposta para o 0.12, o job `edge-functions` falhar se aparecer `deno-lint-ignore`, `@ts-ignore` ou `@ts-nocheck` em `supabase/functions/`.
-- **`npm audit` de desenvolvimento:** 12 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`.
+- **`deno-lint-ignore` não é barrado:** o `deno lint` não tem equivalente ao `noInlineConfig` do ESLint. Mitigação: code-review; proposta para o 0.12, o job `edge-functions` falhar se aparecer `deno-lint-ignore`, `@ts-ignore` ou `@ts-nocheck` em `supabase/functions/`. ✅ **Resolvido no STEP 0.12:** o job `edge-functions` falha antes dos quatro portões (provado no PR #12).
+- **`npm audit` de desenvolvimento:** 12 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`. *(STEP 0.12, decisão do Danilo: produção barra qualquer alerta; todas as dependências barram alto ou crítico — os moderados passam. Um alerta novo pode deixar o CI vermelho sem mudança de código, de propósito: tratar é decidir num PR.)*
+- **Instalação lenta no CI:** o `npm ci` leva ~58s por job mesmo com o cache restaurado (188 MB), mais da metade do job `frontend`; o binário do Supabase CLI (dependência opcional `@supabase/cli-linux-x64`, ~140 MB) é cerca de um quarto do `node_modules`. Mantido: um só lockfile e a mesma versão do CLI em todo lugar. Rever se o tempo de PR incomodar.
+- **Supabase CLI fixado em 3.0.0:** o próprio CLI avisa no CI que a 3.1.0 saiu. Atualizar é decisão à parte, com o `--help` de cada comando do pipeline conferido de novo (a linha 3 já mudou, em relação à 2, o `--yes` em projeto hospedado e o alvo `--remote`).
 
 ## 9. Status dos Entregáveis
 
@@ -289,6 +300,6 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ✅ |
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
-| 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ⬜ |
+| 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ✅ |
 | 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
 | 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
