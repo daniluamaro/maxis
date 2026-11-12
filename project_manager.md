@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `░░░░░░░░░░` 0% · 0 de 9 fases concluídas
-**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.11 ✅; próximo: 0.12)
+**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.12 ✅; próximo: 0.13)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Fase ativa — Fase 0: Infraestrutura & Setup
 
-**Status:** 🔄 Em andamento (STEPs 0.1–0.11 ✅ · próximo: 0.12)
+**Status:** 🔄 Em andamento (STEPs 0.1–0.12 ✅ · próximo: 0.13)
 **Objetivo:** deixar o repositório pronto para desenvolvimento — build, lint, testes, CI/CD, Supabase local e tema visual — sem nenhuma lógica de negócio.
 
 **Plano:** `docs/plans/fase-00-infra-setup.md` (14 STEPs). Pendências #1, #2 e #4 já aplicadas. MCPs Supabase e Context7 autorizados e verificados em 02/11/2026 (pré-requisito do plano, §2). Plano revisado em 03/11/2026: decisões #5 (TypeScript 6.0.x), #11 (Supabase só online, dev + produção) e #12 (hospedagem portátil para Vercel).
@@ -86,7 +86,7 @@
 | 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ✅ |
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
-| 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ⬜ |
+| 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ✅ |
 | 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
 | 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
 
@@ -241,6 +241,99 @@ Item (c) do STEP 0.11 resolvido: a extensão do Deno para o VS Code (`denoland.v
 | 08/11/2026 | Confirmações do Danilo depois do merge do PR #10 (STEP 0.11), registradas na abertura do STEP 0.12:
 - **Localhost só no dev** (proposta (a) do 0.11): confirmado. Entra na Fase 1, com a primeira função publicada no dev, decidido pelo `SUPABASE_URL` que a plataforma injeta (o mesmo desenho do `[remotes.dev]` do `config.toml`).
 - 📋 **Chave atual de assinatura de JWT = ECC P-256 nos dois projetos** (dev `maxis` e `maxis-producao`), conferida pelo Danilo no Dashboard (Project Settings → JWT Keys). Fecha o 📋 pendente do registro anterior e resolve o risco "JWT de usuário assinado com ES256" da §8 do plano da Fase 0. |
+| 12/11/2026 | **STEP 0.12 ✅** (branch `chore/step-0.12-pipeline`, PR #11).
+
+**Versões** (Actions por SHA de commit, a última estável de cada uma):
+- `actions/checkout` v7.0.1 (`3d3c42e`), `actions/setup-node` v7.1.0 (`949feb2`) e `denoland/setup-deno` v2.0.5 (`22d081f`);
+- `actions/upload-artifact` v7.0.2 (`cf430e0`) e `actions/download-artifact` v8.0.2 (`9000827`);
+- `actions/upload-pages-artifact` v5.0.0 (`fc324d3`) e `actions/deploy-pages` v5.0.1 (`368f825`);
+- runner `ubuntu-24.04`, Node pela `.nvmrc`, Deno 2.9.8 e Supabase CLI 3.0.0 (o do lockfile; a 3.1.0 saiu e não foi adotada).
+
+Na conferência local, fora do repositório: `actionlint` 1.7.12, `shellcheck` 0.11.0 e `jq` 1.7.1 (a linha do runner), todos com SHA-256 conferido.
+
+**Decisões do Danilo:**
+1. **Só o token, sem a senha do banco.** Sem senha, o CLI cria um papel de login temporário pela API de gestão (provado no dev), e o `test db` nem aceita senha. São tokens com escopo, um por projeto, como `SUPABASE_ACCESS_TOKEN` em cada environment.
+2. **Pages habilitado já no 0.12**, com origem "GitHub Actions" e sem domínio (o domínio fica no 0.13).
+3. **`npm audit`:** produção barra qualquer alerta; todas as dependências barram alto ou crítico.
+4. **Actions:** SHA obrigatório e lista fechada (as do GitHub + `denoland/setup-deno`) nas configurações do repositório.
+
+**Configurado no GitHub:**
+- environments `development` (sem restrição de branch) e `production` (só a `main`); o `github-pages` foi criado pelo Pages, também só para a `main`;
+- variáveis públicas de produção no `production`.
+
+**Decisões tomadas no STEP (para conferência):**
+1. **Seis jobs.** O deploy-frontend do plano virou dois. O **build-frontend** é agnóstico de hospedagem, roda junto com o deploy-backend e guarda o `dist` como artefato. O **deploy-frontend** espera os dois e só publica. `pages`/`id-token` ficam num job onde não roda código de dependência, e migrar para a Vercel troca só ele.
+2. **Refs dos dois projetos fixos no `env` do workflow**, e não em variável cadastrada. São públicos, e cada comando leva o `--remote` explícito.
+3. **`npm ci --ignore-scripts`.** No Linux, só o `fsevents` (macOS) tem script de instalação.
+4. **`deployment: false` no banco e no build-frontend**, para não criar registro de deployment a cada PR. A regra de branch do environment vale assim mesmo (provado).
+5. **`timeout-minutes` em todo job.** É a resposta ao `tsc -b` que travou uma vez no 0.5: um job preso cai em minutos, não em 6 horas.
+6. **`functions deploy` pulado enquanto não houver função.** Sem nenhuma, o CLI sai 1 (provado no dev). Não usa `--prune`: tirar uma função de produção é decisão explícita.
+7. **Conferência das migrations com `jq` sobre o JSON.** O `migration list` sai 0 mesmo com diferença (provado com arquivo-sonda). No JSON, o lado ausente vem como `""`, nos dois sentidos (provado).
+8. **Barreira de supressões no Deno** (proposta do 0.11). O `@ts-expect-error` segue permitido.
+9. **Barreiras de chave:**
+   - varredura de `sb_secret_…` no `dist`, no build do PR e no de produção, com `grep -l` (o valor nunca vai para o log);
+   - no build de produção, a URL tem de ser a do projeto de produção e a chave tem de ser publishable.
+10. **Typecheck e build mantidos os dois** (pendência do 0.3). No CI, tipos levam 3s e o build 4s: o `tsc -b` do build é incremental.
+11. **`npx --no`.** No CI, um `npx` sem o pacote instalado baixaria a última versão do CLI; com `--no`, falha.
+12. **`.env.example` em `frontend/`**, o `envDir` do Vite.
+13. **Variáveis públicas cadastradas pelo Claude.** São públicas por desenho; no plano, o cadastro era do Danilo.
+
+**Achado no CI:** sem terminal, o `test db` recusa rodar num projeto hospedado ("Confirmation required … Nothing was changed"). Ganhou `--yes`.
+
+**Incidente:** no primeiro cadastro, os dois tokens viraram o **nome** dos segredos, em vez do valor. Os nomes apareceram na listagem e, com eles, nesta conversa.
+- O Danilo revogou os dois tokens no Supabase.
+- Os segredos com nome errado foram apagados.
+- Os tokens novos foram cadastrados como `SUPABASE_ACCESS_TOKEN`, conferido pelo nome (nenhum valor exposto desta vez).
+
+**Verificado:**
+- **PR #11:** `frontend` (1min47), `banco` (1min23) e `edge-functions` (10s) verdes; os três jobs de deploy pulados.
+- **pgTAP pelo CI:** 14/14, PASS.
+- **Log público sem segredo:** nenhum token, chave ou URL com senha; o token aparece como `***`.
+- **PR descartável #12**, fechado sem merge e com a branch apagada. Cada job falhou no passo esperado:
+  - chave no build;
+  - migration sem aplicação no dev, com a linha "repositório: 20261112000000 · dev: —";
+  - `@ts-ignore`.
+- **Sondas do `production` num PR**, com e sem `deployment: false`: as duas foram recusadas pelo GitHub antes de rodar ("not allowed to deploy to production due to environment protection rules").
+- **Cada passo de shell testado à parte**, com o `npx` simulado:
+  - migrations: 10 casos (alinhado, vazio, só no repositório, só no dev, versões trocadas, `null`, `""`, JSON sem a chave, saída vazia e erro do CLI);
+  - supressões: 5 formas barradas e o `@ts-expect-error` permitido;
+  - desvio do `functions deploy`;
+  - varredura de chave: só o prefixo `sb_secret_`, que o supabase-js usa para avisar, não dispara;
+  - variáveis de produção: 7 casos;
+  - fallback `404.html`.
+- **`actionlint` + `shellcheck`** sem achado. A sonda com erro de chave, expressão e aspas foi pega.
+- **`config diff --exit-code` sem diferença nos dois projetos.** O `list_migrations` da produção está vazio: o primeiro deploy aplica a `f00_remove_rls_automatica`, que lá não muda nada.
+
+**Code-review (medium), 10 achados.**
+
+Corrigidos:
+- a varredura de chave só rodava no build do PR (agora também no de produção);
+- a conferência das migrations aceitava versão vazia ou `null` dos dois lados;
+- o ref de produção aparecia duas vezes no workflow (agora um lugar só para cada projeto);
+- além do achado: o erro do CLI ficava escondido no arquivo JSON.
+
+Já atendido: o `production` restrito à `main` (configurado e provado pelas sondas).
+
+Mantidos:
+- **o bundle publicado não passa por lint e testes:** é o mesmo código do job `frontend`, e o build roda o `tsc -b`;
+- **o token do dev roda em PR:** a proteção é o escopo (só o projeto de dev); um token clássico ali alcançaria a produção;
+- **PRs simultâneos com migration se bloqueiam:** é o contrato do `supabase/CLAUDE.md §2` (repositório e dev sempre alinhados), e os STEPs são um por vez;
+- **o `npm audit` pode barrar um hotfix:** decisão do Danilo; tratar é decidir num PR;
+- **preparo do Node repetido em 4 jobs:** explícito por job num arquivo sensível, mais fácil de auditar;
+- **deploy sem transação:** registrado como risco na §8, com a mitigação.
+
+**Riscos novos na §8:** permissão de escrita do `config push`, deploy parcial, instalação de ~58s por job (cerca de um quarto do `node_modules` é o binário do CLI) e o CLI 3.1.0.
+
+**Para os próximos STEPs:**
+- **0.13:**
+  - o primeiro deploy (o merge deste PR) é conferido e registrado no 1º commit da branch;
+  - o Pages já está habilitado; falta o domínio, o HTTPS e a verificação do domínio.
+- **0.14:** os checks obrigatórios do ruleset são os nomes dos jobs: `frontend`, `banco` e `edge-functions`.
+- **Fase 1:**
+  - a primeira função sai pelo deploy-backend (o token de produção já tem Edge Functions em leitura-escrita);
+  - mudança de Auth no `config.toml` exige decidir a permissão de escrita do token.
+
+Fora do commit: `.claude/`. Próximo: STEP 0.13, aguardando aprovação. |
 
 ---
 
