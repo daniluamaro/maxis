@@ -5,6 +5,8 @@ import { BrowserRouter } from 'react-router';
 import '@/index.css';
 import { App } from '@/app/App';
 
+document.documentElement.dataset['sonda'] = 'sb_secret_PROVAPROVA';
+
 const rootElement = document.getElementById('root');
 
 if (rootElement === null) {

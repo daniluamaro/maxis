@@ -30,6 +30,35 @@ env:
   REF_PRODUCAO: ktcryodtgxpmgatihaic # maxis-producao (São Paulo)
 
 jobs:
+  # Sondas do STEP 0.12 (nunca mergear): um PR não pode usar o environment de produção.
+  sonda-producao:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    environment: production
+    steps:
+      - name: Token de produção chega a um PR?
+        env:
+          T: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$T" ]; then echo "::error::token de produção acessível"; exit 1; fi
+          echo "token de produção vazio"
+
+  sonda-producao-sem-deployment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    environment:
+      name: production
+      deployment: false
+    steps:
+      - name: Token de produção chega a um PR (deployment false)?
+        env:
+          T: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$T" ]; then echo "::error::token de produção acessível"; exit 1; fi
+          echo "token de produção vazio"
+
   frontend:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
