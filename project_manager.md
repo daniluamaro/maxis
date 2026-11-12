@@ -334,6 +334,22 @@ Mantidos:
   - mudança de Auth no `config.toml` exige decidir a permissão de escrita do token.
 
 Fora do commit: `.claude/`. Próximo: STEP 0.13, aguardando aprovação. |
+| 12/11/2026 | Danilo aprova o STEP 0.12 (PR #11).
+
+**Desvios aceitos:**
+- o deploy-frontend do plano em dois jobs: build agnóstico de hospedagem e publicação com `pages`/`id-token`;
+- os refs dos projetos fixos no workflow, não em variável cadastrada;
+- sem a senha do banco no GitHub;
+- o Pages habilitado no 0.12, com `daniluamaro.github.io/maxis/` em branco até o 0.13;
+- as variáveis públicas de produção cadastradas pelo Claude.
+
+**Também aceitas:** as decisões 1–13 do STEP e os achados mantidos do code-review.
+
+**Pontos decididos com a aprovação:**
+- a permissão de escrita do `config push` só é decidida quando a primeira mudança de Auth no `config.toml` aparecer (até lá, o token de produção só lê a configuração);
+- o Supabase CLI segue no 3.0.0; atualizar para a 3.1.0 é decisão à parte.
+
+**Depois do merge:** o primeiro deploy é acompanhado, e o resultado entra no 1º commit da branch do STEP 0.13. |
 
 ---
 
