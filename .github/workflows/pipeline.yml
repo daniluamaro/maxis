@@ -296,7 +296,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Único job específico da hospedagem (decisão #12): migrar para a Vercel troca só este job.
+  # Único job específico da hospedagem (decisão #12): migrar para a Vercel troca só este job, o
+  # DNS e o domínio cadastrado nas configurações do Pages (publicando por Actions, o GitHub
+  # ignora arquivo `CNAME`; o domínio não fica no repositório).
   # `pages`/`id-token` existem só aqui, e aqui não roda código de dependência.
   deploy-frontend:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
