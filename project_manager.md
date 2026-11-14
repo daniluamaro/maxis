@@ -474,6 +474,18 @@ Mantidos:
 **No merge:** antes, o `config push` da produção à mão (com aprovação); depois, o deploy acompanhado, com o `environment.url` do Pages já no domínio.
 
 Fora do commit: `.claude/`. Próximo: STEP 0.14, aguardando aprovação. |
+| 14/11/2026 | Danilo aprova o STEP 0.13 (PR #14).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes, e os três jobs de deploy pulados.
+- No `banco`, o `config diff` rodou com o token do dev: "No config differences found". Com isso, o token já tem a leitura de configuração e o Auth do dev confere com o domínio novo.
+- pgTAP 14/14; token mascarado (`***`) no log.
+
+**Desvios aceitos:**
+- o token do dev só com a leitura que o `config diff` exige, sem Add-ons;
+- a produção fora da conferência no PR (mudança só nela aparece no `config push` do deploy);
+- os achados mantidos do code-review.
+
+**No merge:** o Auth da produção é aplicado à mão antes, e o deploy é acompanhado. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 0.14. |
 
 ---
 
