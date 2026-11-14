@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `█░░░░░░░░░` 11% · 1 de 9 fases concluídas
-**Fase ativa:** Fase 1 — Dados base & Segurança multi-tenant (⬜ a abrir: plano revisado para o dev online em 14/11/2026, aguardando a aprovação do Danilo). Fase 0 ✅ em 14/11/2026.
+**Fase ativa:** Fase 1 — Dados base & Segurança multi-tenant (🔄 aberta em 14/11/2026, com o plano revisado para o dev online). Fase 0 ✅ em 14/11/2026.
 
 ---
 
@@ -27,7 +27,7 @@
 | Fase | Objetivo | Plano | Status |
 |---|---|---|---|
 | **0 — Infra & Setup** | Repositório git + GitHub, monorepo (`frontend/`, `supabase/`), Node 24 LTS fixado, Vite+React+TS strict, Tailwind+shadcn com os design tokens e fontes, ESLint/Prettier/Vitest, Supabase online (dev `maxis` + produção em São Paulo) via MCP e CLI remoto, Deno, `.mcp.json` com escrita só no dev, CI GitHub Actions (lint, tipos, testes, build) → Pages (portável para Vercel) + domínio + `404.html`, tema base do ECharts. Sem lógica de negócio. | `docs/plans/fase-00-infra-setup.md` | ✅ |
-| **1 — Dados base & Segurança multi-tenant** | Schema base (`empresas`, `profiles`, papéis), funções auxiliares de tenant/papel do usuário logado, **RLS por `tenant_id`**, Auth (cadastro público off, Site URL/Redirect), Edge Function de provisionamento base (`service_role`, `email_confirm:true`, senha provisória), RPC de troca da própria senha, bootstrap do primeiro `super_admin`. TDD com testes de isolamento entre tenants. | `docs/plans/fase-01-dados-seguranca.md` | ⬜ |
+| **1 — Dados base & Segurança multi-tenant** | Schema base (`empresas`, `profiles`, papéis), funções auxiliares de tenant/papel do usuário logado, **RLS por `tenant_id`**, Auth (cadastro público off, Site URL/Redirect), Edge Function de provisionamento base (`service_role`, `email_confirm:true`, senha provisória), RPC de troca da própria senha, bootstrap do primeiro `super_admin`. TDD com testes de isolamento entre tenants. | `docs/plans/fase-01-dados-seguranca.md` | 🔄 |
 | **2 — Login & Ciclo de sessão** | Login minimalista, troca obrigatória de senha no 1º acesso (`senha_provisoria`), gate "acesso suspenso" (usuário ou empresa inativos), tela de alerta "sem perfil", guarda de rota autenticada, idle-timer 8h. | `docs/plans/fase-02-login-sessao.md` | ⬜ |
 | **3 — App Shell & Navegação** | Layout dual-tone, componentes reutilizáveis (`Sidebar`, `SidebarModule`, `SidebarItem`, `Breadcrumb`, `PageHeader`, `TabLayout`, `Tab`, `Workspace`), navegação dirigida por config + rotas por segmento + abas com deep-link, estados skeleton/vazio/erro, 404 estilizada, Home de boas-vindas, menu do usuário (trocar senha, sair), módulos do backlog como "em breve", hook de permissões placeholder. | `docs/plans/fase-03-app-shell.md` | ⬜ |
 | **4 — Admin SaaS (super_admin)** | Tela exclusiva do `super_admin`: cadastrar/bloquear CNPJ, criar o `master_admin` da empresa, resetar senha do `master_admin`. | `docs/plans/fase-04-admin-saas.md` | ⬜ |
@@ -43,7 +43,7 @@
 - A Fase 6 precede a 7: o cadastro de usuário referencia unidade gerencial e setor.
 - A Fase 8 depende tecnicamente só da 3; fica por último para consumir eventos reais das Fases 4–7.
 
-> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada em 14/11/2026 (aguardando aprovação); Fases 2–8 seguem pendentes.
+> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada e aprovada em 14/11/2026 (PR #16); Fases 2–8 seguem pendentes.
 
 ---
 
@@ -66,10 +66,29 @@
 
 ## Fase ativa — Fase 1: Dados base & Segurança multi-tenant
 
-**Status:** ⬜ A abrir — plano revisado para o projeto de dev online em 14/11/2026 (pendência #10; ver "Revisão pendente" no roadmap), aguardando a aprovação do Danilo.
+**Status:** 🔄 Em andamento — aberta em 14/11/2026, com o plano revisado para o projeto de dev online (pendência #10) e aprovado pelo Danilo (PR #16).
 **Objetivo:** construir e provar por testes a fundação de segurança multi-tenant (schema base, RLS por `tenant_id`, provisionamento por Edge Function, troca da própria senha, primeiro `super_admin`), antes de qualquer tela depender dela.
 
-**Plano:** `docs/plans/fase-01-dados-seguranca.md`. Os entregáveis (§9 do plano) são espelhados aqui na abertura da fase.
+**Plano:** `docs/plans/fase-01-dados-seguranca.md` (12 STEPs). Decisões 10–13 da revisão para o dev online; pendência #24 proposta (aplicar no STEP 1.9).
+
+**Entregáveis** *(espelho da §9 do plano)*
+
+| # | Entregável | STEP | Status |
+|---|---|---|---|
+| 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ⬜ |
+| 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ⬜ |
+| 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
+| 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
+| 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
+| 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
+| 7 | Seed do dev | 1.7 | ⬜ |
+| 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
+| 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
+| 10 | Edge Function `trocar-senha` | 1.10 | ⬜ |
+| 11 | Primeiro `super_admin` em produção | 1.11 | ⬜ |
+| 12 | Fechamento da fase | 1.12 | ⬜ |
+
+**Critérios de aceite:** §5 do plano da fase.
 
 **Fases concluídas:**
 - **Fase 0 — Infraestrutura & Setup** ✅ 14/11/2026: 14 de 14 entregáveis (§9 de `docs/plans/fase-00-infra-setup.md`) e os 11 critérios de aceite conferidos (§5 do plano).
@@ -105,7 +124,7 @@
 | 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | ✅ Aplicada em 08/11/2026 |
 | 22 | `CLAUDE.md §1` | "Plano Pro na conclusão do SaaS" → **plano Pro desde nov/2026**, nos dois projetos: assinado pelo Danilo depois da pausa da produção no 1º deploy (o plano free pausa projeto parado). | ✅ Aplicada em 14/11/2026 |
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
-| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Proposta (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
+| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Aprovada (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
 
 ---
 
@@ -604,6 +623,19 @@ Refutados:
 - "PR de fork barrado pelo `integracao`": o `banco` já exige os secrets do dev e já é obrigatório. Nada muda; a frase do risco diz isso.
 
 Fora do commit: `.claude/`. Próximo: aprovação do plano revisado. Com ela, a Fase 1 abre (🔄) e os entregáveis são espelhados aqui. |
+| 14/11/2026 | Danilo aprova a revisão do plano da Fase 1 (PR #16). **Fase 1 aberta (🔄)**; entregáveis espelhados na seção da fase ativa.
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes; os três jobs de deploy pulados.
+
+**Aprovado junto:**
+- decisões 11 (integração no CI, contra o dev), 12 (seed só com o hash bcrypt) e 13 (dev compartilhado que não se limpa);
+- o seed com usuário de senha provisória e usuários na empresa bloqueada;
+- a concorrência global do job `integracao` e o job nos checks obrigatórios do ruleset (aplicado com aprovação, no STEP 1.9);
+- o 3º item do STEP 1.6 fechado (o mecanismo já está no contrato);
+- os achados do code-review: 7 corrigidos e 2 refutados;
+- pendência **#24** aprovada, a aplicar sob autorização no STEP 1.9.
+
+**No merge:** o deploy é acompanhado. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.1. |
 
 ---
 
