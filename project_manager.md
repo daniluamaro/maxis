@@ -396,6 +396,12 @@ Refutados pela conferência acima:
 - "como nos dois projetos" sem prova.
 
 **Proposta para o Danilo:** o job `banco` rodar `config diff --remote=<dev> --exit-code`, como já faz com as migrations (repositório e dev alinhados). Uma mudança da plataforma apareceria no PR, antes de qualquer `db push` na produção. Exige dar ao token do dev a leitura de configuração que o `config push` usa (Add-ons, Database Config, SSL Enforcement, Network Restrictions, Auth Config, Data API Config, Realtime Config, Storage Config). Sugestão: entrar no 0.13, se aprovado. |
+| 14/11/2026 | Danilo aprova o PR #13 (correção do primeiro deploy do STEP 0.12) e autoriza os três itens do resumo:
+- **Pendência #22** aplicada no `CLAUDE.md §1`, neste PR: plano Pro desde nov/2026, nos dois projetos.
+- **Conferência do `config.toml` contra o dev no job `banco`** (`config diff --remote=<dev> --exit-code`): aprovada, entra no STEP 0.13. Antes, o Danilo dá ao token do dev a leitura de configuração listada acima.
+- **Checagem de "projeto pausado" antes do CLI:** não será implementada (com o Pro, a pausa por inatividade deixa de existir).
+
+**Depois do merge:** o deploy é acompanhado até o frontend sair no Pages, e o resultado entra no 1º commit da branch do STEP 0.13. |
 
 ---
 
