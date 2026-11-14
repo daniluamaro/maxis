@@ -4,7 +4,7 @@
 > Convenções: `@supabase/CLAUDE.md` (migrations, RLS, testes, Edge Functions). Vale a partir daqui: **TDD** para lógica, RLS e Edge Functions (`CLAUDE.md §9`).
 > **Revisado em 14/11/2026 para o Supabase só online** (pendência #10): sem ambiente local; migrations, testes, seed e integração no projeto de dev `maxis`; a produção (`maxis-producao`) só recebe pelo pipeline.
 
-**Status:** ⬜ Não iniciada · **Depende de:** Fase 0 ✅ · **Libera:** Fase 2
+**Status:** 🔄 Em andamento (aberta em 14/11/2026) · **Depende de:** Fase 0 ✅ · **Libera:** Fase 2
 
 ---
 
