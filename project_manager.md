@@ -588,6 +588,21 @@ Fora do commit: `.claude/`. Próximo: abertura da Fase 1, aguardando aprovação
 - **STEP 1.11 corrigido:** o Dashboard é o do `maxis-producao`. O plano dizia `maxis`, que hoje é o dev;
 - STEP 1.12, critérios 1/6/8/11, riscos e entregáveis 6/7/9 ajustados. O `modelo-dados.md` não muda.
 
+**Code-review (medium), 9 achados.**
+
+Corrigidos:
+- o seed reescrevendo `papel`/`ativo` do `master_admin` bateria no trigger do STEP 1.3: o seed só devolve o que muda no uso, e o 1.3 prova que um update sem mudança nesses campos passa;
+- runs de PRs diferentes publicariam funções e reaplicariam o seed no dev ao mesmo tempo (o grupo de concorrência do pipeline é por ref): concorrência global no job `integracao`, e o risco de o run de um PR sem função republicar a versão da `main`;
+- **caminho direto do Auth para trocar a senha:** com `secure_password_change = false` (o valor atual do `config.toml`), o GoTrue aceita `updateUser({ password })` com o token do próprio usuário, sem a senha atual, sem auditoria e sem encerrar sessões. A `senha_provisoria` continua só na função. Novo item no STEP 1.10 (teste do invariante, conferir se há como fechar, decidir o `secure_password_change` com o Danilo) e risco na §8;
+- formato das linhas de `auth.users`/`auth.identities` que o GoTrue aceita no login, conferido no PR do 1.7;
+- fixtures da integração na execução local: pela mesma rotina do CI (`db query`, com o login do CLI e aprovação);
+- como gerar o hash sem a senha passar pela conversa: script local que imprime só o hash;
+- todo run do CI devolve os usuários do seed ao estado canônico: a regra para o teste à mão ficou no 1.7.
+
+Refutados:
+- "compensação impossível de montar por fixture": `profiles.email` é só uma cópia, então o profile de outro usuário com o e-mail pedido faz o Auth criar e o insert do profile falhar. O exemplo ficou no plano;
+- "PR de fork barrado pelo `integracao`": o `banco` já exige os secrets do dev e já é obrigatório. Nada muda; a frase do risco diz isso.
+
 Fora do commit: `.claude/`. Próximo: aprovação do plano revisado. Com ela, a Fase 1 abre (🔄) e os entregáveis são espelhados aqui. |
 
 ---

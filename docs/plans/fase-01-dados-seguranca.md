@@ -84,7 +84,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.3 — Imutabilidade do `master_admin`
 **Entrega:** o dono da empresa não pode ser rebaixado, movido nem desativado por engano.
-- [ ] **Testes primeiro:** alterar `papel`, `tenant_id` ou `ativo` de um `master_admin` falha; o caminho do Admin SaaS (operação privilegiada explícita) continua possível; outros papéis não são afetados
+- [ ] **Testes primeiro:** alterar `papel`, `tenant_id` ou `ativo` de um `master_admin` falha; um update que não muda esses campos passa (o seed reaplica sem erro, STEP 1.7); o caminho do Admin SaaS (operação privilegiada explícita) continua possível; outros papéis não são afetados
 - [ ] Migration `<versão>_f01_protege_master_admin`: trigger em `profiles` que bloqueia essas alterações fora do caminho privilegiado (mecanismo exato — ex.: flag de sessão definida só pela Edge Function — fixado no PR e registrado aqui)
 
 **Verificação:** testes verdes.
@@ -115,12 +115,13 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 ### STEP 1.7 — Seed do dev
 **Entrega:** dados fictícios para desenvolver e testar à mão a partir da Fase 2, e os chamadores dos testes de integração.
 - [ ] `seed.sql` (só do dev; aplicado pelo MCP e, a partir do STEP 1.9, pelo job `integracao`): 3 empresas fictícias com CNPJ válido — 2 ativas e 1 bloqueada; 1 `super_admin`; em cada empresa ativa, 1 `master_admin`, 1 `admin`, 1 `user`, 1 usuário inativo e 1 usuário com senha provisória; na empresa bloqueada, 1 `master_admin` e 1 `user`; e-mails em domínio reservado (`@exemplo.test`)
-- [ ] Usuários criados direto em `auth.users` e `auth.identities`, com e-mail confirmado e ids fixos, + `profiles` correspondentes
-- [ ] Senha: o seed traz só o hash bcrypt (decisão 12); o valor fica no `.env.local` e, a partir do STEP 1.9, no secret do `development`. Nunca em claro no repositório, no log ou na conversa
-- [ ] Idempotente (decisão 13): reaplicar insere o que falta e devolve os usuários do seed ao estado canônico (papel, `ativo`, senha, `senha_provisoria`), sem apagar nada
+- [ ] Usuários criados direto em `auth.users` e `auth.identities`, com e-mail confirmado e ids fixos, + `profiles` correspondentes. As linhas seguem o formato que o GoTrue aceita no login (colunas de token como texto vazio, `instance_id`, `aud`/`role`, `provider_id`/`identity_data` da identidade), conferido no PR
+- [ ] Senha: o seed traz só o hash bcrypt (decisão 12); o valor fica no `.env.local` e, a partir do STEP 1.9, no secret do `development`. Nunca em claro no repositório, no log ou na conversa. O hash sai de um script local que lê o `.env.local` e imprime **só** o hash (nenhum caminho, nem de erro, ecoa o valor); nunca por `execute_sql` com o valor no texto
+- [ ] Idempotente (decisão 13): reaplicar insere o que falta e devolve os usuários do seed ao estado canônico do que muda no uso (senha, `senha_provisoria` e o `ativo` de quem não é `master_admin`), sem apagar nada. O que é imutável (`papel`, `tenant_id` e o `ativo` do `master_admin`, STEP 1.3) não é reescrito
+- [ ] Teste à mão no dev: todo run do job `integracao` devolve os usuários do seed ao estado canônico. Um fluxo que muda estado (como a troca de senha) usa um usuário criado pela `provisionar-usuario`, ou é refeito depois do run
 - [ ] Nunca em produção: o pipeline não usa `--include-seed`, e o MCP da produção é somente leitura
 
-**Verificação:** aplicado duas vezes sem erro e sem duplicar; login no dev com cada usuário do seed pela API (chave publishable + senha do `.env.local`); usuário inativo e usuário de empresa bloqueada autenticam, e `obter_meu_acesso()` informa o motivo; troca para senha fora da política recusada pelo Auth (fecha a verificação do 1.6).
+**Verificação:** aplicado duas vezes sem erro e sem duplicar; login no dev com cada usuário do seed pela API (chave publishable + senha do `.env.local`); usuário inativo e usuário de empresa bloqueada autenticam, e `obter_meu_acesso()` informa o motivo; troca para senha fora da política recusada pelo Auth, pelo caminho direto do Auth, que existe (fecha a verificação do 1.6; o caminho é tratado no STEP 1.10).
 
 ### STEP 1.8 — Código compartilhado das Edge Functions
 **Entrega:** blocos reutilizáveis para toda função privilegiada.
@@ -150,12 +151,13 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [ ] A senha provisória aparece **só** nessa resposta — nunca em log, banco ou auditoria
 - [ ] `[functions.provisionar-usuario]` com `verify_jwt = true` explícito no `config.toml`
 - [ ] **Teste de integração** contra a função publicada no dev, com os usuários do seed como chamadores: `super_admin` cria `master_admin` numa empresa sem dono (criada a cada execução, com CNPJ único: o `master_admin` criado fica no dev, decisão 13); `master_admin` da empresa A tenta criar na B → 403; segundo `master_admin` → 409; e-mail repetido → 409; usuário recém-criado consegue autenticar com a senha provisória
-- [ ] Teste de compensação: falha forçada na criação do profile não deixa usuário órfão no Auth (no módulo, com a falha injetada; na integração, com o conflito montado por fixture)
+- [ ] Teste de compensação: falha forçada na criação do profile não deixa usuário órfão no Auth (no módulo, com a falha injetada; na integração, com o conflito montado por fixture — ex.: o profile de outro usuário já com o e-mail pedido, já que `profiles.email` é só uma cópia: o Auth cria, o insert do profile falha no `unique`)
 - [ ] No dev publicado: preflight com `verify_jwt` responde; o 401 da plataforma chega legível ao navegador; localhost aceito só no dev (pendências do STEP 0.11)
 - [ ] Job `integracao` no pipeline (decisão 11): só em PR, environment `development`, depois de `banco` e `edge-functions`. Publica as funções da branch no dev (`functions deploy --remote=<dev> --use-api`), reaplica o seed (`db query --remote=<dev> --file`), cria as fixtures da execução e roda os testes de integração. Sem as variáveis do dev, falha — nunca pula em silêncio. Os testes de integração ficam fora do `deno test` do job `edge-functions`
+- [ ] Concorrência **global** no job (um grupo fixo, sem cancelar no meio): runs de PRs diferentes nunca publicam funções nem reaplicam o seed no dev ao mesmo tempo. Cada run testa o código que ele mesmo publicou; depois dele, o dev fica com as funções do último PR que rodou
 - [ ] Variáveis públicas do dev (URL e chave publishable) no environment `development`, cadastradas pelo Claude (como as de produção no STEP 0.12); token e senha do seed pelo 📋 do Danilo (§2)
 - [ ] `integracao` nos checks obrigatórios do ruleset `main` *(com aprovação do Danilo)*
-- [ ] Deploy: no dev pelo MCP (`deploy_edge_function`) durante o STEP e pelo job `integracao` no PR; na produção, pelo deploy-backend no merge (o token de produção já tem Edge Functions em leitura-escrita). Durante o STEP, a mesma suíte de integração roda daqui contra o dev, com o `.env.local`
+- [ ] Deploy: no dev pelo MCP (`deploy_edge_function`) durante o STEP e pelo job `integracao` no PR; na produção, pelo deploy-backend no merge (o token de produção já tem Edge Functions em leitura-escrita). Durante o STEP, a mesma suíte de integração roda daqui contra o dev: credenciais públicas e senha do seed pelo `.env.local`; as fixtures da execução pela mesma rotina do CI (`db query --remote=<dev>`, com o login do CLI e a aprovação do Danilo)
 - [ ] Pendência de governança #24 aplicada no `supabase/CLAUDE.md` *(sob autorização)*
 - [ ] Campos de perfil, unidade e setor entram no contrato nas Fases 5–7
 
@@ -172,8 +174,12 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [ ] Handler: identifica o chamador → valida → (se exigido) confere a senha atual → troca no Auth → atualiza o profile → encerra as demais sessões → grava `usuario.senha_alterada` → `{ data: { ok: true } }`
 - [ ] `[functions.trocar-senha]` com `verify_jwt = true` explícito no `config.toml`
 - [ ] Mecanismo de "encerrar as demais sessões" conferido na documentação atual do Auth e registrado no PR
+- [ ] **Caminho direto do Auth** (`updateUser({ password })` com o token do próprio usuário): com `secure_password_change = false`, ele troca a senha sem a senha atual e sem login recente. No PR:
+  - teste provando que esse caminho não desmarca `senha_provisoria` (o gate da Fase 2 continua exigindo a troca pela função) e não grava auditoria;
+  - conferir na documentação atual do Auth se há como fechá-lo (configuração ou hook) e decidir com o Danilo o `secure_password_change` (exige login recente; sem SMTP, a reautenticação por código não chega);
+  - registrar a decisão no risco da §8
 
-**Verificação:** testes verdes no CI; tentativa de update direto em `profiles` pelo cliente continua negada (já coberta no 1.2).
+**Verificação:** testes verdes no CI; tentativa de update direto em `profiles` pelo cliente continua negada (já coberta no 1.2); o caminho direto do Auth decidido e registrado.
 
 ### STEP 1.11 — Primeiro `super_admin` em produção 📋
 **Entrega:** o dono do SaaS existe em produção, sem nenhum atalho no código.
@@ -231,9 +237,10 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 - **Sessões já emitidas:** encerrar sessões revoga a renovação, mas um token de acesso já emitido vale até expirar. O corte de **dados** é imediato pela RLS (`tenant_atual()` retorna nulo para inativo/bloqueado) — esse é o mecanismo de segurança; o encerramento de sessão é complementar.
 - **`security definer`:** só em `private` e na RPC `obter_meu_acesso()` (justificada); qualquer outra ocorrência é motivo de bloqueio do PR.
 - **Repositório público:** comandos do bootstrap e fixtures sem dados pessoais reais.
-- **Dev compartilhado:** o MCP, o `test db`, o job `integracao` e o seed usam o mesmo banco. A proteção é a decisão 13 (nada depende de estado ou de contagem). Dois PRs com função abertos ao mesmo tempo se sobrescreveriam no dev — os STEPs são um por vez, o mesmo contrato das migrations.
+- **Dev compartilhado:** o MCP, o `test db`, o job `integracao` e o seed usam o mesmo banco. A proteção é a decisão 13 (nada depende de estado ou de contagem) e a concorrência global do job `integracao` (STEP 1.9). Mesmo serializado, o run de um PR sem mudança de função (docs, frontend) republica no dev as funções da `main`: durante o trabalho num STEP, o dev pode voltar à versão anterior até o próximo deploy pelo MCP.
+- **Caminho direto do Auth para trocar a senha:** o GoTrue aceita a troca pelo token do próprio usuário, fora da `trocar-senha` (sem senha atual, sem auditoria e sem encerrar sessões). A `senha_provisoria` continua só na função, e o tratamento do resto é decidido no STEP 1.10.
 - **Resíduo no dev:** a auditoria imutável prende no dev as empresas e os usuários criados pela integração. Ficam identificáveis (razão social e e-mail próprios de teste); a tela do Admin SaaS (Fase 4) vai listá-los no dev — tratar quando ela chegar.
-- **Token do dev com escrita em Edge Functions:** o escopo continua só o projeto de dev, e o código publicado é o do PR, que passa pelos mesmos portões. PR de fork não recebe os secrets do `development`.
+- **Token do dev com escrita em Edge Functions:** o escopo continua só o projeto de dev, e o código publicado é o do PR, que passa pelos mesmos portões. PR de fork não recebe os secrets do `development` e fica barrado, como já acontece com o `banco`.
 - **Hash da senha do seed no repositório público:** a senha é aleatória e forte (sem ataque de dicionário viável) e só vale no dev. Trocá-la exige hash novo no seed, `.env.local` e secret, juntos.
 
 ## 9. Status dos Entregáveis
