@@ -140,14 +140,16 @@ file_size_limit = "50MiB"
 enabled = true
 
 # Image transformation API is available to Supabase Pro plan.
-# [storage.image_transformation]
-# enabled = true
+# Maxis: ligado pela plataforma ao assinar o Pro (nov/2026), como nos dois projetos; sem uso por ora.
+[storage.image_transformation]
+enabled = true
 
 # Store analytical data in S3 for running ETL jobs over Iceberg Catalog
 # This feature is only available on the hosted platform.
+# Maxis: ligado pela plataforma ao assinar o Pro (nov/2026), como nos dois projetos; sem bucket criado.
 [storage.analytics]
-enabled = false
-max_namespaces = 5
+enabled = true
+max_namespaces = 10
 max_tables = 10
 max_catalogs = 2
 
