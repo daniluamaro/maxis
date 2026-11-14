@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `░░░░░░░░░░` 0% · 0 de 9 fases concluídas
-**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.12 ✅; próximo: 0.13)
+**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.13 ✅; próximo: 0.14)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Fase ativa — Fase 0: Infraestrutura & Setup
 
-**Status:** 🔄 Em andamento (STEPs 0.1–0.12 ✅ · próximo: 0.13)
+**Status:** 🔄 Em andamento (STEPs 0.1–0.13 ✅ · próximo: 0.14)
 **Objetivo:** deixar o repositório pronto para desenvolvimento — build, lint, testes, CI/CD, Supabase local e tema visual — sem nenhuma lógica de negócio.
 
 **Plano:** `docs/plans/fase-00-infra-setup.md` (14 STEPs). Pendências #1, #2 e #4 já aplicadas. MCPs Supabase e Context7 autorizados e verificados em 02/11/2026 (pré-requisito do plano, §2). Plano revisado em 03/11/2026: decisões #5 (TypeScript 6.0.x), #11 (Supabase só online, dev + produção) e #12 (hospedagem portátil para Vercel).
@@ -87,7 +87,7 @@
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
 | 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ✅ |
-| 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
+| 13 | Domínio com HTTPS e fallback SPA | 0.13 | ✅ |
 | 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
 
 **Critérios de aceite:** §5 do plano da fase.
@@ -418,6 +418,62 @@ Refutados pela conferência acima:
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados (eram 12), nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 14/11/2026 | **STEP 0.13 ✅** (branch `chore/step-0.13-dominio`, PR). Produto no ar em `https://maxis.vemperformar.com.br`.
+
+**Domínio corrigido (Danilo):** o domínio é **`maxis.vemperformar.com.br`**; o `maxis.performargestao.com.br` foi informado por engano no início do projeto. Trocado onde aparecia:
+- origem de produção do CORS do `_shared` e o teste (RED com 5 falhas pela origem recusada, depois GREEN);
+- `site_url` e redirects do `config.toml`, na base e no `[remotes.dev]`;
+- `CLAUDE.md §1/§5`: **pendência #23**, aplicada com autorização do Danilo;
+- plano da Fase 0.
+
+Na zona antiga não sobrou registro (nem CNAME órfão). Fora do repositório, nenhuma outra menção além de permissões locais em `.claude/`.
+
+**Decisões do Danilo:**
+- Auth da produção (`site_url` e redirects): **à mão, antes do merge**, pelo `config push` com o login do CLI e aprovação no prompt. O token de produção segue sem escrita no Auth; no merge, o `config push` do pipeline não encontra diferença. Primeira mudança de Auth no arquivo, o caso previsto no risco da §8.
+- Verificação do domínio raiz `vemperformar.com.br`, que cobre os subdomínios imediatos.
+
+**Pages:**
+- domínio cadastrado pela API (`PUT /repos/{owner}/{repo}/pages`, `cname`);
+- o Danilo criou o CNAME `maxis → daniluamaro.github.io` no Registro.br e verificou `vemperformar.com.br` no perfil do GitHub (TXT `_github-pages-challenge-daniluamaro`, que fica na zona);
+- certificado do Let's Encrypt emitido em minutos; HTTPS forçado pela API (`https_enforced`).
+
+O arquivo `CNAME` é dispensado: com publicação por Actions, o GitHub o ignora (documentação conferida). O domínio mora só nas configurações do Pages, como diz o comentário do job `deploy-frontend`. O `base` do Vite é o padrão `/`. Nada no app depende do Pages.
+
+**Conferência do `config.toml` contra o dev no job `banco`** (aprovada no PR #13): `config diff --remote=<dev> --exit-code`.
+- Diferença sai 2 e erro do CLI sai 1, os dois com anotação no PR. Só lê; as credenciais vêm mascaradas pela API.
+- A produção não é comparada: o token dela não chega aos PRs.
+- O token do dev precisa da leitura de configuração que o `--help` lista. Add-ons ficou de fora, porque só o `config push` o exige: desvio da lista aprovada, por menor privilégio.
+- Auth do dev alinhado ao arquivo novo pelo `config push --remote=<dev>`, com aprovação. Antes, o `config diff` mostrou nos dois projetos só as duas mudanças do domínio.
+
+**Verificado (14/11/2026, no ar):**
+- certificado válido até 12/02/2027, cadeia conferida; `protected_domain_state` = `verified`;
+- `/` responde 200; `http://` → `https://` e `daniluamaro.github.io/maxis/` → domínio, os dois com 301;
+- no Chromium, a abertura em `/` e a 404 da SPA com a marca em `/qualquer/rota` e `/configuracoes/usuarios/lista`;
+- acesso direto a rota inexistente: **status 404** com o corpo do `index.html` (o fallback do Pages; risco novo na §8, some na Vercel);
+- passo do `config diff`, com o texto do workflow, nos três casos: 0, 2 e 1;
+- `actionlint` + `shellcheck` sem achado; cinco portões do frontend (178 testes) e quatro do Deno (14) verdes.
+
+**Code-review (medium), 9 achados.**
+
+Corrigidos:
+- falha de leitura da configuração (saída 1) sem anotação no PR;
+- comentário do passo prometendo proteger a produção, que ele não compara;
+- `)` sobrando no registro do deploy do 0.12;
+- checklist do arquivo `CNAME` aberto no plano.
+
+Refutados:
+- "`banco` vermelho: o dev segue com o domínio antigo" — o Auth do dev foi aplicado e o `config diff` volta 0;
+- "produção apontando para um domínio que ainda não serve o app" — DNS, Pages, verificação e HTTPS já estão no ar.
+
+Já decididos: o `config push` do merge recusado na produção (decisão de aplicar à mão, acima).
+
+Mantidos:
+- teste para recusar o domínio antigo: a allowlist é por igualdade exata, e um revert do commit reverteria o teste junto;
+- permissões locais de `dig` para o domínio antigo em `.claude/settings.json` (não versionado).
+
+**No merge:** antes, o `config push` da produção à mão (com aprovação); depois, o deploy acompanhado, com o `environment.url` do Pages já no domínio.
+
+Fora do commit: `.claude/`. Próximo: STEP 0.14, aguardando aprovação. |
 
 ---
 

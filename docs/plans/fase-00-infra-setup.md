@@ -20,7 +20,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 - [x] **Governança aplicada no `CLAUDE.md` raiz** (autorização do Danilo): pendências #1 (Node 24, §2), #2 (MCPs via OAuth, §8) e #4 (tokens, §7) — ver `project_manager.md`.
 - [x] **MCPs autorizados** via `/mcp`: Supabase e Context7.
-- [ ] 📋 Danilo com acesso a: conta GitHub, DNS de `vemperformar.com.br`, Dashboard dos projetos Supabase (dev `maxis` e produção).
+- [x] 📋 Danilo com acesso a: conta GitHub, DNS de `vemperformar.com.br`, Dashboard dos projetos Supabase (dev `maxis` e produção).
 
 ## 3. Decisões desta fase
 
@@ -215,17 +215,25 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - *run 43589739056 (commit `f98778e`) com os 6 jobs verdes, na ordem: o deploy-frontend começou 4s depois do fim do deploy-backend;*
 - *`db push` sem nada a aplicar (a `f00_remove_rls_automatica` entrou na 2ª tentativa) e `list_migrations` da produção só com ela; `config push` com API, banco, Auth e Storage sem diferença; Edge Functions puladas com aviso;*
 - *Pages publicado em `daniluamaro.github.io/maxis/` (HTTP 200, `<title>Maxis</title>`, em branco pelo `base: '/'` até o domínio do 0.13);*
-- *log público sem segredo.)*
+- *log público sem segredo.*
 
 ### STEP 0.13 — Domínio, HTTPS e fallback SPA
 **Entrega:** produto no ar no domínio oficial.
-- [ ] Pages com origem "GitHub Actions"; domínio `maxis.vemperformar.com.br`; HTTPS forçado
-- [ ] 📋 Danilo: registro `CNAME maxis → <conta>.github.io` no DNS; **verificação do domínio** na conta GitHub (evita sequestro de subdomínio)
-- [ ] Com deploy via Actions, o arquivo `CNAME` é dispensado — confirmar na documentação do GitHub ao executar
-- [ ] Vite com `base: '/'`
-- [ ] Portabilidade (decisão #12): nada no app depende do Pages — trocar para a Vercel mexe só no job `deploy-frontend` e no DNS
+- [x] Pages com origem "GitHub Actions"; domínio `maxis.vemperformar.com.br`; HTTPS forçado — origem habilitada no 0.12; domínio e HTTPS forçado pela API (`PUT /repos/{owner}/{repo}/pages`, `cname` e depois `https_enforced`, este só com o certificado emitido)
+- [x] 📋 Danilo: registro `CNAME maxis → <conta>.github.io` no DNS; **verificação do domínio** na conta GitHub (evita sequestro de subdomínio) — no Registro.br, `maxis.vemperformar.com.br` → `daniluamaro.github.io`. Verificado o domínio raiz `vemperformar.com.br`, que cobre os subdomínios imediatos (decisão do Danilo), pelo TXT `_github-pages-challenge-daniluamaro`, que **fica para sempre** na zona
+- [x] Com deploy via Actions, o arquivo `CNAME` é dispensado — confirmar na documentação do GitHub ao executar — confirmado: "If you are publishing from a custom GitHub Actions workflow, any CNAME file is ignored and is not required." O domínio mora só nas configurações do Pages (registrado no comentário do job `deploy-frontend`)
+- [x] Vite com `base: '/'` — o padrão do Vite (sem `base` no `vite.config.ts`); o build usa caminhos absolutos (`/assets/…`), que valem em rota aninhada
+- [x] Portabilidade (decisão #12): nada no app depende do Pages — trocar para a Vercel mexe só no job `deploy-frontend` e no DNS — nenhuma menção a `github.io`, `404.html` ou `BASE_URL` no frontend. Além do job e do DNS, a migração tira o domínio das configurações do Pages
+- [x] **Conferência do `config.toml` contra o dev no job `banco`** (aprovada no PR #13) — `config diff --remote=<dev> --exit-code`: diferença sai 2 e erro do CLI sai 1, os dois com anotação; só lê, e as credenciais vêm mascaradas pela API. A produção não é comparada (o token dela não chega aos PRs). O token do dev precisa da leitura de configuração (risco "Token do CI", §8)
+- [x] **Domínio corrigido (Danilo, 14/11/2026):** `maxis.vemperformar.com.br` no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto — CORS do `_shared` e teste, `site_url` e redirects do `config.toml` (base e `[remotes.dev]`), `CLAUDE.md §1/§5` (pendência #23) e este plano. Auth do dev aplicado por `config push`; o da produção, à mão e antes do merge (decisão do Danilo: o token de produção segue sem escrita no Auth)
 
-**Verificação:** `https://maxis.vemperformar.com.br` abre a página de abertura com certificado válido; deep link e refresh em `/qualquer/rota` mostram a 404 da SPA (não a do GitHub).
+**Verificação:** `https://maxis.vemperformar.com.br` abre a página de abertura com certificado válido; deep link e refresh em `/qualquer/rota` mostram a 404 da SPA (não a do GitHub). *(Feito em 14/11/2026, no ar, com o build publicado pelo deploy do PR #13:*
+- *certificado do Let's Encrypt para `maxis.vemperformar.com.br`, válido até 12/02/2027, cadeia conferida (`Verify return code: 0`); `https_certificate.state` = `approved` e `protected_domain_state` = `verified`;*
+- *`/` responde 200 com `<title>Maxis</title>`; `http://` → `https://` e `daniluamaro.github.io/maxis/` → domínio, os dois com 301;*
+- *no Chromium, `/` mostra a abertura, e `/qualquer/rota` e `/configuracoes/usuarios/lista` mostram a 404 da SPA com a marca, o endereço pedido e "Voltar para o início" (fontes e CSS carregados);*
+- *o acesso direto a rota inexistente responde **status 404** com o corpo idêntico ao `index.html` (o fallback do Pages; risco na §8);*
+- *`config diff`, passo idêntico ao do workflow, nos três casos contra o dev: 0 sem diferença, 2 com desvio e 1 com o token recusado; o mesmo `config diff` mostrou, nos dois projetos, só as duas mudanças do domínio antes do `config push` do dev;*
+- *`actionlint` 1.7.12 + `shellcheck` 0.11.0 sem achado.)*
 
 ### STEP 0.14 — Proteção da `main`, comandos reais e fechamento
 **Entrega:** fase fechada com o repositório protegido e a documentação com dados reais.
@@ -268,15 +276,17 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 ## 8. Riscos e atenção
 
 - **Repositório público:** qualquer `echo` de variável no CI pode vazar segredo — usar só secrets mascarados; revisar logs no primeiro deploy.
-- **Token do CI:** o login do CLI pelo navegador gera token clássico com acesso à conta inteira; no CI usar o token de **menor escopo** que o CLI aceitar, um por projeto. *(STEP 0.12: tokens com escopo, alpha público do Supabase, cada um restrito ao próprio projeto. **Dev** (job banco, que roda em PR): Database leitura-escrita (o papel de login temporário), Connection Pooling e Production Branches em leitura. **Produção** (deploy-backend): os mesmos três, Project Settings em leitura, a leitura que o `config push` exige para comparar (Add-ons, Database Config, SSL Enforcement, Network Restrictions, Auth Config, Data API Config, Realtime Config, Storage Config) e Edge Functions leitura-escrita. Um token clássico no `development` deixaria um PR alcançar a produção: se o escopo deixar de existir, a decisão volta ao Danilo.)*
+- **Token do CI:** o login do CLI pelo navegador gera token clássico com acesso à conta inteira; no CI usar o token de **menor escopo** que o CLI aceitar, um por projeto. *(STEP 0.12: tokens com escopo, alpha público do Supabase, cada um restrito ao próprio projeto. **Dev** (job banco, que roda em PR): Database leitura-escrita (o papel de login temporário), Connection Pooling e Production Branches em leitura; desde o STEP 0.13, também a leitura que o `config diff` exige (Database Config, SSL Enforcement, Network Restrictions, Auth Config, Data API Config, Realtime Config, Storage Config — sem Add-ons, que só o `config push` pede). **Produção** (deploy-backend): os mesmos três, Project Settings em leitura, a leitura que o `config push` exige para comparar (Add-ons, Database Config, SSL Enforcement, Network Restrictions, Auth Config, Data API Config, Realtime Config, Storage Config) e Edge Functions leitura-escrita. Um token clássico no `development` deixaria um PR alcançar a produção: se o escopo deixar de existir, a decisão volta ao Danilo.)*
 - **`config push` sem permissão de escrita:** hoje o `config.toml` não difere dos dois projetos, e o token de produção só lê a configuração. O deploy-backend falha no `config push`, já depois do `db push`, em dois casos:
-  - **o arquivo muda o Auth:** aí se decide entre dar ao token Auth Config **e** Project Settings em leitura-escrita (o segundo também permite pausar e apagar o projeto) ou aplicar à mão, com aprovação;
+  - **o arquivo muda o Auth:** aí se decide entre dar ao token Auth Config **e** Project Settings em leitura-escrita (o segundo também permite pausar e apagar o projeto) ou aplicar à mão, com aprovação. *(Primeira vez no STEP 0.13, com o domínio: decisão do Danilo, aplicar à mão antes do merge.)*
   - **a plataforma muda a configuração por conta própria** (mudança de plano, add-on, padrão novo): foi o que aconteceu com o Storage ao assinar o Pro (log de 14/11/2026). Conferir com `config diff --remote=<ref> --exit-code` nos dois projetos e alinhar o arquivo, ou dar a escrita daquela área ao token.
 
   A falha é visível e o frontend não sai.
 - **Deploy parcial:** os passos do deploy-backend não formam uma transação; se o `config push` ou o `functions deploy` falhar depois do `db push`, a produção fica com o schema novo e o frontend anterior. Mitigação: migration compatível com o frontend publicado (expandir antes, contrair depois) e re-executar o job que falhou (o `db push` repetido não faz nada).
 - **CLI do Supabase muda entre versões:** conferir comandos e flags com `--help` antes de usar (skill `supabase`).
-- **DNS:** propagação pode levar horas; o STEP 0.13 só fecha com HTTPS válido.
+- **DNS:** propagação pode levar horas; o STEP 0.13 só fecha com HTTPS válido. ✅ **Resolvido no STEP 0.13:** certificado emitido em minutos.
+- **Status 404 no acesso direto (fallback do Pages):** toda rota fora de `/` acessada direto (link, refresh, favorito) volta com status HTTP 404 e o corpo do `index.html`; o app abre normalmente. Afeta só o que lê o status: monitor de disponibilidade (usar `/`), robôs de busca (o app exige login). Some na Vercel, com a reescrita para `index.html` respondendo 200.
+- **Verificação do domínio:** o TXT `_github-pages-challenge-daniluamaro` precisa ficar na zona de `vemperformar.com.br`; sem ele, o domínio volta a "não verificado" e um subdomínio apontado para o GitHub poderia ser usado por outra conta.
 - **Plano free pausa projeto parado** (a documentação fala em 7 dias; a produção pausou com 5 dias de criada): o dev pausa se o trabalho parar; a produção, sem uso até o go-live, também — reativar antes de um deploy. Deixa de acontecer com o plano Pro, na conclusão do SaaS. ✅ **Resolvido em nov/2026:** a produção pausada derrubou o 1º deploy (com um erro enganoso de IPv6: projeto pausado não devolve o pooler), e o Danilo assinou o Pro.
 - **MCP com escrita no dev:** um comando errado (ou um texto malicioso lido de uma tabela) afeta o dev — por isso schema só por migration versionada, aprovação do Danilo a cada escrita e produção fora do alcance de escrita do MCP.
 - **Comando no projeto errado:** dois projetos na mesma conta → sem `link`; todo comando do CLI com `--remote=<ref>` explícito.
@@ -311,5 +321,5 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
 | 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ✅ |
-| 13 | Domínio com HTTPS e fallback SPA | 0.13 | ⬜ |
+| 13 | Domínio com HTTPS e fallback SPA | 0.13 | ✅ |
 | 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
