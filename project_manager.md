@@ -540,6 +540,17 @@ Corrigidos (9, todos no texto novo dos comandos):
 Feito neste commit: o checklist do plano e o log.
 
 Fora do commit: `.claude/`. Próximo: abertura da Fase 1, aguardando aprovação. |
+| 14/11/2026 | Danilo aprova o STEP 0.14 e o fechamento da Fase 0 (PR #15).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes; primeiro PR sob o ruleset, com `mergeStateStatus` `CLEAN` e 0 aprovações.
+
+**Desvios aceitos:**
+- `npm ci --ignore-scripts` no lugar do `npm ci` da proposta autorizada;
+- as correções do code-review no texto autorizado dos comandos.
+
+**Ponto decidido com a aprovação:** a aplicação à mão do Auth da produção no STEP 0.13 fica registrada só no risco da §8 do plano da Fase 0, sem pendência para o contrato.
+
+**No merge:** o deploy é acompanhado. O resultado e a conferência pós-merge entram no 1º commit da branch de abertura da Fase 1, que começa pela revisão do plano para o dev online. |
 
 ---
 
