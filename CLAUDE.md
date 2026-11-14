@@ -12,7 +12,7 @@ Maxis é um **SaaS multi-tenant por assinatura** para empresas de transporte, lo
 
 **Padrão de qualidade (severo):** é produto pago, não protótipo. Se uma tela parecer template genérico, admin do Bootstrap ou demo de faculdade, **está reprovada**. Visual premium e profissional em toda tela.
 
-- Domínio: `maxis.performargestao.com.br` · Publicação: GitHub Pages (estático).
+- Domínio: `maxis.vemperformar.com.br` · Publicação: GitHub Pages (estático).
 - Supabase **só online**, em dois projetos: **`maxis` = desenvolvimento** (já criado) e **produção** separada em São Paulo (`sa-east-1`). Plano Pro desde nov/2026, nos dois projetos. Nenhum ambiente Supabase local.
 
 ---
@@ -80,7 +80,7 @@ Não há servidor Node próprio. O "backend" **é** o Supabase, versionado na pa
 - A chave **publishable** (`sb_publishable_…`) é pública por design; a **RLS** é quem protege. Nenhum dado de um tenant acessível por outro, em hipótese alguma.
 - Chaves legadas (`anon`/`service_role`, JWT): **desativadas** nos dois projetos.
 - Criação de usuário e qualquer escrita privilegiada: só em **Edge Function** com a chave secreta. Escrita em `profiles` só via Edge Function/RPC restrito (única exceção: RPC de troca da própria senha).
-- Supabase → Auth → Email, **nos dois projetos**: **cadastro público desabilitado**. Site URL e Redirect = `https://maxis.performargestao.com.br` (o dev aceita também o localhost de desenvolvimento).
+- Supabase → Auth → Email, **nos dois projetos**: **cadastro público desabilitado**. Site URL e Redirect = `https://maxis.vemperformar.com.br` (o dev aceita também o localhost de desenvolvimento).
 - Segredos locais em `.env.local` (no `.gitignore`). Nenhum segredo versionado.
 
 | Variável | Onde vive | Público? |
