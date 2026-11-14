@@ -551,6 +551,23 @@ Fora do commit: `.claude/`. Próximo: abertura da Fase 1, aguardando aprovação
 **Ponto decidido com a aprovação:** a aplicação à mão do Auth da produção no STEP 0.13 fica registrada só no risco da §8 do plano da Fase 0, sem pendência para o contrato.
 
 **No merge:** o deploy é acompanhado. O resultado e a conferência pós-merge entram no 1º commit da branch de abertura da Fase 1, que começa pela revisão do plano para o dev online. |
+| 14/11/2026 | **Merge do PR #15 (STEP 0.14 e fechamento da Fase 0): deploy e conferência pós-merge** (registrados na abertura da Fase 1, branch `docs/fase-01-revisao-plano`).
+
+**Merge com rebase** (commit `0c6c4f5`, branch apagada), o primeiro sob o ruleset `main`, depois do CI verde no commit da aprovação (run 43610715519).
+
+**Deploy** (run 43610838550):
+- os 6 jobs verdes, na ordem: o deploy-frontend começou 4s depois do fim do deploy-backend;
+- `db push`: "Remote database is up to date";
+- `config push`: API, banco, Auth e Storage sem diferença;
+- Edge Functions puladas com aviso;
+- deployment do Pages em `https://maxis.vemperformar.com.br/`. No ar, o build novo (`last-modified` 15:35:28 GMT): `/` com 200 e certificado válido, rota inexistente com 404 (fallback);
+- log público sem segredo.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
