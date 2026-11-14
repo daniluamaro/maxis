@@ -44,6 +44,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 | 11 | **Testes de integração das Edge Functions no CI, contra o dev:** um job `integracao` no PR publica no dev as funções da branch, reaplica o seed e roda a integração. Regressão de CORS, `verify_jwt` ou compensação aparece em todo PR. Exige ajuste no `supabase/CLAUDE.md §8/§10/§12` (pendência de governança #24). | Danilo (14/11/2026) |
 | 12 | **Seed sem senha no repositório:** os usuários fictícios são criados direto em `auth.users` e `auth.identities` pelo `postgres` do dev (que tem a permissão, conferida em 14/11/2026), com o **hash bcrypt** de uma senha aleatória forte. O valor fica no `.env.local` e no secret do `development`. Uma senha só para todos os usuários do seed. | proposta |
 | 13 | **O dev é compartilhado e não se limpa:** o trabalho pelo MCP, o `test db`, o job `integracao` e o seed usam o mesmo banco, e a auditoria imutável (que referencia `profiles` e `empresas`) prende no dev o que a integração criar. Por isso: seed idempotente (insere ou atualiza, nunca apaga e recria); pgTAP só com fixtures próprias, desfeitas no rollback; integração com identificadores únicos por execução; nenhuma asserção depende de banco limpo ou de contagem total. | proposta |
+| 14 | **CNPJ numérico ou alfanumérico** (Receita, a partir de jul/2026): 12 caracteres `[0-9A-Z]` + 2 dígitos verificadores, guardado sem máscara e em maiúsculas; verificadores pelo cálculo oficial (código ASCII − 48, módulo 11), que mantém os CNPJs numéricos como estão. Muda o `modelo-dados.md` §4, §5.1 e §9.1. | Danilo (14/11/2026) |
 
 ## 4. STEPs (na ordem; não pular)
 
@@ -51,10 +52,10 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.1 — Utilitários do banco e helpers de teste
 **Entrega:** schema `private` e as funções utilitárias que as tabelas usam.
-- [ ] **Testes primeiro (pgTAP):** `private.cnpj_valido` aceita CNPJs válidos e recusa dígito verificador errado, tamanho errado, não dígitos e sequências repetidas (`00000000000000`, `11111111111111`…); `private.set_updated_at` atualiza `updated_at` num update
-- [ ] Migration `<versão>_f01_cria_schema_private_e_utilitarios`: schema `private` (sem exposição na API), `private.set_updated_at()`, `private.cnpj_valido(text)` (`immutable`)
-- [ ] Helpers de teste para **simular usuário** (papel `authenticated` + claims do JWT) e criar fixtures, definidos em `supabase/tests/` — **nunca** em migration — e carregados pelos dois caminhos (o `pg_prove` do `test db` e o MCP); o mecanismo fica fixado no PR
-- [ ] Fixtures com valores próprios (CNPJ, e-mail `@exemplo.test`) que não colidem com o seed (decisão 13)
+- [x] **Testes primeiro (pgTAP):** `private.cnpj_valido` aceita CNPJs válidos — numéricos e alfanuméricos (decisão 14) — e recusa dígito verificador errado, tamanho errado, caractere fora de `[0-9A-Z]` (minúscula, acento, máscara, espaço) e sequências repetidas (`00000000000000`, `11111111111111`…); `private.set_updated_at` atualiza `updated_at` num update *(`utilitarios_test.sql`, 42 asserções; casos gerados por um cálculo independente, que reproduz o exemplo da Receita)*
+- [x] Migration `20261114171911_f01_cria_schema_private_e_utilitarios`: schema `private` (sem exposição na API), `private.set_updated_at()`, `private.cnpj_valido(text)` (`immutable`, `strict`); `execute` revogado de `PUBLIC` nas duas
+- [x] Helpers de teste para **simular usuário** (papel `authenticated` + claims do JWT), definidos em `supabase/tests/` — **nunca** em migration — e carregados pelos dois caminhos *(mecanismo: `supabase/tests/helpers/ambiente.psql`, incluído por `\ir` em cada teste; a extensão `.psql` fica fora do `pg_prove`, e pelo MCP o conteúdo entra no lugar da linha `\ir`. Testes em `simulacao_de_usuario_test.sql`, 9 asserções)*. Os helpers de **fixture** (empresa, usuário) entram com as tabelas, no STEP 1.2
+- [x] Fixtures com valores próprios (CNPJ, e-mail `@exemplo.test`) que não colidem com o seed (decisão 13) *(regra seguida no 1.1 — tabela temporária, nenhuma linha em tabela real — e válida para os próximos)*
 
 **Verificação:** testes verdes no dev (MCP e CI); teste guardião verde; advisors sem alerta de segurança.
 
@@ -79,6 +80,9 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
   | `profiles` | `profiles_select_super_admin` | `is_super_admin()` e `papel = 'master_admin'` |
 
 - [ ] Grants: `select` a `authenticated` nas duas tabelas; nada a `anon`; nenhuma policy nem grant de escrita
+- [ ] Helpers de fixture (empresa e usuário de teste) no `supabase/tests/helpers/ambiente.psql`, testados como os de simulação (STEP 1.1)
+- [ ] `execute` do `private.cnpj_valido` a quem grava em `empresas` (a Edge Function, papel `service_role`): o Postgres confere a função do `check` no insert e em todo update, de qualquer coluna (provado no dev no STEP 1.1). Tabelas escritas pelo cliente com CNPJ (`modelo-dados.md §9.1`) concedem a `authenticated` quando chegarem
+- [ ] Lista das funções de policy na regra 4 do guardião (as que `authenticated` executa no `private`)
 
 **Verificação:** todos os casos verdes; teste guardião verde; advisors sem alerta de segurança.
 
@@ -247,7 +251,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 
 | # | Entregável | STEP | Status |
 |---|---|---|---|
-| 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ⬜ |
+| 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ⬜ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |

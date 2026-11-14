@@ -75,7 +75,7 @@
 
 | # | Entregável | STEP | Status |
 |---|---|---|---|
-| 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ⬜ |
+| 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ⬜ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
@@ -653,6 +653,54 @@ Fora do commit: `.claude/`. Próximo: aprovação do plano revisado. Com ela, a 
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 14/11/2026 | **STEP 1.1 ✅** (branch `chore/step-1.1-utilitarios`, PR).
+
+**Decisão do Danilo:** CNPJ **numérico ou alfanumérico** (decisão 14 do plano). A Receita emite CNPJ com letras desde o fim de jul/2026: 12 caracteres `[0-9A-Z]` + 2 dígitos verificadores, com cada caractere valendo o código ASCII − 48 e os verificadores pelo módulo 11 (o cálculo dos numéricos não muda). `modelo-dados.md` §4, §5.1 e §9.1 ajustados.
+
+**Entregue:**
+- migration `20261114171911_f01_cria_schema_private_e_utilitarios`, aplicada no dev pelo `apply_migration`: schema `private`, `private.cnpj_valido(text)` (`immutable`, `strict`, `search_path` vazio) e `private.set_updated_at()`; `execute` revogado de `PUBLIC` nas duas;
+- `supabase/tests/helpers/ambiente.psql`: o ambiente comum dos testes (papel, search_path, pgTAP, tabela `tap`) e a simulação de usuário (`autenticar_como`, `acessar_como_anon`, `voltar_ao_postgres`);
+- testes `utilitarios_test.sql` (42 asserções) e `simulacao_de_usuario_test.sql` (9); o guardião passa a 19, com a regra 4 (schema `private`).
+
+**Decisões tomadas no STEP (para conferência):**
+1. Helpers carregados por `\ir`, com extensão `.psql`. O `test db` do CLI 3.0.0 roda `pg_prove --ext .pg --ext .sql -r supabase/tests` e monta a pasta inteira (conferido no binário); a extensão `.psql` fica fora dos testes. Pelo MCP, o conteúdo do helper entra no lugar da linha `\ir` (script local, fora do repositório).
+2. Simulação de usuário por **procedimentos**: o `call` não imprime linha, e a saída do teste é o TAP.
+3. **Desvio do plano:** os helpers de fixture (empresa, usuário) entram com as tabelas, no STEP 1.2.
+4. `cnpj_valido` `strict` (nulo devolve nulo; o `not null` da coluna decide) e com as classes de caracteres escritas por extenso (um intervalo `A-Z` pode depender da collation).
+5. Nenhum privilégio no `private` nesta migration: o `usage` de `authenticated` e o `execute` das funções de policy chegam com elas.
+
+**Verificado:**
+- TDD com RED pelo motivo certo antes de cada GREEN: `procedure pg_temp.autenticar_como does not exist`; `schema "private" does not exist`; na regra 4 do guardião, só as 3 provas de violação.
+- Casos de CNPJ gerados por um cálculo independente (Python), que reproduz o exemplo oficial da Receita (`12ABC34501DE35`). A análise de mutação mostrou que os casos de formato também eram recusados pelo cálculo. Eles viraram casos que passam no cálculo e só falham no formato, e entraram os restos 0 e 1.
+- **Mutação:** 11 mutantes do `cnpj_valido`, todos pegos (sem checar repetição, formato sem diferenciar maiúscula, qualquer caractere na base, sem âncora final, `resto < 1`, `resto < 3`, só o 1º verificador, letra A = 10, pesos deslocados, sem `strict`, `10 − resto`); o original, 0 falhas. Nos helpers, 2 mutantes (sem trocar o papel; sem limpar as claims), pegos.
+- Migration ensaiada dentro da transação do teste (42/42) antes do `apply_migration`. Depois, no dev pelo MCP: 42/42, 9/9 e 19/19. `migration list`: repositório e dev alinhados.
+- O `check` com a função exige `execute` de quem grava, no insert e no update de qualquer coluna (`42501` para `authenticated` e `service_role`; `postgres` passa).
+- Advisors do dev: segurança sem alerta; performance com 1 aviso informativo da plataforma (`auth_db_connections_absolute`: as conexões do Auth em número absoluto), sem relação com a migration.
+- Tipos gerados do dev iguais ao `database.ts` (`public` vazio, PostgREST 14.18): arquivo sem mudança.
+- Produção (MCP, só leitura): nenhum privilégio padrão de função fora dos schemas da plataforma.
+
+**Code-review (medium), 9 achados.**
+
+Corrigidos:
+- o `check` exige `execute` de quem grava: documentado no `modelo-dados.md §4` e no STEP 1.2, inclusive `authenticated` nas tabelas escritas pelo cliente;
+- guardião sem regra para o `private`: regra 4 (`anon` não alcança nada; `authenticated` só executa as funções de policy listadas);
+- guardião repetindo o ambiente: passa a carregar o `ambiente.psql`;
+- normalização do CNPJ: "quem grava normaliza" no `modelo-dados.md §5.1`;
+- `project_manager.md` sem o registro do STEP: este commit.
+
+Parcial: `authenticated` sem prova no schema. A regra 4 cobre a execução; o `usage` dele é concedido e testado no STEP 1.2.
+
+Refutado: "o `revoke` só de `PUBLIC` pode não bastar na produção". A produção não tem privilégio padrão de função fora dos schemas da plataforma (conferido). Depois do merge, confiro lá que `anon` e `authenticated` não executam as duas funções.
+
+Mantido: trocar o regex de repetição por `cnpj = '00000000000000'`. A migration aplicada é imutável, e o regex está correto e provado.
+
+**Para os próximos STEPs e fases:**
+- 1.2: helpers de fixture; `execute` do `cnpj_valido` a `service_role`; a lista das funções de policy na regra 4.
+- Fase 4, na revisão do plano (pendência #10): o campo de CNPJ aceita letras (máscara `XX.XXX.XXX/XXXX-00` alfanumérica), normaliza para maiúsculas sem máscara, e a validação do cliente usa a mesma lista de casos do `utilitarios_test.sql`.
+
+**No merge:** deploy acompanhado (a 1ª migration da Fase 1 vai para a produção) e, na produção, só leitura: a migration registrada e `anon`/`authenticated` sem `execute` nas duas funções.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.2, aguardando aprovação. |
 
 ---
 
