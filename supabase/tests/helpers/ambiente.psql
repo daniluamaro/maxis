@@ -1,0 +1,60 @@
+-- Ambiente comum dos testes pgTAP (Fase 1, STEP 1.1). Cada teste o carrega logo depois do `begin`,
+-- com `\ir ../helpers/ambiente.psql`; tudo aqui some no rollback do teste.
+--
+-- A extensão `.psql` é de propósito: o `test db` do CLI roda como teste todo `.sql` e `.pg` de
+-- `supabase/tests`, e este arquivo não é um teste. Pelo MCP, que não entende `\ir`, o conteúdo
+-- deste arquivo entra no lugar da linha `\ir`. Nada aqui pode imprimir linha (nenhum `select`
+-- solto): a saída do teste é o TAP.
+
+-- O papel de login que o CLI cria para o `test db --remote` só ganha os privilégios do `postgres`
+-- assumindo o papel; assim os dois caminhos (CLI e MCP) rodam como `postgres`, com o mesmo
+-- search_path dele
+set local role postgres;
+set local search_path = "$user", public, extensions;
+
+-- pgTAP só durante o teste: o `test db` já o instala antes e o remove depois; pelo MCP, quem
+-- instala é esta linha, e o rollback desfaz
+create extension if not exists pgtap with schema extensions;
+
+-- O MCP devolve só o resultado do último comando: cada linha de TAP vai para esta tabela, e o
+-- `select` do fim do teste entrega a saída inteira, em ordem, aos dois caminhos. Os testes gravam
+-- aqui também quando simulam outro papel
+create temporary table tap (ordem integer generated always as identity, linha text);
+grant select, insert on tap to public;
+
+-- Simulação de usuário, como a Data API faz numa requisição: papel do Postgres + claims do JWT
+-- em `request.jwt.claims` (de onde o `auth.uid()` e o `auth.jwt()` leem). Procedimentos, e não
+-- funções, porque o `call` não imprime linha. O `set local` vale até o fim da transação; o papel
+-- volta ao `postgres` porque quem decide se pode é o usuário da sessão, que é membro dele
+create procedure pg_temp.autenticar_como(usuario uuid)
+language plpgsql
+as $$
+begin
+  perform pg_catalog.set_config(
+    'request.jwt.claims',
+    pg_catalog.json_build_object(
+      'sub', usuario, 'role', 'authenticated', 'aud', 'authenticated'
+    )::text,
+    true
+  );
+  set local role authenticated;
+end;
+$$;
+
+create procedure pg_temp.acessar_como_anon()
+language plpgsql
+as $$
+begin
+  perform pg_catalog.set_config('request.jwt.claims', '{"role": "anon"}', true);
+  set local role anon;
+end;
+$$;
+
+create procedure pg_temp.voltar_ao_postgres()
+language plpgsql
+as $$
+begin
+  perform pg_catalog.set_config('request.jwt.claims', '', true);
+  set local role postgres;
+end;
+$$;
