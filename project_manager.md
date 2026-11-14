@@ -16,7 +16,7 @@
 ## Progresso geral
 
 **Fundação:** `█░░░░░░░░░` 11% · 1 de 9 fases concluídas
-**Fase ativa:** Fase 1 — Dados base & Segurança multi-tenant (⬜ a abrir, com aprovação do Danilo, depois da revisão do plano para o dev online). Fase 0 ✅ em 14/11/2026.
+**Fase ativa:** Fase 1 — Dados base & Segurança multi-tenant (⬜ a abrir: plano revisado para o dev online em 14/11/2026, aguardando a aprovação do Danilo). Fase 0 ✅ em 14/11/2026.
 
 ---
 
@@ -43,7 +43,7 @@
 - A Fase 6 precede a 7: o cadastro de usuário referencia unidade gerencial e setor.
 - A Fase 8 depende tecnicamente só da 3; fica por último para consumir eventos reais das Fases 4–7.
 
-> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo.
+> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada em 14/11/2026 (aguardando aprovação); Fases 2–8 seguem pendentes.
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Fase ativa — Fase 1: Dados base & Segurança multi-tenant
 
-**Status:** ⬜ A abrir — com aprovação do Danilo, depois da revisão do plano para o projeto de dev online (pendência #10; ver "Revisão pendente" no roadmap).
+**Status:** ⬜ A abrir — plano revisado para o projeto de dev online em 14/11/2026 (pendência #10; ver "Revisão pendente" no roadmap), aguardando a aprovação do Danilo.
 **Objetivo:** construir e provar por testes a fundação de segurança multi-tenant (schema base, RLS por `tenant_id`, provisionamento por Edge Function, troca da própria senha, primeiro `super_admin`), antes de qualquer tela depender dela.
 
 **Plano:** `docs/plans/fase-01-dados-seguranca.md`. Os entregáveis (§9 do plano) são espelhados aqui na abertura da fase.
@@ -105,6 +105,7 @@
 | 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | ✅ Aplicada em 08/11/2026 |
 | 22 | `CLAUDE.md §1` | "Plano Pro na conclusão do SaaS" → **plano Pro desde nov/2026**, nos dois projetos: assinado pelo Danilo depois da pausa da produção no 1º deploy (o plano free pausa projeto parado). | ✅ Aplicada em 14/11/2026 |
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
+| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Proposta (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
 
 ---
 
@@ -568,6 +569,26 @@ Fora do commit: `.claude/`. Próximo: abertura da Fase 1, aguardando aprovação
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 14/11/2026 | **Revisão do plano da Fase 1 para o dev online** (pendência #10; branch `docs/fase-01-revisao-plano`, PR). Nada no plano depende mais de Supabase local.
+
+**Decisão do Danilo:** testes de integração das Edge Functions **no CI, contra o dev** (decisão 11 do plano). O job `integracao` do PR publica no dev as funções da branch, reaplica o seed e roda a integração. Pendência **#24** proposta, para o `supabase/CLAUDE.md §8/§10/§12`.
+
+**Conferido:**
+- no dev, pelo MCP e só leitura: banco vazio (0 usuários, nenhuma tabela em `public`, sem schema `private`), `pgcrypto` instalado, e o `postgres` grava em `auth.users` e `auth.identities`;
+- no CLI 3.0.0: `db query --remote` (SQL no dev, inclusive pelo CI) e `functions deploy --remote`.
+
+**Mudanças no plano:**
+- pré-requisitos: Fase 0, pendência #3 e o padrão de autenticação do STEP 0.11 marcados; dois 📋 novos do Danilo (a senha do seed no `.env.local`, antes do 1.7; a escrita em Edge Functions no token do dev e o secret da senha, antes do 1.9);
+- decisões 10–13: Supabase só online; integração no CI; seed só com o hash bcrypt (proposta); dev compartilhado que não se limpa (proposta);
+- regra comum a todo STEP com migration (o checklist do `supabase/CLAUDE.md §11`);
+- STEP 1.6: o 3º item fechado (o mecanismo já está no contrato); verificação no dev pela API e na produção pelo `config diff`;
+- STEP 1.7: seed do dev idempotente, sem senha em claro, com usuário de empresa bloqueada e usuário com senha provisória (o roteiro da Fase 2 usa os dois);
+- STEP 1.8: as pendências do STEP 0.11 (`deno.json` por função, `corsHeaders` do pacote, localhost só no dev);
+- STEP 1.9: integração contra a função publicada no dev, job `integracao`, `verify_jwt` explícito, provas no dev publicado e `integracao` no ruleset;
+- **STEP 1.11 corrigido:** o Dashboard é o do `maxis-producao`. O plano dizia `maxis`, que hoje é o dev;
+- STEP 1.12, critérios 1/6/8/11, riscos e entregáveis 6/7/9 ajustados. O `modelo-dados.md` não muda.
+
+Fora do commit: `.claude/`. Próximo: aprovação do plano revisado. Com ela, a Fase 1 abre (🔄) e os entregáveis são espelhados aqui. |
 
 ---
 
