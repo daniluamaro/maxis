@@ -16,19 +16,19 @@ SaaS multi-tenant por assinatura para empresas de transporte, logística e suppl
 
 ## Desenvolvimento
 
-Requisitos: Node 24 (`.nvmrc`; `nvm use`) e, para as Edge Functions, Deno 2.9.8. Não há Supabase local: o projeto usa dois projetos online (desenvolvimento e produção), e o Supabase CLI vem como dependência do repositório.
+Requisitos: Node 24.15 ou mais novo da linha 24 (`.nvmrc`; `nvm install`) e, para as Edge Functions, Deno 2.9.8. Não há Supabase local: o projeto usa dois projetos online (desenvolvimento e produção), e o Supabase CLI vem como dependência do repositório.
 
 ```bash
-npm ci          # instalação limpa
-npm run dev     # http://localhost:5173
-npm run build   # build de produção em frontend/dist/
+npm ci --ignore-scripts   # instalação limpa, sem scripts de instalação (como no CI)
+npm run dev               # http://localhost:5173
+npm run build             # build de produção em frontend/dist/
 ```
 
-Portões, os mesmos do CI, verdes antes de todo commit:
+Portões, verdes antes de todo commit (o CI roda os mesmos, mais a auditoria das dependências e as varreduras de segurança):
 
 ```bash
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
-cd supabase/functions && deno fmt --check && deno lint && deno check && deno test
+(cd supabase/functions && deno fmt --check && deno lint && deno check && deno test)
 ```
 
 Todos os comandos: [frontend/CLAUDE.md §15](frontend/CLAUDE.md) e [supabase/CLAUDE.md §12](supabase/CLAUDE.md). Variáveis do frontend: [frontend/.env.example](frontend/.env.example).
