@@ -141,11 +141,11 @@ frontend/src/
 
 ## 15. Comandos
 
-Da **raiz** do repositório (workspace npm, lockfile único), com o Node da `.nvmrc` (`nvm use`). Fora do Node 24, os scripts recusam rodar (`devEngines`).
+Da **raiz** do repositório (workspace npm, lockfile único), com o Node da `.nvmrc` (`nvm install`). Os scripts exigem Node 24.15 ou mais novo da linha 24 e recusam rodar fora disso (`devEngines`).
 
 | Comando | O que faz |
 |---|---|
-| `npm ci` | Instalação limpa, a partir do lockfile |
+| `npm ci --ignore-scripts` | Instalação limpa, a partir do lockfile, sem scripts de instalação (como no CI) |
 | `npm run dev` | Vite em `http://localhost:5173` (porta fixa: é a do CORS e dos redirects do dev) |
 | `npm run build` | Checagem de tipos e build de produção em `frontend/dist/` |
 | `npm run typecheck` | Checagem de tipos |
@@ -155,5 +155,5 @@ Da **raiz** do repositório (workspace npm, lockfile único), com o Node da `.nv
 | `npm run test:watch --workspace frontend` | Vitest observando os arquivos |
 | `npm run preview --workspace frontend` | Serve o build em `http://localhost:4173` |
 
-- **Portões** (os mesmos do job `frontend` do CI): `lint`, `format:check`, `typecheck`, `test` e `build`, verdes e sem aviso antes de todo commit.
+- **Portões** (os do job `frontend` do CI): `lint`, `format:check`, `typecheck`, `test` e `build`, verdes e sem aviso antes de todo commit. O CI roda também a varredura de chave secreta no build e a auditoria das dependências (`npm audit signatures`, `--omit=dev` e `--audit-level=high`).
 - **Variáveis:** `frontend/.env.local` (fora do git), a partir do `frontend/.env.example`, com os valores do projeto de **dev** (§11).

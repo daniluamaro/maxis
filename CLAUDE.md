@@ -168,7 +168,7 @@ MCPs Supabase e Context7 autenticam via **OAuth** pelo `/mcp` (login no navegado
 - **Frontend:** Vitest + React Testing Library.
 - **Edge Functions (Deno):** `deno test`.
 - **RLS/policies:** pgTAP no projeto online de **dev** (pelo MCP e no CI), cada teste em transação com rollback. **Nunca** contra produção. Sem Supabase local (nem Docker).
-- **Portões locais** (os mesmos do CI, verdes antes de todo commit): frontend em `@frontend/CLAUDE.md §15`; Edge Functions e banco em `@supabase/CLAUDE.md §12`.
+- **Portões locais** (verdes antes de todo commit; o CI roda os mesmos, mais auditoria e varreduras): frontend em `@frontend/CLAUDE.md §15`; Edge Functions e banco em `@supabase/CLAUDE.md §12`.
 - **TDD** (Red-Green-Refactor) para **lógica, RLS e Edge Functions**, a partir da **Fase 1**. Não exigir TDD em STEPs puramente de estilo/CSS. Fase 0 é infra/setup.
 
 ---

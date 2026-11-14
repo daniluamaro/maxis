@@ -138,15 +138,15 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 
 ## 12. Comandos
 
-**Supabase CLI:** o da devDependency da raiz (`npx supabase …`), sempre com o projeto explícito — `--remote=<ref>`, dev `ddaqbcfrplzdywpgilbf`, produção `ktcryodtgxpmgatihaic`. Mudança em projeto hospedado exige `--yes`. Toda escrita passa pela aprovação do Danilo; a produção recebe pelo pipeline (§2).
+**Supabase CLI:** o da devDependency da raiz (`npx supabase …`), sempre com o projeto explícito (`--remote=<ref>`): o ref do dev é o `project_id` do `[remotes.dev]` no `config.toml`; o da produção, o `REF_PRODUCAO` do pipeline. Mudança em projeto hospedado exige `--yes`. Toda escrita passa pela aprovação do Danilo; a produção recebe pelo pipeline (§2).
 
 | Comando | O que faz |
 |---|---|
 | `npx supabase migration list --remote=<dev>` | Migrations do repositório × dev (o CI barra diferença) |
-| `npx supabase test db --remote=<dev> --yes` | Testes pgTAP no dev, em transação, sem resíduo |
-| `npx supabase config diff --remote=<ref> --exit-code` | `config.toml` × projeto; só lê, e diferença sai 2 |
-| `npx supabase config push --remote=<ref> --yes` | Aplica o `config.toml` no projeto |
-| `npx supabase db push --remote=<dev> --skip-vault` | Reserva para aplicar migration no dev (§2), antes com `--dry-run` |
+| `npx supabase test db --remote=<dev> --yes` | Testes pgTAP no dev, como o CI roda (o `pg_prove` num contêiner Docker do runner). No trabalho local, os testes rodam pelo MCP (§7) |
+| `npx supabase config diff --remote=<ref> --exit-code` | `config.toml` × projeto (dev ou produção); só lê, e diferença sai 2 |
+| `npx supabase config push --remote=<dev> --yes` | Aplica o `config.toml` no dev (a produção recebe pelo deploy-backend) |
+| `npx supabase db push --remote=<dev> --skip-vault --yes` | Reserva para aplicar migration no dev (§2); antes, o mesmo com `--dry-run` |
 
 **Edge Functions:** em `supabase/functions/`, com o Deno 2.9.8.
 
@@ -157,5 +157,5 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 | `deno check` | Tipos |
 | `deno test` | Testes |
 
-- **Portões** (os mesmos do job `edge-functions` do CI): os quatro verdes antes de todo commit que toque `supabase/functions/`. O `deno.lock` é congelado: dependência nova só entra com `--frozen=false`, de propósito.
+- **Portões** (os do job `edge-functions` do CI): os quatro verdes antes de todo commit. O CI também barra `deno-lint-ignore`, `@ts-ignore` e `@ts-nocheck` em `supabase/functions/`. O `deno.lock` é congelado: dependência nova só entra com `--frozen=false`, de propósito.
 - O job `banco` do CI roda o `migration list`, o `config diff` e o `test db` contra o dev.
