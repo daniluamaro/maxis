@@ -3,16 +3,16 @@ import { capturandoConsoleError } from './consoleDeTeste.ts';
 import { comCors } from './cors.ts';
 import { sucesso } from './resposta.ts';
 
-const PRODUCAO = 'https://maxis.performargestao.com.br';
+const PRODUCAO = 'https://maxis.vemperformar.com.br';
 const DESENVOLVIMENTO = 'http://localhost:5173';
 const URL_DA_FUNCAO = 'https://exemplo.supabase.co/functions/v1/provisionar-usuario';
 
 /** Origens parecidas com as permitidas, que um site de terceiro poderia usar. */
 const ORIGENS_NEGADAS = [
-  'https://maxis.performargestao.com.br.evil.example',
-  'http://maxis.performargestao.com.br',
-  'https://evil.performargestao.com.br',
-  'https://performargestao.com.br',
+  'https://maxis.vemperformar.com.br.evil.example',
+  'http://maxis.vemperformar.com.br',
+  'https://evil.vemperformar.com.br',
+  'https://vemperformar.com.br',
   'http://localhost:4173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
