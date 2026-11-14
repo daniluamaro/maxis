@@ -102,7 +102,7 @@ Todas `security definer`, `stable`, `set search_path = ''`; usadas nas policies 
 | `private.papel_atual()` | `papel_usuario` | Papel do usuário logado; `null` se inativo / empresa inativa. | 1 |
 | `private.is_super_admin()` | `boolean` | `true` se o usuário logado é `super_admin` ativo. | 1 |
 | `private.tem_permissao(chave text)` | `boolean` | `true` para `master_admin` (acesso total implícito); para `admin`/`user`, verifica se o perfil vinculado contém a permissão. `super_admin` → `false` em dados de tenant. | 5 |
-| `private.cnpj_valido(cnpj text)` | `boolean` | `immutable`, `strict`; valida o CNPJ **numérico ou alfanumérico** (Receita, a partir de jul/2026): 12 caracteres `[0-9A-Z]` + 2 dígitos verificadores, sem máscara e em maiúsculas; cada caractere vale o código ASCII − 48, verificadores pelo módulo 11; recusa sequência repetida. Nulo devolve nulo. Usada em `check`; ninguém além do dono executa. | 1 |
+| `private.cnpj_valido(cnpj text)` | `boolean` | `immutable`, `strict`; valida o CNPJ **numérico ou alfanumérico** (Receita, a partir de jul/2026): 12 caracteres `[0-9A-Z]` + 2 dígitos verificadores, sem máscara e em maiúsculas; cada caractere vale o código ASCII − 48, verificadores pelo módulo 11; recusa sequência repetida. Nulo devolve nulo. Usada em `check`. O Postgres exige `execute` da função do `check` de quem grava, no insert e em todo update (conferido no dev em 14/11/2026): cada tabela com o `check` concede a quem grava nela — a Edge Function (`service_role`) em `empresas`; `authenticated` nas tabelas escritas pelo cliente. `anon` nunca. | 1 |
 | `private.set_updated_at()` | trigger | Atualiza `updated_at`. | 1 |
 | `private.registrar_auditoria()` | trigger | Grava em `eventos_auditoria` as alterações de tabelas **escritas pelo cliente** (sob RLS), com ator = `auth.uid()` e tenant = tenant da linha. Roda como `security definer`, sem o cliente precisar de permissão de escrita em `eventos_auditoria`. Usado em `perfis_acesso` (Fase 5) e na estrutura organizacional (Fase 6). | 5 |
 
@@ -136,7 +136,7 @@ O `id` desta tabela **é** o `tenant_id` de todo o sistema. Não tem coluna `ten
 | `id` | `uuid` | PK — é o `tenant_id` | 1 |
 | `razao_social` | `text` | `not null` | 1 |
 | `nome_fantasia` | `text` | opcional; exibido na UI quando preenchido | 1 |
-| `cnpj` | `text` | `not null`, **`unique`**, numérico ou alfanumérico, sem máscara e em maiúsculas (12 caracteres `[0-9A-Z]` + 2 dígitos), `check (private.cnpj_valido(cnpj))` — a função cobre o formato e os verificadores. Atributo de identidade/exibição — **nunca** join nem filtro de segurança. | 1 |
+| `cnpj` | `text` | `not null`, **`unique`**, numérico ou alfanumérico, sem máscara e em maiúsculas (12 caracteres `[0-9A-Z]` + 2 dígitos), `check (private.cnpj_valido(cnpj))` — a função cobre o formato e os verificadores. Quem grava normaliza antes (tira a máscara, passa para maiúsculas); o `check` recusa o resto. Atributo de identidade/exibição — **nunca** join nem filtro de segurança. | 1 |
 | `ativo` | `boolean` | `not null default true`. `false` = CNPJ bloqueado → todos os usuários da empresa caem no gate "acesso suspenso". | 1 |
 | `bloqueada_em` | `timestamptz` | preenchido ao bloquear; limpo ao desbloquear | 1 |
 | `motivo_bloqueio` | `text` | opcional; visível só no Admin SaaS | 1 |

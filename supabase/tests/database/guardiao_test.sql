@@ -1,8 +1,10 @@
--- Teste guardião (Fase 0, STEP 0.10): regras de segurança que valem para todo objeto do schema
--- `public`, hoje e em qualquer fase (supabase/CLAUDE.md §5 e §6):
---   1. toda tabela tem RLS habilitada;
---   2. `anon` não alcança tabela, view, sequência nem função (o app inteiro exige login);
---   3. toda view tem `security_invoker` (sem ele, a view ignora a RLS).
+-- Teste guardião (Fase 0, STEP 0.10; regra 4 no STEP 1.1): regras de segurança que valem para
+-- todo objeto, hoje e em qualquer fase (supabase/CLAUDE.md §5 e §6):
+--   1. toda tabela de `public` tem RLS habilitada;
+--   2. `anon` não alcança tabela, view, sequência nem função de `public` (o app exige login);
+--   3. toda view de `public` tem `security_invoker` (sem ele, a view ignora a RLS);
+--   4. no schema `private`, `anon` não alcança nada, e `authenticated` só executa as funções de
+--      policy, listadas na regra (uma função nova nasce com `execute` para PUBLIC).
 -- Passa com zero tabelas. Por isso cada regra também prova, mais abaixo, que acusa a violação e
 -- não acusa o objeto conforme: sem essa prova, uma consulta errada passaria para sempre.
 --
@@ -10,21 +12,9 @@
 -- transação desfeita no fim: o pgTAP e os objetos de prova não ficam no banco. Nunca em produção.
 begin;
 
--- O papel de login que o CLI cria para o `test db --remote` só ganha os privilégios do `postgres`
--- assumindo o papel; sem isso, nem enxerga o schema `extensions`, onde fica o pgTAP. Assim os dois
--- caminhos rodam como `postgres` (o MCP já roda), com o mesmo search_path dele
-set local role postgres;
-set local search_path = "$user", public, extensions;
+\ir ../helpers/ambiente.psql
 
--- pgTAP só durante o teste. O `test db` do CLI já o instala antes e o remove depois; pelo MCP,
--- quem instala é esta linha, e o rollback desfaz
-create extension if not exists pgtap with schema extensions;
-
--- O MCP devolve só o resultado do último comando. Cada linha de TAP vai para esta tabela, e o
--- `select` do fim entrega a saída inteira, em ordem, aos dois caminhos (MCP e pg_prove)
-create temporary table tap (ordem integer generated always as identity, linha text);
-
-insert into tap (linha) select plan(14);
+insert into tap (linha) select plan(19);
 
 -- Regra 1: tabelas (comuns e particionadas) de `public` sem RLS habilitada
 create function pg_temp.tabelas_sem_rls() returns setof text
@@ -93,6 +83,27 @@ as $$
     )
 $$;
 
+-- Regra 4: o que `anon` e `authenticated` alcançam no schema `private`. A lista das funções de
+-- policy cresce com elas (STEP 1.2). O schema é localizado pelo catálogo: num banco sem ele, a
+-- regra não acusa nada
+create function pg_temp.alcance_no_private() returns setof text
+language sql stable
+as $$
+  select 'usage do schema private para anon'
+  from pg_catalog.pg_namespace as n
+  where n.nspname = 'private'
+    and pg_catalog.has_schema_privilege('anon', n.oid, 'usage')
+  union all
+  select 'função ' || p.proname || ' para ' || papel.nome
+  from pg_catalog.pg_proc as p
+  join pg_catalog.pg_namespace as n on n.oid = p.pronamespace
+  cross join (values ('anon'), ('authenticated')) as papel (nome)
+  where n.nspname = 'private'
+    and pg_catalog.has_function_privilege(papel.nome, p.oid, 'execute')
+    -- Funções de policy, as únicas que `authenticated` executa (a lista começa no STEP 1.2)
+    and not (papel.nome = 'authenticated' and p.proname = any (array[]::name[]))
+$$;
+
 -- O banco de verdade
 insert into tap (linha) select is_empty(
   'select * from pg_temp.tabelas_sem_rls()',
@@ -105,6 +116,10 @@ insert into tap (linha) select is_empty(
 insert into tap (linha) select is_empty(
   'select * from pg_temp.views_sem_security_invoker()',
   'toda view de public tem security_invoker'
+);
+insert into tap (linha) select is_empty(
+  'select * from pg_temp.alcance_no_private()',
+  'anon não alcança o schema private, e authenticated só executa as funções de policy'
 );
 
 -- Prova de que cada regra acusa a violação. Os objetos somem no rollback; o estado de cada um é
@@ -164,6 +179,32 @@ insert into tap (linha) select ok(
   'acusa materialized view em public'
 );
 
+-- Violações no schema `private`: a função que nasce sem `revoke` (execute para PUBLIC), a
+-- função de fora da lista concedida a `authenticated` e o `usage` do schema concedido a `anon`
+create function private.guardiao_violacao_publica() returns integer
+language sql
+as 'select 1';
+create function private.guardiao_violacao_authenticated() returns integer
+language sql
+as 'select 1';
+revoke execute on function private.guardiao_violacao_authenticated() from public;
+grant execute on function private.guardiao_violacao_authenticated() to authenticated;
+grant usage on schema private to anon;
+
+insert into tap (linha) select ok(
+  'função guardiao_violacao_publica para anon' in (select * from pg_temp.alcance_no_private()),
+  'acusa função de private executável por anon (execute de PUBLIC)'
+);
+insert into tap (linha) select ok(
+  'função guardiao_violacao_authenticated para authenticated'
+    in (select * from pg_temp.alcance_no_private()),
+  'acusa função de private fora da lista executável por authenticated'
+);
+insert into tap (linha) select ok(
+  'usage do schema private para anon' in (select * from pg_temp.alcance_no_private()),
+  'acusa usage do schema private concedido a anon'
+);
+
 -- E não acusa o objeto conforme (o que as migrations das próximas fases vão criar)
 create table public.guardiao_conforme (id integer);
 alter table public.guardiao_conforme enable row level security;
@@ -192,6 +233,18 @@ insert into tap (linha) select ok(
 insert into tap (linha) select ok(
   'guardiao_conforme_view' not in (select * from pg_temp.views_sem_security_invoker()),
   'não acusa view com security_invoker'
+);
+
+create function private.guardiao_conforme_privada() returns integer
+language sql
+as 'select 1';
+revoke execute on function private.guardiao_conforme_privada() from public;
+
+insert into tap (linha) select ok(
+  not exists (
+    select 1 from pg_temp.alcance_no_private() as achado where achado like '%guardiao_conforme%'
+  ),
+  'não acusa função de private com o execute revogado'
 );
 
 insert into tap (linha) select * from finish();
