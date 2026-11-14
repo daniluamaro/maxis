@@ -185,6 +185,6 @@ MCPs Supabase e Context7 autenticam via **OAuth** pelo `/mcp` (login no navegado
 
 ## 11. Fase ativa
 
-**Fase 0 — Infraestrutura & Setup** — em implementação. Plano: `@docs/plans/fase-00-infra-setup.md`.
+**Fase 1 — Dados base & Segurança multi-tenant** — próxima; abre com aprovação do Danilo, depois da revisão do plano para o projeto de dev online. Plano: `@docs/plans/fase-01-dados-seguranca.md`.
 
-Planejamento da fundação concluído em 02/11/2026: planos das Fases 0–8 em `docs/plans/`, aprovados. Pendências de governança ainda abertas: tabela em `@project_manager.md` (aplicar cada uma só com autorização, no prazo indicado).
+Fase 0 (Infraestrutura & Setup) ✅ concluída em 14/11/2026: produto no ar em `https://maxis.vemperformar.com.br`, deploy em ordem pelo pipeline e `main` protegida. Pendências de governança ainda abertas: tabela em `@project_manager.md` (aplicar cada uma só com autorização, no prazo indicado).
