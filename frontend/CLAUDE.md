@@ -29,6 +29,7 @@ frontend/src/
 ## 2. Componentes
 
 - Componente = função TypeScript; um componente exportado por arquivo; arquivo `PascalCase.tsx`; hook `useXxx.ts`; demais `camelCase.ts`.
+- **Exceção — `components/ui/`:** os primitivos do shadcn mantêm o nome de arquivo do CLI (`button.tsx`) e vários exports por arquivo (`dialog.tsx`), para `shadcn add` e `add --diff` continuarem funcionando (os primitivos importam uns aos outros por esses caminhos). No resto do app, vale a regra acima.
 - **Named exports.** Default export só onde uma ferramenta exigir.
 - Props em `type <Nome>Props`; sem `any` (raiz §6), sem `React.FC`. Funções, hooks e métodos públicos com **tipo de retorno explícito**.
 - Primitivos de `components/ui` são **compostos**, não reescritos. Variante nova = variante no próprio primitivo, construída só com tokens.
@@ -67,6 +68,7 @@ frontend/src/
 
 - **Tokens:** a única fonte é o `§7`. Espelhados **uma vez** em `theme/` como CSS variables e mapeados no Tailwind, no shadcn e no tema ECharts.
   - Proibido em componente: hex/rgb literal, paleta default do Tailwind (`blue-500`, `gray-*`, `slate-*`…), cor em `style` inline.
+- **Utilitários de tema:** o nome do utilitário é o nome exato do token (`bg-bg-panel`, `text-text-secondary`, `border-border-soft`, `text-gold-strong`); a escala tipográfica é só `text-2xs` … `text-2xl`. Um vocabulário por camada: em `components/ui/`, os primitivos usam os nomes semânticos do shadcn (`bg-card`, `text-muted-foreground`); no resto do app, os nomes dos tokens.
 - **Ouro = marca:** logo, item ativo, destaques. Ouro como texto sobre claro = `--gold-strong`. Item ativo da sidebar = `--gold` com transparência — nunca outro tom de ouro.
 - **Funcionais** (verde, âmbar, vermelho, azul) só com significado: sucesso, atenção, alerta, informação. Sobre fundo claro, texto e ícone usam `--*-text`; a cor viva fica para preenchimento (barras, pontos, fundos translúcidos).
 - **Superfícies** separadas por sombra, não por borda forte: `--shadow-sm` em painéis; `--shadow-md` só em elementos flutuantes (popover, dropdown, diálogo). Bordas com `--border-soft`, discretas. Hierarquia visual por tamanho, peso e espaço — nem tudo vira card.
