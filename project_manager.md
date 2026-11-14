@@ -402,6 +402,21 @@ Refutados pela conferência acima:
 - **Checagem de "projeto pausado" antes do CLI:** não será implementada (com o Pro, a pausa por inatividade deixa de existir).
 
 **Depois do merge:** o deploy é acompanhado até o frontend sair no Pages, e o resultado entra no 1º commit da branch do STEP 0.13. |
+| 14/11/2026 | **Deploy do merge do PR #13 e conferência pós-merge** (registrados na abertura do STEP 0.13, branch `chore/step-0.13-dominio`).
+
+**Deploy** (run 43589739056, commit `f98778e`): fecha a verificação do STEP 0.12 ("merge dispara deploy-backend e depois deploy-frontend").
+- Os 6 jobs verdes, na ordem: o deploy-frontend começou 4s depois do fim do deploy-backend.
+- `db push`: "Remote database is up to date". O `list_migrations` da produção tem só a `f00_remove_rls_automatica`.
+- `config push`: API, banco, Auth e Storage sem diferença. Edge Functions puladas com aviso.
+- Pages publicado em `daniluamaro.github.io/maxis/`: HTTP 200 e `<title>Maxis</title>`, em branco pelo `base: '/'` até o domínio.
+- Rota inexistente devolve o app pelo `404.html` com **status HTTP 404** (o fallback do Pages): conferir de novo no domínio, no STEP 0.13.
+- Log público sem segredo.
+
+**Pós-merge na `main`:**
+- `npm ci` limpo e os cinco portões verdes (178 testes);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados (eram 12), nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
