@@ -636,6 +636,23 @@ Fora do commit: `.claude/`. Próximo: aprovação do plano revisado. Com ela, a 
 - pendência **#24** aprovada, a aplicar sob autorização no STEP 1.9.
 
 **No merge:** o deploy é acompanhado. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.1. |
+| 14/11/2026 | **Merge do PR #16 (revisão do plano da Fase 1): deploy e conferência pós-merge** (registrados na abertura do STEP 1.1, branch `chore/step-1.1-utilitarios`).
+
+**Merge com rebase** (commit `4cf67e2`, branch apagada), depois do CI verde no commit da aprovação (run 43613119177).
+
+**Deploy** (run 43613229941):
+- os 6 jobs verdes, na ordem: o deploy-frontend começou 5s depois do fim do deploy-backend;
+- `db push`: "Remote database is up to date";
+- `config push`: API, banco, Auth e Storage sem diferença;
+- Edge Functions puladas com aviso;
+- no ar, o build novo (`last-modified` 16:02:10 GMT): `/` com 200 e certificado válido, rota inexistente com 404 (fallback);
+- log público sem segredo (varredura de chave secreta, token, JWT e URL com senha: nada; 22 linhas mascaradas).
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
