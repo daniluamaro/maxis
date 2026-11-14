@@ -121,6 +121,7 @@
 | 19 | `supabase/CLAUDE.md §2` | Caminho de reserva para aplicar migration no dev: quando o `apply_migration` do MCP voltar "declined" (o servidor pede confirmação para instrução destrutiva, e ela não chega à sessão), criar o arquivo com `npx supabase migration new <nome>` e aplicar com `npx supabase db push --remote=<ref do dev> --skip-vault`. A versão do arquivo continua sendo a registrada no dev, conferida no `list_migrations`. Aconteceu na primeira migration (STEP 0.10). | ✅ Aplicada em 07/11/2026 |
 | 20 | `CLAUDE.md §8` | A regra "ferramentas de escrita do MCP nunca na allowlist" distingue o servidor: o `execute_sql` do `supabase-prod` (`read_only=true`; roda como `supabase_read_only_user` em transação somente leitura, e recusar escrita foi provado no STEP 0.10) pode ficar na allowlist. O do `supabase-dev`, nunca. | ✅ Aplicada em 07/11/2026 |
 | 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | ✅ Aplicada em 08/11/2026 |
+| 22 | `CLAUDE.md §1` | "Plano Pro na conclusão do SaaS" → **plano Pro desde nov/2026**, nos dois projetos: assinado pelo Danilo depois da pausa da produção no 1º deploy (o plano free pausa projeto parado). | Proposta (14/11/2026) · aplicar sob autorização |
 
 ---
 
@@ -350,6 +351,28 @@ Fora do commit: `.claude/`. Próximo: STEP 0.13, aguardando aprovação. |
 - o Supabase CLI segue no 3.0.0; atualizar para a 3.1.0 é decisão à parte.
 
 **Depois do merge:** o primeiro deploy é acompanhado, e o resultado entra no 1º commit da branch do STEP 0.13. |
+| 14/11/2026 | **Primeiro deploy do pipeline (merge do PR #11): duas falhas, registradas na branch `fix/step-0.12-config-pro`.**
+
+**1ª tentativa (12/11): o `db push` falhou** com "IPv6 is not supported on your current network".
+- Causa: o `maxis-producao` estava **pausado** (`INACTIVE` na API de gestão). O plano free pausa projeto parado; a produção tinha 5 dias, não os 7 do risco da §8.
+- Projeto pausado devolve a configuração do pooler vazia (`[]`, HTTP 200). Sem pooler, o CLI cai na conexão direta, que é só IPv6, e o runner não tem IPv6. O erro engana.
+- O mesmo erro se repetiu localmente com o login do CLI do Danilo (acesso total), o que descarta o token.
+- Nada mudou na produção. O frontend não saiu: a ordem do pipeline funcionou.
+
+**O Danilo reativou os dois projetos e assinou o plano Pro**, antecipado (a decisão #11 o previa para a conclusão do SaaS). Com o Pro, a pausa por inatividade deixa de existir. Pendência **#22** proposta, para o `CLAUDE.md §1`.
+
+**2ª tentativa (14/11, run inteiro de novo; o artefato de 12/11 tinha expirado):**
+- `db push` aplicou a `f00_remove_rls_automatica` na produção, onde ela não muda nada (dois `if exists`).
+- `config push` parou em 403 (`storage_config_write`). Ao assinar o Pro, a plataforma ligou nos dois projetos `storage.analytics` (com `max_namespaces` 10) e `storage.image_transformation`. O `config.toml`, vindo do `config pull` no plano free, dizia o contrário.
+- Nada foi escrito na configuração; o frontend não saiu.
+
+Logs das duas tentativas sem segredo.
+
+**Proposta para o Danilo:** a checagem do status do projeto antes do CLI (sugerida no chat, para trocar o erro de IPv6 por "projeto pausado") perde a urgência com o Pro. Recomendação: não implementar agora.
+
+**Decisões do Danilo:**
+- alinhar o `config.toml` ao Pro: os dois recursos ligados, sem uso, e o token de produção segue sem escrita no Storage;
+- corrigir num PR curto, que fecha o deploy do 0.12 antes de abrir o 0.13. |
 
 ---
 

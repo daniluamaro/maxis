@@ -36,7 +36,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 8 | Produção mostra só uma **página de abertura** com a marca até a Fase 2. A **página de referência do tema** existe apenas em desenvolvimento. | proposta |
 | 9 | Sem hooks de pre-commit; o portão é o CI + proteção da `main`. | proposta |
 | 10 | Actions fixadas por **SHA de commit**; permissões mínimas por job; `pages`/`id-token` só no job de deploy. | proposta |
-| 11 | Supabase **só online**, em dois projetos: `maxis` (us-west-2) = **desenvolvimento** — MCP com escrita, testes e seed; **produção** nova em São Paulo (`sa-east-1`) — escrita só pelo CI, MCP somente leitura. Plano free até a conclusão do SaaS, depois Pro. Sem Supabase local nem Docker. | Danilo |
+| 11 | Supabase **só online**, em dois projetos: `maxis` (us-west-2) = **desenvolvimento** — MCP com escrita, testes e seed; **produção** nova em São Paulo (`sa-east-1`) — escrita só pelo CI, MCP somente leitura. Plano free até a conclusão do SaaS, depois Pro — **Pro antecipado:** assinado pelo Danilo em nov/2026, depois da pausa da produção no 1º deploy (log de 14/11/2026). Sem Supabase local nem Docker. | Danilo |
 | 12 | Hospedagem **portátil**: GitHub Pages agora, Vercel no futuro (`frontend/CLAUDE.md §14`). O específico da hospedagem (fallback `404.html`, publicação) fica só no job `deploy-frontend`; na migração, a Vercel é publicada pelo pipeline, depois do backend — nunca pelo deploy automático por Git da Vercel. | Danilo |
 
 ## 4. STEPs (na ordem; não pular)
@@ -267,7 +267,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **Deploy parcial:** os passos do deploy-backend não formam uma transação; se o `config push` ou o `functions deploy` falhar depois do `db push`, a produção fica com o schema novo e o frontend anterior. Mitigação: migration compatível com o frontend publicado (expandir antes, contrair depois) e re-executar o job que falhou (o `db push` repetido não faz nada).
 - **CLI do Supabase muda entre versões:** conferir comandos e flags com `--help` antes de usar (skill `supabase`).
 - **DNS:** propagação pode levar horas; o STEP 0.13 só fecha com HTTPS válido.
-- **Plano free pausa projeto parado há 7 dias:** o dev pausa se o trabalho parar; a produção, sem uso até o go-live, também — reativar antes de um deploy. Deixa de acontecer com o plano Pro, na conclusão do SaaS.
+- **Plano free pausa projeto parado há 7 dias:** o dev pausa se o trabalho parar; a produção, sem uso até o go-live, também — reativar antes de um deploy. Deixa de acontecer com o plano Pro, na conclusão do SaaS. ✅ **Resolvido em nov/2026:** a produção pausada derrubou o 1º deploy (com um erro enganoso de IPv6: projeto pausado não devolve o pooler), e o Danilo assinou o Pro.
 - **MCP com escrita no dev:** um comando errado (ou um texto malicioso lido de uma tabela) afeta o dev — por isso schema só por migration versionada, aprovação do Danilo a cada escrita e produção fora do alcance de escrita do MCP.
 - **Comando no projeto errado:** dois projetos na mesma conta → sem `link`; todo comando do CLI com `--remote=<ref>` explícito.
 - **jsx-a11y parado:** a 6.10.2 (out/2024) não declara suporte ao ESLint 10, embora funcione (testado). A versão do ESLint mora só no `package.json` raiz, e o `overrides` do jsx-a11y aponta para ela (`$eslint`): atualizar o ESLint é mudar uma linha. Revisar quando o jsx-a11y publicar suporte ao 10.
