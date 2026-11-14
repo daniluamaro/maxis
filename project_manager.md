@@ -701,6 +701,7 @@ Mantido: trocar o regex de repetição por `cnpj = '00000000000000'`. A migratio
 **No merge:** deploy acompanhado (a 1ª migration da Fase 1 vai para a produção) e, na produção, só leitura: a migration registrada e `anon`/`authenticated` sem `execute` nas duas funções.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.2, aguardando aprovação. |
+| 14/11/2026 | Com autorização do Danilo, no PR do STEP 1.1: **§11 do `CLAUDE.md`** com a Fase 1 em andamento ("🔄 em andamento desde 14/11/2026", com o link do plano). |
 
 ---
 
