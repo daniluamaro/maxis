@@ -129,6 +129,21 @@ jobs:
             exit 1
           fi
 
+      # O config.toml descreve os dois projetos (o bloco [remotes.dev] ajusta o dev). Uma mudança
+      # feita pela própria plataforma (plano, add-on, padrão novo) aparece aqui, no PR, antes de o
+      # deploy-backend parar no `config push` da produção. Só lê; as credenciais vêm mascaradas
+      # pela API. Com `--exit-code`, diferença sai 2 e erro do CLI sai 1.
+      - name: Repositório e dev com a mesma configuração
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          status=0
+          npx --no supabase config diff --remote="$REF_DEV" --exit-code || status=$?
+          if [ "$status" -eq 2 ]; then
+            echo "::error::config.toml diferente da configuração do projeto de dev"
+          fi
+          exit "$status"
+
       # O CLI roda o pg_prove num contêiner Docker do runner; o banco é o do dev, online. Cada
       # arquivo de teste roda em transação com rollback. Sem terminal, o CLI só roda em projeto
       # hospedado com `--yes`.
