@@ -102,7 +102,7 @@ Todas `security definer`, `stable`, `set search_path = ''`; usadas nas policies 
 | `private.papel_atual()` | `papel_usuario` | Papel do usuário logado; `null` se inativo / empresa inativa. | 1 |
 | `private.is_super_admin()` | `boolean` | `true` se o usuário logado é `super_admin` ativo. | 1 |
 | `private.tem_permissao(chave text)` | `boolean` | `true` para `master_admin` (acesso total implícito); para `admin`/`user`, verifica se o perfil vinculado contém a permissão. `super_admin` → `false` em dados de tenant. | 5 |
-| `private.cnpj_valido(cnpj text)` | `boolean` | `immutable`; valida 14 dígitos + dígitos verificadores. Usada em `check`. | 1 |
+| `private.cnpj_valido(cnpj text)` | `boolean` | `immutable`, `strict`; valida o CNPJ **numérico ou alfanumérico** (Receita, a partir de jul/2026): 12 caracteres `[0-9A-Z]` + 2 dígitos verificadores, sem máscara e em maiúsculas; cada caractere vale o código ASCII − 48, verificadores pelo módulo 11; recusa sequência repetida. Nulo devolve nulo. Usada em `check`; ninguém além do dono executa. | 1 |
 | `private.set_updated_at()` | trigger | Atualiza `updated_at`. | 1 |
 | `private.registrar_auditoria()` | trigger | Grava em `eventos_auditoria` as alterações de tabelas **escritas pelo cliente** (sob RLS), com ator = `auth.uid()` e tenant = tenant da linha. Roda como `security definer`, sem o cliente precisar de permissão de escrita em `eventos_auditoria`. Usado em `perfis_acesso` (Fase 5) e na estrutura organizacional (Fase 6). | 5 |
 
@@ -136,7 +136,7 @@ O `id` desta tabela **é** o `tenant_id` de todo o sistema. Não tem coluna `ten
 | `id` | `uuid` | PK — é o `tenant_id` | 1 |
 | `razao_social` | `text` | `not null` | 1 |
 | `nome_fantasia` | `text` | opcional; exibido na UI quando preenchido | 1 |
-| `cnpj` | `text` | `not null`, **`unique`**, só dígitos (`^\d{14}$`), `check (private.cnpj_valido(cnpj))`. Atributo de identidade/exibição — **nunca** join nem filtro de segurança. | 1 |
+| `cnpj` | `text` | `not null`, **`unique`**, numérico ou alfanumérico, sem máscara e em maiúsculas (12 caracteres `[0-9A-Z]` + 2 dígitos), `check (private.cnpj_valido(cnpj))` — a função cobre o formato e os verificadores. Atributo de identidade/exibição — **nunca** join nem filtro de segurança. | 1 |
 | `ativo` | `boolean` | `not null default true`. `false` = CNPJ bloqueado → todos os usuários da empresa caem no gate "acesso suspenso". | 1 |
 | `bloqueada_em` | `timestamptz` | preenchido ao bloquear; limpo ao desbloquear | 1 |
 | `motivo_bloqueio` | `text` | opcional; visível só no Admin SaaS | 1 |
@@ -346,7 +346,7 @@ Uma linha **por destinatário** (fan-out na criação — volume baixo, 5–100 
 | `id`, `tenant_id` | `uuid` | padrão |
 | `razao_social` | `text` | `not null` |
 | `nome_fantasia` | `text` | opcional |
-| `cnpj` | `text` | só dígitos + `private.cnpj_valido`; `unique (tenant_id, cnpj)` — atributo, não chave de segurança |
+| `cnpj` | `text` | numérico ou alfanumérico, sem máscara e em maiúsculas, `check (private.cnpj_valido(cnpj))`; `unique (tenant_id, cnpj)` — atributo, não chave de segurança |
 | `ativo` | `boolean` | padrão |
 
 `🔄` Contatos, endereço, RNTRC/ANTT, dados bancários.
@@ -446,5 +446,6 @@ Toda leitura de tenant passa por `private.tenant_atual()` → usuário inativo o
 - Postgres **17.11** nos dois (mesma major) → PK com `gen_random_uuid()`; `uuidv7()` só quando os dois estiverem em PG 18+.
 - Extensões iguais nos dois: `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`. O pgTAP (1.3.3 disponível) só existe durante os testes.
 - Privilégios padrão iguais nos dois: tabela, sequência e função nova em `public` nasce com grant para `anon` e `authenticated`. Por isso toda migration revoga de `anon` e concede o mínimo (`supabase/CLAUDE.md §5`); o teste guardião acusa o que escapar.
+- Schema criado pelas migrations (como o `private`, Fase 1) não tem privilégio padrão no projeto (conferido no dev em 14/11/2026): vale o do Postgres, em que toda função nova nasce com `execute` para `PUBLIC` — e, por herança, para `anon` e `authenticated`. A migration revoga e concede só o necessário.
 - O dev nasceu com a RLS automática (event trigger `ensure_rls` + `public.rls_auto_enable()`); a produção, não. Removida pela migration `f00_remove_rls_automatica`: a RLS é sempre explícita na migration da tabela, igual nos dois projetos.
 - Chaves de API: as duas famílias nasceram ativas nos dois projetos. O Maxis usa só as novas (`sb_publishable_…` / `sb_secret_…`); as legadas ficam desativadas (pendência #3).
