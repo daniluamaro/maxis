@@ -4,7 +4,7 @@ type Handler = (req: Request) => Promise<Response>;
 
 /** Origens do app (`supabase/CLAUDE.md §8`): o domínio de produção e o Vite de desenvolvimento. */
 const ORIGENS_PERMITIDAS: readonly string[] = [
-  'https://maxis.performargestao.com.br',
+  'https://maxis.vemperformar.com.br',
   'http://localhost:5173',
 ];
 
