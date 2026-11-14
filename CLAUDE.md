@@ -13,7 +13,7 @@ Maxis é um **SaaS multi-tenant por assinatura** para empresas de transporte, lo
 **Padrão de qualidade (severo):** é produto pago, não protótipo. Se uma tela parecer template genérico, admin do Bootstrap ou demo de faculdade, **está reprovada**. Visual premium e profissional em toda tela.
 
 - Domínio: `maxis.performargestao.com.br` · Publicação: GitHub Pages (estático).
-- Supabase **só online**, em dois projetos: **`maxis` = desenvolvimento** (já criado) e **produção** separada em São Paulo (`sa-east-1`). Plano Pro na conclusão do SaaS. Nenhum ambiente Supabase local.
+- Supabase **só online**, em dois projetos: **`maxis` = desenvolvimento** (já criado) e **produção** separada em São Paulo (`sa-east-1`). Plano Pro desde nov/2026, nos dois projetos. Nenhum ambiente Supabase local.
 
 ---
 
