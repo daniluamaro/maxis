@@ -130,9 +130,10 @@ jobs:
           fi
 
       # O config.toml descreve os dois projetos (o bloco [remotes.dev] ajusta o dev). Uma mudança
-      # feita pela própria plataforma (plano, add-on, padrão novo) aparece aqui, no PR, antes de o
-      # deploy-backend parar no `config push` da produção. Só lê; as credenciais vêm mascaradas
-      # pela API. Com `--exit-code`, diferença sai 2 e erro do CLI sai 1.
+      # feita pela própria plataforma no dev (como a do plano Pro, que mudou os dois projetos)
+      # aparece aqui, no PR. A produção não é comparada: o token dela não chega aos PRs, e uma
+      # mudança só nela continua aparecendo no `config push` do deploy-backend. Só lê; as
+      # credenciais vêm mascaradas pela API. Com `--exit-code`, diferença sai 2 e erro do CLI, 1.
       - name: Repositório e dev com a mesma configuração
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -141,6 +142,8 @@ jobs:
           npx --no supabase config diff --remote="$REF_DEV" --exit-code || status=$?
           if [ "$status" -eq 2 ]; then
             echo "::error::config.toml diferente da configuração do projeto de dev"
+          elif [ "$status" -ne 0 ]; then
+            echo "::error::Falha ao ler a configuração do projeto de dev (permissão do token ou erro do CLI, no log acima)"
           fi
           exit "$status"
 
