@@ -372,7 +372,30 @@ Logs das duas tentativas sem segredo.
 
 **Decisões do Danilo:**
 - alinhar o `config.toml` ao Pro: os dois recursos ligados, sem uso, e o token de produção segue sem escrita no Storage;
-- corrigir num PR curto, que fecha o deploy do 0.12 antes de abrir o 0.13. |
+- corrigir num PR curto, que fecha o deploy do 0.12 antes de abrir o 0.13.
+
+**Correção:**
+- `[storage.analytics]` com `enabled = true` e `max_namespaces = 10`;
+- `[storage.image_transformation]` declarado com `enabled = true`.
+
+Ao ligar o analytics, o CLI passou a comparar também os limites dele, e o `max_namespaces` (5 no modelo do CLI) apareceu como diferença.
+
+**Verificado:**
+- `config diff --remote=<ref> --exit-code` sem diferença nos dois projetos (produção pela base; dev pelo `[remotes.dev]`);
+- na produção, pela API de gestão: `vectorBuckets` desligado com 10/5, iguais ao arquivo; os limites dele ficam fora da comparação só porque o recurso está desligado.
+
+**Code-review (medium), 6 achados.**
+
+Corrigidos:
+- o risco do `config push` só previa mudança de Auth no arquivo; agora inclui a mudança feita pela própria plataforma;
+- o risco da pausa dizia 7 dias, e a produção pausou com 5.
+
+Refutados pela conferência acima:
+- `config diff` não registrado;
+- `storage.vector` possivelmente divergente;
+- "como nos dois projetos" sem prova.
+
+**Proposta para o Danilo:** o job `banco` rodar `config diff --remote=<dev> --exit-code`, como já faz com as migrations (repositório e dev alinhados). Uma mudança da plataforma apareceria no PR, antes de qualquer `db push` na produção. Exige dar ao token do dev a leitura de configuração que o `config push` usa (Add-ons, Database Config, SSL Enforcement, Network Restrictions, Auth Config, Data API Config, Realtime Config, Storage Config). Sugestão: entrar no 0.13, se aprovado. |
 
 ---
 
