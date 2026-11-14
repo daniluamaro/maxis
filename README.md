@@ -14,4 +14,25 @@ SaaS multi-tenant por assinatura para empresas de transporte, logística e suppl
 | Convenções do frontend | [frontend/CLAUDE.md](frontend/CLAUDE.md) |
 | Convenções do backend (Supabase) | [supabase/CLAUDE.md](supabase/CLAUDE.md) |
 
-Os comandos de desenvolvimento entram aqui ao final da Fase 0.
+## Desenvolvimento
+
+Requisitos: Node 24 (`.nvmrc`; `nvm use`) e, para as Edge Functions, Deno 2.9.8. Não há Supabase local: o projeto usa dois projetos online (desenvolvimento e produção), e o Supabase CLI vem como dependência do repositório.
+
+```bash
+npm ci          # instalação limpa
+npm run dev     # http://localhost:5173
+npm run build   # build de produção em frontend/dist/
+```
+
+Portões, os mesmos do CI, verdes antes de todo commit:
+
+```bash
+npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
+cd supabase/functions && deno fmt --check && deno lint && deno check && deno test
+```
+
+Todos os comandos: [frontend/CLAUDE.md §15](frontend/CLAUDE.md) e [supabase/CLAUDE.md §12](supabase/CLAUDE.md). Variáveis do frontend: [frontend/.env.example](frontend/.env.example).
+
+## Publicação
+
+A `main` só recebe mudança por pull request, com os checks `frontend`, `banco` e `edge-functions` verdes. Cada merge passa pelo [pipeline](.github/workflows/pipeline.yml), que publica o backend em produção e, depois dele, o frontend em https://maxis.vemperformar.com.br.
