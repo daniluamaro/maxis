@@ -14,13 +14,13 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - build, lint, tipos e testes nas três camadas (frontend, banco, Edge Functions);
 - dois projetos Supabase online — desenvolvimento (`maxis`) e produção (São Paulo) — operados pelo MCP e pelo CLI remoto, sem nada local;
 - tema visual (tokens, fontes, shadcn, ECharts) aplicado e conferível numa página de referência;
-- pipeline que valida todo PR e, no merge, publica backend e frontend **em ordem** em `https://maxis.performargestao.com.br`, com a publicação do frontend pronta para migrar para a Vercel.
+- pipeline que valida todo PR e, no merge, publica backend e frontend **em ordem** em `https://maxis.vemperformar.com.br`, com a publicação do frontend pronta para migrar para a Vercel.
 
 ## 2. Pré-requisitos (antes do STEP 0.1)
 
 - [x] **Governança aplicada no `CLAUDE.md` raiz** (autorização do Danilo): pendências #1 (Node 24, §2), #2 (MCPs via OAuth, §8) e #4 (tokens, §7) — ver `project_manager.md`.
 - [x] **MCPs autorizados** via `/mcp`: Supabase e Context7.
-- [ ] 📋 Danilo com acesso a: conta GitHub, DNS de `performargestao.com.br`, Dashboard dos projetos Supabase (dev `maxis` e produção).
+- [ ] 📋 Danilo com acesso a: conta GitHub, DNS de `vemperformar.com.br`, Dashboard dos projetos Supabase (dev `maxis` e produção).
 
 ## 3. Decisões desta fase
 
@@ -171,7 +171,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
   - `Cache-Control: no-store` em toda resposta (a senha provisória volta uma única vez).
 
   `cors.ts`, com `comCors(handler)`:
-  - Origem por igualdade exata com `https://maxis.performargestao.com.br` e `http://localhost:5173`. Fora da lista: 403 `origem_nao_permitida`, antes do handler.
+  - Origem por igualdade exata com `https://maxis.vemperformar.com.br` e `http://localhost:5173`. Fora da lista: 403 `origem_nao_permitida`, antes do handler.
   - Preflight: 204 com os cabeçalhos do supabase-js 2.119.0, só `POST, OPTIONS`, `Max-Age` 7200.
   - Outro método: 405 com `Allow`.
   - Sem `Origin` (servidor a servidor): passa, sem cabeçalhos CORS.
@@ -219,13 +219,13 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.13 — Domínio, HTTPS e fallback SPA
 **Entrega:** produto no ar no domínio oficial.
-- [ ] Pages com origem "GitHub Actions"; domínio `maxis.performargestao.com.br`; HTTPS forçado
+- [ ] Pages com origem "GitHub Actions"; domínio `maxis.vemperformar.com.br`; HTTPS forçado
 - [ ] 📋 Danilo: registro `CNAME maxis → <conta>.github.io` no DNS; **verificação do domínio** na conta GitHub (evita sequestro de subdomínio)
 - [ ] Com deploy via Actions, o arquivo `CNAME` é dispensado — confirmar na documentação do GitHub ao executar
 - [ ] Vite com `base: '/'`
 - [ ] Portabilidade (decisão #12): nada no app depende do Pages — trocar para a Vercel mexe só no job `deploy-frontend` e no DNS
 
-**Verificação:** `https://maxis.performargestao.com.br` abre a página de abertura com certificado válido; deep link e refresh em `/qualquer/rota` mostram a 404 da SPA (não a do GitHub).
+**Verificação:** `https://maxis.vemperformar.com.br` abre a página de abertura com certificado válido; deep link e refresh em `/qualquer/rota` mostram a 404 da SPA (não a do GitHub).
 
 ### STEP 0.14 — Proteção da `main`, comandos reais e fechamento
 **Entrega:** fase fechada com o repositório protegido e a documentação com dados reais.
@@ -239,7 +239,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ## 5. Critérios de aceite da fase
 
-1. Merge na `main` → pipeline verde → site publicado em `https://maxis.performargestao.com.br` com HTTPS.
+1. Merge na `main` → pipeline verde → site publicado em `https://maxis.vemperformar.com.br` com HTTPS.
 2. Deep link e refresh em rota inexistente servem a SPA (404 com a marca), não a 404 do GitHub.
 3. Lint, format, tipos, testes e build do frontend sem erro e sem aviso; `any` barrado pelo lint.
 4. `tokens.css` é a única fonte de cor/sombra/raio/fonte; paleta padrão do Tailwind indisponível; ECharts sem cores default; página de referência fiel ao mockup (dual-tone, ouro como marca, mono em números).
