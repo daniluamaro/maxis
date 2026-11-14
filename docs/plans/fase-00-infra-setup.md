@@ -211,6 +211,12 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 *Merge: só a `main` alcança o `production`, então o deploy é provado no primeiro push na `main`, conferido e registrado no log logo depois. Esse primeiro deploy não é no-op: aplica em produção a `f00_remove_rls_automatica`, que lá não muda nada (dois `if exists`).)*
 
+*Merge, feito em 14/11/2026, depois das duas falhas do primeiro deploy e da correção do PR #13 (log de 14/11/2026):*
+- *run 43589739056 (commit `f98778e`) com os 6 jobs verdes, na ordem: o deploy-frontend começou 4s depois do fim do deploy-backend;*
+- *`db push` sem nada a aplicar (a `f00_remove_rls_automatica` entrou na 2ª tentativa) e `list_migrations` da produção só com ela; `config push` com API, banco, Auth e Storage sem diferença; Edge Functions puladas com aviso;*
+- *Pages publicado em `daniluamaro.github.io/maxis/` (HTTP 200, `<title>Maxis</title>`, em branco pelo `base: '/'` até o domínio do 0.13);*
+- *log público sem segredo.)*
+
 ### STEP 0.13 — Domínio, HTTPS e fallback SPA
 **Entrega:** produto no ar no domínio oficial.
 - [ ] Pages com origem "GitHub Actions"; domínio `maxis.performargestao.com.br`; HTTPS forçado
@@ -285,7 +291,7 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 - **JWT de usuário assinado com ES256:** o `@supabase/server` recusa JWT HS256 legado (exige `kid`). Os dois projetos publicam uma chave ES256 no JWKS, mas uma chave de reserva também apareceria ali. Conferir que é a chave atual antes da primeira função (Fase 1): 📋 no Dashboard (JWT Keys) ou pelo cabeçalho do primeiro token emitido. ✅ **Resolvido em 08/11/2026:** o Danilo conferiu no Dashboard que a chave atual é a ECC P-256 nos dois projetos.
 - **Cabeçalhos do CORS copiados à mão:** a lista do `comCors` é a do supabase-js 2.119.0. Um cabeçalho novo do cliente derruba o preflight no navegador, e o teste, também copiado à mão, não percebe. Mitigação: na Fase 1, com o supabase-js entrando pelo SDK, a lista passa a vir do `corsHeaders` do pacote fixado; na Fase 2, o frontend fica na mesma versão.
 - **`deno-lint-ignore` não é barrado:** o `deno lint` não tem equivalente ao `noInlineConfig` do ESLint. Mitigação: code-review; proposta para o 0.12, o job `edge-functions` falhar se aparecer `deno-lint-ignore`, `@ts-ignore` ou `@ts-nocheck` em `supabase/functions/`. ✅ **Resolvido no STEP 0.12:** o job `edge-functions` falha antes dos quatro portões (provado no PR #12).
-- **`npm audit` de desenvolvimento:** 12 alertas moderados (eram 15 no STEP 0.4) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`. *(STEP 0.12, decisão do Danilo: produção barra qualquer alerta; todas as dependências barram alto ou crítico — os moderados passam. Um alerta novo pode deixar o CI vermelho sem mudança de código, de propósito: tratar é decidir num PR.)*
+- **`npm audit` de desenvolvimento:** 11 alertas moderados (eram 15 no STEP 0.4 e 12 no 0.12) do `minimatch` < 11.0.1 (DoS por glob), via ESLint/typescript-eslint/jsx-a11y, sem correção compatível. Risco aceito: só ferramenta de desenvolvimento, com globs da própria configuração. Dependências de produção: 0 alertas. Um portão de auditoria no CI usa `npm audit --omit=dev`. *(STEP 0.12, decisão do Danilo: produção barra qualquer alerta; todas as dependências barram alto ou crítico — os moderados passam. Um alerta novo pode deixar o CI vermelho sem mudança de código, de propósito: tratar é decidir num PR.)*
 - **Instalação lenta no CI:** o `npm ci` leva ~58s por job mesmo com o cache restaurado (188 MB), mais da metade do job `frontend`; o binário do Supabase CLI (dependência opcional `@supabase/cli-linux-x64`, ~140 MB) é cerca de um quarto do `node_modules`. Mantido: um só lockfile e a mesma versão do CLI em todo lugar. Rever se o tempo de PR incomodar.
 - **Supabase CLI fixado em 3.0.0:** o próprio CLI avisa no CI que a 3.1.0 saiu. Atualizar é decisão à parte, com o `--help` de cada comando do pipeline conferido de novo (a linha 3 já mudou, em relação à 2, o `--yes` em projeto hospedado e o alvo `--remote`).
 
