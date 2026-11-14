@@ -15,8 +15,8 @@
 
 ## Progresso geral
 
-**Fundação:** `░░░░░░░░░░` 0% · 0 de 9 fases concluídas
-**Fase ativa:** Fase 0 — Infraestrutura & Setup (🔄 em andamento — STEPs 0.1–0.13 ✅; próximo: 0.14)
+**Fundação:** `█░░░░░░░░░` 11% · 1 de 9 fases concluídas
+**Fase ativa:** Fase 1 — Dados base & Segurança multi-tenant (⬜ a abrir, com aprovação do Danilo, depois da revisão do plano para o dev online). Fase 0 ✅ em 14/11/2026.
 
 ---
 
@@ -26,7 +26,7 @@
 
 | Fase | Objetivo | Plano | Status |
 |---|---|---|---|
-| **0 — Infra & Setup** | Repositório git + GitHub, monorepo (`frontend/`, `supabase/`), Node 24 LTS fixado, Vite+React+TS strict, Tailwind+shadcn com os design tokens e fontes, ESLint/Prettier/Vitest, Supabase online (dev `maxis` + produção em São Paulo) via MCP e CLI remoto, Deno, `.mcp.json` com escrita só no dev, CI GitHub Actions (lint, tipos, testes, build) → Pages (portável para Vercel) + domínio + `404.html`, tema base do ECharts. Sem lógica de negócio. | `docs/plans/fase-00-infra-setup.md` | 🔄 |
+| **0 — Infra & Setup** | Repositório git + GitHub, monorepo (`frontend/`, `supabase/`), Node 24 LTS fixado, Vite+React+TS strict, Tailwind+shadcn com os design tokens e fontes, ESLint/Prettier/Vitest, Supabase online (dev `maxis` + produção em São Paulo) via MCP e CLI remoto, Deno, `.mcp.json` com escrita só no dev, CI GitHub Actions (lint, tipos, testes, build) → Pages (portável para Vercel) + domínio + `404.html`, tema base do ECharts. Sem lógica de negócio. | `docs/plans/fase-00-infra-setup.md` | ✅ |
 | **1 — Dados base & Segurança multi-tenant** | Schema base (`empresas`, `profiles`, papéis), funções auxiliares de tenant/papel do usuário logado, **RLS por `tenant_id`**, Auth (cadastro público off, Site URL/Redirect), Edge Function de provisionamento base (`service_role`, `email_confirm:true`, senha provisória), RPC de troca da própria senha, bootstrap do primeiro `super_admin`. TDD com testes de isolamento entre tenants. | `docs/plans/fase-01-dados-seguranca.md` | ⬜ |
 | **2 — Login & Ciclo de sessão** | Login minimalista, troca obrigatória de senha no 1º acesso (`senha_provisoria`), gate "acesso suspenso" (usuário ou empresa inativos), tela de alerta "sem perfil", guarda de rota autenticada, idle-timer 8h. | `docs/plans/fase-02-login-sessao.md` | ⬜ |
 | **3 — App Shell & Navegação** | Layout dual-tone, componentes reutilizáveis (`Sidebar`, `SidebarModule`, `SidebarItem`, `Breadcrumb`, `PageHeader`, `TabLayout`, `Tab`, `Workspace`), navegação dirigida por config + rotas por segmento + abas com deep-link, estados skeleton/vazio/erro, 404 estilizada, Home de boas-vindas, menu do usuário (trocar senha, sair), módulos do backlog como "em breve", hook de permissões placeholder. | `docs/plans/fase-03-app-shell.md` | ⬜ |
@@ -64,33 +64,15 @@
 
 ---
 
-## Fase ativa — Fase 0: Infraestrutura & Setup
+## Fase ativa — Fase 1: Dados base & Segurança multi-tenant
 
-**Status:** 🔄 Em andamento (STEPs 0.1–0.13 ✅ · próximo: 0.14)
-**Objetivo:** deixar o repositório pronto para desenvolvimento — build, lint, testes, CI/CD, Supabase local e tema visual — sem nenhuma lógica de negócio.
+**Status:** ⬜ A abrir — com aprovação do Danilo, depois da revisão do plano para o projeto de dev online (pendência #10; ver "Revisão pendente" no roadmap).
+**Objetivo:** construir e provar por testes a fundação de segurança multi-tenant (schema base, RLS por `tenant_id`, provisionamento por Edge Function, troca da própria senha, primeiro `super_admin`), antes de qualquer tela depender dela.
 
-**Plano:** `docs/plans/fase-00-infra-setup.md` (14 STEPs). Pendências #1, #2 e #4 já aplicadas. MCPs Supabase e Context7 autorizados e verificados em 02/11/2026 (pré-requisito do plano, §2). Plano revisado em 03/11/2026: decisões #5 (TypeScript 6.0.x), #11 (Supabase só online, dev + produção) e #12 (hospedagem portátil para Vercel).
+**Plano:** `docs/plans/fase-01-dados-seguranca.md`. Os entregáveis (§9 do plano) são espelhados aqui na abertura da fase.
 
-**Entregáveis** *(espelho da §9 do plano)*
-
-| # | Entregável | STEP | Status |
-|---|---|---|---|
-| 1 | Ferramentas locais (Node 24, Deno, gh, CLI logado) | 0.1 | ✅ |
-| 2 | Repositório público com governança versionada | 0.2 | ✅ |
-| 3 | Frontend Vite + React + TS strict, sem boilerplate | 0.3 | ✅ |
-| 4 | Lint, formatação e testes do frontend | 0.4 | ✅ |
-| 5 | Tokens, Tailwind e tipografia (fonte única) | 0.5 | ✅ |
-| 6 | shadcn/ui no tema | 0.6 | ✅ |
-| 7 | Formatadores pt-BR com testes | 0.7 | ✅ |
-| 8 | Tema ECharts e wrapper | 0.8 | ✅ |
-| 9 | Rotas mínimas, abertura, referência do tema e 404 | 0.9 | ✅ |
-| 10 | Projetos Supabase online (dev + produção), MCP por projeto, teste guardião | 0.10 | ✅ |
-| 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
-| 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ✅ |
-| 13 | Domínio com HTTPS e fallback SPA | 0.13 | ✅ |
-| 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
-
-**Critérios de aceite:** §5 do plano da fase.
+**Fases concluídas:**
+- **Fase 0 — Infraestrutura & Setup** ✅ 14/11/2026: 14 de 14 entregáveis (§9 de `docs/plans/fase-00-infra-setup.md`) e os 11 critérios de aceite conferidos (§5 do plano).
 
 ---
 
@@ -508,6 +490,56 @@ Fora do commit: `.claude/`. Próximo: STEP 0.14, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 14/11/2026 | **STEP 0.14 ✅ e Fase 0 ✅** (branch `chore/step-0.14-fechamento`, PR). Fase 0 fechada com os 14 entregáveis e os 11 critérios de aceite conferidos (conferência na §5 do plano). Fase ativa → **Fase 1**, a abrir com aprovação do Danilo, depois da revisão do plano para o dev online.
+
+**Decisões do Danilo:**
+- ruleset com o do plano mais merge só com rebase e a `main` não pode ser apagada;
+- comandos reais nos três `CLAUDE.md` como propostos;
+- pendências **#13** e **#14** aplicadas neste PR;
+- **§11** do `CLAUDE.md` com a Fase 1 como próxima.
+
+**Ruleset `main`** (id 27265460), ativo na branch padrão, sem bypass (nem admin):
+- PR obrigatório, com 0 aprovações (o Danilo é o único revisor) e merge só com rebase;
+- checks `frontend`, `banco` e `edge-functions` obrigatórios, presos ao app `github-actions` (15368);
+- sem force-push e sem apagar a `main`.
+
+O GitHub preencheu `require_extra_approval_for_unattributed_changes: true`. Mantido: só vale para PR aberto pelo Copilot sem pessoa associada e não tem efeito com 0 aprovações (documentação conferida).
+
+**Segredos:**
+- `gitleaks` 8.30.1 (release conferido pelo checksum e pelo digest do GitHub) em todas as refs, inclusive as dos 14 PRs, 169 commits: nada;
+- busca própria em todo o histórico (chave secreta e publishable do Supabase, token `sbp_`, JWT, URL do Postgres com senha, chave privada, token do GitHub): só a sonda fictícia `sb_secret_PROVAPROVA` do PR #12, fechado sem merge, fora da `main`;
+- logs de todos os runs do Actions (16 logs, 17.845 linhas; o run do PR #12 job a job, porque as sondas recusadas não têm log): nenhum segredo, com 166 linhas mascaradas (`***`). Só aparece a chave **publishable**, pública por desenho (vem de uma *variable* e vai no JavaScript publicado).
+
+**Comandos reais** (autorização do Danilo):
+- `frontend/CLAUDE.md §15`: scripts npm da raiz e os cinco portões;
+- `supabase/CLAUDE.md §12`: CLI com `--remote`, refs apontados para as fontes, e os quatro portões do Deno;
+- uma linha de portões no §9 do raiz;
+- os cabeçalhos "comandos ao final da Fase 0" apontam para as seções.
+
+Também o `README.md`: requisitos, instalação, `dev`, `build`, portões e a regra de publicação. Cada comando documentado rodou como escrito: instalação com `--ignore-scripts`, `dev` e `preview` com 200, o bloco de portões do README, `migration list`, `config diff` e `db push --dry-run --yes` no dev.
+
+**Verificado:**
+- push de um commit-sonda direto na `main` recusado (`GH013`: PR obrigatório e 3 checks esperados);
+- force-push para um commit anterior recusado também com "Cannot force-push to this branch"; a `main` seguiu em `68d3f5e`;
+- critérios de aceite refeitos onde cabia: sonda com `any` barrada pelo lint; sonda de paleta no build (`bg-blue-500`, `text-white`, `shadow-lg`, `font-serif` sem CSS; `bg-bg-panel` com); Postgres 17.11 nos dois projetos pelo MCP; `config diff` sem diferença nos dois; o MCP da produção como `supabase_read_only_user` em transação somente leitura;
+- cinco portões (178 testes) e quatro do Deno (14) verdes.
+
+**Code-review (medium), 10 achados.**
+
+Corrigidos (9, todos no texto novo dos comandos):
+- "os mesmos do CI" prometia demais: o CI também roda a auditoria e as varreduras de chave secreta e de supressão;
+- instalação com `--ignore-scripts`, como no CI. **Desvio da proposta autorizada**, que dizia `npm ci`;
+- Node 24.15 ou mais novo, não qualquer 24 (`devEngines`);
+- `config push` só com `<dev>`: a produção recebe pelo pipeline;
+- `db push` de reserva com `--yes`;
+- `test db` é o comando do CI (Docker no runner); no trabalho local, os testes rodam pelo MCP (o raiz diz "nem Docker");
+- refs dos projetos apontados para as fontes (`config.toml` e pipeline), não copiados;
+- portões "antes de todo commit" nos três documentos (o `supabase/CLAUDE.md` restringia aos commits em `supabase/functions/`);
+- bloco do README sem trocar o diretório do terminal.
+
+Feito neste commit: o checklist do plano e o log.
+
+Fora do commit: `.claude/`. Próximo: abertura da Fase 1, aguardando aprovação. |
 
 ---
 

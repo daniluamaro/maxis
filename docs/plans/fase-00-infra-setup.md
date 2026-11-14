@@ -4,7 +4,7 @@
 > Convenções: `@CLAUDE.md`, `@frontend/CLAUDE.md`, `@supabase/CLAUDE.md`.
 > **Sem lógica de negócio.** TDD não é exigido nesta fase (`CLAUDE.md §9`), mas toda entrega tem verificação objetiva.
 
-**Status:** 🔄 Em andamento · **Depende de:** — · **Libera:** Fase 1
+**Status:** ✅ Concluída (14/11/2026) · **Depende de:** — · **Libera:** Fase 1
 
 ---
 
@@ -237,13 +237,17 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 
 ### STEP 0.14 — Proteção da `main`, comandos reais e fechamento
 **Entrega:** fase fechada com o repositório protegido e a documentação com dados reais.
-- [ ] Ruleset da `main`: PR obrigatório, checks `frontend`/`banco`/`edge-functions` obrigatórios, sem force-push
-- [ ] Busca de segredos no histórico do git (nenhuma chave, token ou senha)
-- [ ] **Sob autorização do Danilo** (`CLAUDE.md §10`): preencher os comandos reais no `CLAUDE.md` raiz, `frontend/CLAUDE.md` e `supabase/CLAUDE.md`
-- [ ] `README.md` com os comandos de desenvolvimento
-- [ ] `project_manager.md`: entregáveis ✅, Fase 0 ✅ no roadmap, barra de progresso, log; fase ativa → Fase 1
+- [x] Ruleset da `main`: PR obrigatório, checks `frontend`/`banco`/`edge-functions` obrigatórios, sem force-push — ruleset `main` (id 27265460), ativo na branch padrão, **sem bypass** (nem admin). Também, por decisão do Danilo: merge só com rebase e a `main` não pode ser apagada. PR com 0 aprovações (ele é o único revisor). Checks presos ao app `github-actions` (15368): outro app não satisfaz o check com um status de mesmo nome. Sem "branch atualizada antes do merge". O padrão `require_extra_approval_for_unattributed_changes` ficou: só vale para PR aberto pelo Copilot e não tem efeito com 0 aprovações (documentação do GitHub)
+- [x] Busca de segredos no histórico do git (nenhuma chave, token ou senha) — `gitleaks` 8.30.1 (release conferido por checksum) em todas as refs, inclusive as dos 14 PRs (169 commits): nada. Busca própria pelos formatos do Supabase e afins: só a sonda fictícia `sb_secret_PROVAPROVA` do PR #12, fechado sem merge. Logs do Actions (16 logs, todos os runs): nenhum segredo; só a chave publishable, pública por desenho
+- [x] **Sob autorização do Danilo** (`CLAUDE.md §10`): preencher os comandos reais no `CLAUDE.md` raiz, `frontend/CLAUDE.md` e `supabase/CLAUDE.md` — `frontend/CLAUDE.md §15` (scripts npm da raiz e os cinco portões), `supabase/CLAUDE.md §12` (CLI com `--remote` e os quatro portões do Deno) e uma linha de portões no §9 do raiz, apontando para as duas. No mesmo STEP, as pendências **#13** e **#14** (`frontend/CLAUDE.md §6/§2`) e o **§11** do raiz (Fase 1 como próxima)
+- [x] `README.md` com os comandos de desenvolvimento — requisitos, instalação com `--ignore-scripts` (como no CI), `dev`, `build`, as duas linhas de portões e a regra de publicação
+- [x] `project_manager.md`: entregáveis ✅, Fase 0 ✅ no roadmap, barra de progresso, log; fase ativa → Fase 1
 
-**Verificação:** push direto na `main` é recusado; todos os critérios de aceite (§5) conferidos.
+**Verificação:** push direto na `main` é recusado; todos os critérios de aceite (§5) conferidos. *(Feito em 14/11/2026:*
+- *push de um commit-sonda direto na `main`: recusado com `GH013` ("Changes must be made through a pull request", "3 of 3 required status checks are expected");*
+- *force-push para um commit anterior: recusado também com "Cannot force-push to this branch"; a `main` seguiu em `68d3f5e` nas duas tentativas;*
+- *cada comando documentado rodou como escrito: `npm ci --ignore-scripts`, `dev` (5173) e `preview` (4173) com 200, o bloco de portões do README (o terminal termina na raiz), `migration list`, `config diff` e `db push --dry-run --yes` no dev;*
+- *critérios de aceite: conferência abaixo da §5.)*
 
 ## 5. Critérios de aceite da fase
 
@@ -258,6 +262,19 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 9. `.mcp.json` com Supabase MCP restrito por projeto: escrita só no dev, produção somente leitura.
 10. Pendências de governança #1–#4, #10 e #11 resolvidas e refletidas nos `CLAUDE.md`.
 11. Publicação do frontend isolada no job `deploy-frontend`, pronta para migrar para a Vercel.
+
+**Conferência (14/11/2026, STEP 0.14):**
+1. Merge do PR #14 → run 43603581960 com os 6 jobs verdes, em ordem → site no domínio com certificado válido (Let's Encrypt, até 12/02/2027) e HTTPS forçado.
+2. No Chromium, `/qualquer/rota` e `/configuracoes/usuarios/lista` mostram a 404 da SPA com a marca (status HTTP 404 do fallback do Pages; risco na §8).
+3. Os cinco portões verdes e sem aviso (178 testes); uma sonda com `any` é barrada pelo lint (`no-explicit-any`, erro).
+4. Sonda no build: `bg-blue-500`, `text-white`, `shadow-lg` e `font-serif` não geram CSS, e `bg-bg-panel` gera. Cor literal fora do `tokens.css` só como valor esperado em testes. O tema do ECharts é conferido contra o `tokens.css` pelos testes do STEP 0.8; a página de referência, no STEP 0.9.
+5. Dev e produção respondem pelo MCP, os dois no Postgres **17.11**. Guardião pgTAP 14/14 no CI. `config.toml` com cadastro público desligado e `site_url` no domínio; `config diff` sem diferença nos dois.
+6. Os quatro portões do Deno verdes, também com cache vazio (14 testes).
+7. Ruleset ativo; push direto e force-push recusados.
+8. `gitleaks` e busca própria em todo o histórico, e os logs de todos os runs: nenhum segredo.
+9. `.mcp.json`: `supabase-dev` com escrita só no `maxis`; `supabase-prod` com `read_only=true`, que roda como `supabase_read_only_user` em transação somente leitura (conferido de novo).
+10. Pendências #1–#4, #10 e #11 ✅ na tabela do `project_manager.md`.
+11. O específico do Pages (`404.html`, publicação, `pages`/`id-token`) fica só no job `deploy-frontend`. O domínio fica nas configurações do Pages, sem nada no app.
 
 ## 6. Modelagem de dados afetada
 
@@ -322,4 +339,4 @@ Deixar o repositório pronto para desenvolver com segurança e no padrão visual
 | 11 | Base Deno das Edge Functions com testes | 0.11 | ✅ |
 | 12 | Pipeline CI/CD com deploy em ordem | 0.12 | ✅ |
 | 13 | Domínio com HTTPS e fallback SPA | 0.13 | ✅ |
-| 14 | `main` protegida, comandos reais e fechamento | 0.14 | ⬜ |
+| 14 | `main` protegida, comandos reais e fechamento | 0.14 | ✅ |
