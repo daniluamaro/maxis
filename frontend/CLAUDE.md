@@ -1,7 +1,7 @@
 # frontend/CLAUDE.md — Convenções do frontend
 
 > Complementa `@CLAUDE.md` (em conflito, o raiz prevalece). Referência de convenções — **não** é runbook e não contém código.
-> Comandos reais (`dev`, `build`, `test`, `lint`) entram aqui ao final da Fase 0. Editar só com autorização explícita do Danilo (`CLAUDE.md §10`).
+> Comandos: §15. Editar só com autorização explícita do Danilo (`CLAUDE.md §10`).
 
 ---
 
@@ -136,3 +136,22 @@ frontend/src/
 - O que é da hospedagem fica **fora do app**, no passo de publicação: fallback SPA (`404.html` no Pages; rewrite para `index.html` na Vercel), domínio e cabeçalhos HTTP.
 - Configuração só por variáveis `VITE_*` em tempo de build — mesmos nomes em qualquer hospedagem.
 - Na migração para a Vercel, a publicação continua **dentro do pipeline**, depois do backend — nunca pelo deploy automático por Git da Vercel, que quebraria a ordem backend → frontend. O domínio continua o mesmo: Auth e CORS não mudam, só o DNS.
+
+## 15. Comandos
+
+Da **raiz** do repositório (workspace npm, lockfile único), com o Node da `.nvmrc` (`nvm use`). Fora do Node 24, os scripts recusam rodar (`devEngines`).
+
+| Comando | O que faz |
+|---|---|
+| `npm ci` | Instalação limpa, a partir do lockfile |
+| `npm run dev` | Vite em `http://localhost:5173` (porta fixa: é a do CORS e dos redirects do dev) |
+| `npm run build` | Checagem de tipos e build de produção em `frontend/dist/` |
+| `npm run typecheck` | Checagem de tipos |
+| `npm run lint` | ESLint; falha com qualquer aviso |
+| `npm run format:check` · `npm run format` | Prettier do repositório: confere · grava |
+| `npm test` | Vitest, uma execução |
+| `npm run test:watch --workspace frontend` | Vitest observando os arquivos |
+| `npm run preview --workspace frontend` | Serve o build em `http://localhost:4173` |
+
+- **Portões** (os mesmos do job `frontend` do CI): `lint`, `format:check`, `typecheck`, `test` e `build`, verdes e sem aviso antes de todo commit.
+- **Variáveis:** `frontend/.env.local` (fora do git), a partir do `frontend/.env.example`, com os valores do projeto de **dev** (§11).

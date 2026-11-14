@@ -2,7 +2,7 @@
 
 > Complementa `@CLAUDE.md` (em conflito, o raiz prevalece). Referência de convenções — **não** é runbook e não contém código.
 > O schema é desenhado em `@docs/plans/modelo-dados.md`; aqui fica **como** ele vira migration, policy, teste e Edge Function.
-> Comandos reais entram ao final da Fase 0. Editar só com autorização explícita do Danilo (`CLAUDE.md §10`).
+> Comandos: §12. Editar só com autorização explícita do Danilo (`CLAUDE.md §10`).
 
 ---
 
@@ -135,3 +135,27 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 - [ ] Testes pgTAP escritos antes e passando no dev
 - [ ] Advisors do dev sem alerta de segurança
 - [ ] Tipos do frontend regenerados
+
+## 12. Comandos
+
+**Supabase CLI:** o da devDependency da raiz (`npx supabase …`), sempre com o projeto explícito — `--remote=<ref>`, dev `ddaqbcfrplzdywpgilbf`, produção `ktcryodtgxpmgatihaic`. Mudança em projeto hospedado exige `--yes`. Toda escrita passa pela aprovação do Danilo; a produção recebe pelo pipeline (§2).
+
+| Comando | O que faz |
+|---|---|
+| `npx supabase migration list --remote=<dev>` | Migrations do repositório × dev (o CI barra diferença) |
+| `npx supabase test db --remote=<dev> --yes` | Testes pgTAP no dev, em transação, sem resíduo |
+| `npx supabase config diff --remote=<ref> --exit-code` | `config.toml` × projeto; só lê, e diferença sai 2 |
+| `npx supabase config push --remote=<ref> --yes` | Aplica o `config.toml` no projeto |
+| `npx supabase db push --remote=<dev> --skip-vault` | Reserva para aplicar migration no dev (§2), antes com `--dry-run` |
+
+**Edge Functions:** em `supabase/functions/`, com o Deno 2.9.8.
+
+| Comando | O que faz |
+|---|---|
+| `deno fmt --check` · `deno fmt` | Formatação: confere · grava |
+| `deno lint` | Lint |
+| `deno check` | Tipos |
+| `deno test` | Testes |
+
+- **Portões** (os mesmos do job `edge-functions` do CI): os quatro verdes antes de todo commit que toque `supabase/functions/`. O `deno.lock` é congelado: dependência nova só entra com `--frozen=false`, de propósito.
+- O job `banco` do CI roda o `migration list`, o `config diff` e o `test db` contra o dev.
