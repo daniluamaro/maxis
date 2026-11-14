@@ -486,6 +486,28 @@ Fora do commit: `.claude/`. Próximo: STEP 0.14, aguardando aprovação. |
 - os achados mantidos do code-review.
 
 **No merge:** o Auth da produção é aplicado à mão antes, e o deploy é acompanhado. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 0.14. |
+| 14/11/2026 | **Merge do PR #14 (STEP 0.13): Auth da produção, deploy e conferência pós-merge** (registrados na abertura do STEP 0.14, branch `chore/step-0.14-fechamento`).
+
+**Auth da produção à mão, antes do merge** (decisão do Danilo):
+- `config diff --remote=<produção>`: só `site_url` e `additional_redirect_urls`;
+- `config push` com o login do CLI e aprovação no prompt: só o Auth mudou (API, banco e Storage sem diferença);
+- `config diff` depois: sem diferença.
+
+**Merge com rebase** (commit `68d3f5e`) depois do CI verde no commit da aprovação (run 43603456886).
+
+**Deploy** (run 43603581960):
+- os 6 jobs verdes, na ordem: o deploy-frontend começou 4s depois do fim do deploy-backend;
+- `db push`: "Remote database is up to date";
+- `config push`: API, banco, **Auth** e Storage sem diferença. A primeira mudança de Auth do arquivo passou sem escrita no token;
+- Edge Functions puladas com aviso;
+- deployment do Pages com `environment_url` = `https://maxis.vemperformar.com.br/`. No ar, o build novo: `/` com 200 e rota inexistente com 404 (fallback);
+- log público sem segredo.
+
+**Pós-merge na `main`:**
+- `npm ci` limpo e os cinco portões verdes (178 testes);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
