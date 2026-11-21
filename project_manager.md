@@ -125,6 +125,7 @@
 | 22 | `CLAUDE.md §1` | "Plano Pro na conclusão do SaaS" → **plano Pro desde nov/2026**, nos dois projetos: assinado pelo Danilo depois da pausa da produção no 1º deploy (o plano free pausa projeto parado). | ✅ Aplicada em 14/11/2026 |
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
 | 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Aprovada (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
+| 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
 
 ---
 
@@ -702,6 +703,25 @@ Mantido: trocar o regex de repetição por `cnpj = '00000000000000'`. A migratio
 
 Fora do commit: `.claude/`. Próximo: STEP 1.2, aguardando aprovação. |
 | 14/11/2026 | Com autorização do Danilo, no PR do STEP 1.1: **§11 do `CLAUDE.md`** com a Fase 1 em andamento ("🔄 em andamento desde 14/11/2026", com o link do plano). |
+| 21/11/2026 | **Conexões do Auth em percentual** (achado dos advisors no STEP 1.1, tratado a pedido do Danilo).
+
+- O Auth dos dois projetos estava limitado a 10 conexões fixas (`auth_db_connections_absolute`, aviso informativo de performance, o único dos advisors). Com a alocação fixa, crescer a instância não aumenta o que o Auth pode usar.
+- O ajuste não tem chave no `config.toml`: o CLI 3.0.0 só conhece `db_max_pool_size`/`db_max_pool_size_unit` na API de gestão, sem mapeamento para o arquivo (conferido no binário). O pipeline não o aplica nem o compara.
+- Valor: **17% das conexões máximas**. Os dois projetos têm `max_connections` = 60 (lido pelo CLI, só leitura), então o orçamento segue em 10 conexões e passa a acompanhar a instância. É a conversão que o próprio Dashboard faz (o código da tela, no repositório da Supabase, arredonda para cima e recomenda o percentual). As conexões não ficam reservadas.
+- 📋 Danilo, no Dashboard (Authentication → Performance → Connection management), nos dois projetos: "Percent of max connections", 17%.
+- **Conferido** (`npx supabase db advisors --remote=<ref> --type all --level info`, só leitura): "No issues found" no dev e na produção.
+- Pendência **#25** para o `supabase/CLAUDE.md §10`: a exceção ao `config.toml` como fonte única do Auth. `modelo-dados.md §13` com o estado novo. |
+| 21/11/2026 | Danilo aprova o STEP 1.1 (PR #17).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes; no `banco`, o `pg_prove` rodou os 3 arquivos (70 asserções), PASS, e o `migration list` conferiu repositório e dev.
+
+**Desvio aceito:** os helpers de fixture (empresa, usuário) entram com as tabelas, no STEP 1.2.
+
+**Também aceitas:** as decisões 1–5 do STEP (helpers por `\ir` em `.psql`, simulação por procedimentos, `cnpj_valido` `strict` e com as classes por extenso, nenhum privilégio no `private` nesta migration) e os achados do code-review (parcial, refutado e mantido).
+
+**Pontos decididos com a aprovação:** §11 do `CLAUDE.md` aplicada; conexões do Auth em percentual; pendência #25 aprovada, a aplicar sob autorização.
+
+**No merge:** deploy acompanhado (a 1ª migration da Fase 1 vai para a produção) e, na produção, só leitura: a migration registrada e `anon`/`authenticated` sem `execute` nas duas funções. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.2. |
 
 ---
 
