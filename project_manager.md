@@ -785,6 +785,15 @@ Mantidos:
 **No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations registradas, a RLS ligada e os grants conferidos.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.3, aguardando aprovação. |
+| 21/11/2026 | Danilo aprova o STEP 1.2 (PR #18).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes. No `banco`, o `pg_prove` rodou os 5 arquivos (154 asserções), PASS, inclusive o guardião 20/20 no banco real, com a prova da sobrecarga.
+
+**Ponto decidido com a aprovação:** as policies seguem **separadas por escopo** (`supabase/CLAUDE.md §6`). O aviso `multiple_permissive_policies` (WARN, performance) do advisor fica aceito de propósito, nesta e nas próximas tabelas com mais de um escopo de leitura. O critério "advisors sem alerta" continua valendo para os de segurança.
+
+**Também aceitas:** a migration de correção do motivo do bloqueio; as decisões 1–5 do STEP (checks de `bloqueada_em` e do telefone, `service_role` sem `delete` nem `truncate`, FKs de rastro sem `on delete`, policies por escopo, fixtures em plpgsql); e os achados mantidos do code-review.
+
+**No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, a RLS e os grants. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.3. |
 
 ---
 
