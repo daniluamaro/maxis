@@ -61,15 +61,15 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.2 — Núcleo de identidade: `empresas`, `profiles` e funções de RLS
 **Entrega:** as duas tabelas centrais com isolamento por tenant provado.
-- [ ] **Testes primeiro (pgTAP)** — para `empresas` e `profiles`, os casos mínimos de `supabase/CLAUDE.md §7`, com asserções só sobre as fixtures do teste (o seed convive no mesmo banco):
+- [x] **Testes primeiro (pgTAP)** — para `empresas` e `profiles`, os casos mínimos de `supabase/CLAUDE.md §7`, com asserções só sobre as fixtures do teste (o seed convive no mesmo banco) *(`nucleo_identidade_test.sql`, 72 asserções)*:
   - usuário do tenant A só enxerga a própria empresa e os profiles de A;
   - não insere, não atualiza, não exclui em nenhuma das duas tabelas (escrita só por Edge Function);
   - usuário inativo e usuário de empresa bloqueada enxergam **zero** linhas, exceto o próprio profile;
   - `anon` não acessa nada;
   - `super_admin` enxerga todas as empresas e só os profiles `master_admin` (não enxerga `admin`/`user`);
   - constraints: `tenant_id` nulo **se e somente se** `super_admin`; um único `master_admin` por empresa; `cnpj` único e válido; e-mail único e minúsculo
-- [ ] Migration `<versão>_f01_cria_nucleo_identidade`: enum `papel_usuario`; `empresas`; `profiles` (colunas da Fase 1 de `modelo-dados.md §5.2`); constraints e índices; triggers de `updated_at`; funções `private.tenant_atual()`, `private.papel_atual()`, `private.is_super_admin()`; RLS, policies e grants
-- [ ] Policies (nomes conforme `supabase/CLAUDE.md §3`):
+- [x] Migration `20261121125657_f01_cria_nucleo_identidade`: enum `papel_usuario`; `empresas`; `profiles` (colunas da Fase 1 de `modelo-dados.md §5.2`); constraints e índices; triggers de `updated_at`; funções `private.tenant_atual()`, `private.papel_atual()`, `private.is_super_admin()`; RLS, policies e grants *(mais a `20261121161220_f01_restringe_motivo_bloqueio`, do code-review: o motivo do bloqueio só existe com a empresa bloqueada)*
+- [x] Policies (nomes conforme `supabase/CLAUDE.md §3`):
 
   | Tabela | Policy | Regra |
   |---|---|---|
@@ -79,10 +79,10 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
   | `profiles` | `profiles_select_tenant` | `tenant_id` = `tenant_atual()` |
   | `profiles` | `profiles_select_super_admin` | `is_super_admin()` e `papel = 'master_admin'` |
 
-- [ ] Grants: `select` a `authenticated` nas duas tabelas; nada a `anon`; nenhuma policy nem grant de escrita
-- [ ] Helpers de fixture (empresa e usuário de teste) no `supabase/tests/helpers/ambiente.psql`, testados como os de simulação (STEP 1.1)
-- [ ] `execute` do `private.cnpj_valido` a quem grava em `empresas` (a Edge Function, papel `service_role`): o Postgres confere a função do `check` no insert e em todo update, de qualquer coluna (provado no dev no STEP 1.1). Tabelas escritas pelo cliente com CNPJ (`modelo-dados.md §9.1`) concedem a `authenticated` quando chegarem
-- [ ] Lista das funções de policy na regra 4 do guardião (as que `authenticated` executa no `private`)
+- [x] Grants: `select` a `authenticated` nas duas tabelas; nada a `anon`; nenhuma policy nem grant de escrita *(e `service_role` só com `select`, `insert` e `update`)*
+- [x] Helpers de fixture (empresa e usuário de teste) no `supabase/tests/helpers/ambiente.psql`, testados como os de simulação (STEP 1.1) *(`fixtures_test.sql`, 9 asserções; mais `acessar_como_service_role`)*
+- [x] `execute` do `private.cnpj_valido` a quem grava em `empresas` (a Edge Function, papel `service_role`): o Postgres confere a função do `check` no insert e em todo update, de qualquer coluna (provado no dev no STEP 1.1). Tabelas escritas pelo cliente com CNPJ (`modelo-dados.md §9.1`) concedem a `authenticated` quando chegarem
+- [x] Lista das funções de policy na regra 4 do guardião (as que `authenticated` executa no `private`) *(pela assinatura exata, depois do code-review)*
 
 **Verificação:** todos os casos verdes; teste guardião verde; advisors sem alerta de segurança.
 
@@ -252,7 +252,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 | # | Entregável | STEP | Status |
 |---|---|---|---|
 | 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
-| 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ⬜ |
+| 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |

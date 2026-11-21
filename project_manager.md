@@ -76,7 +76,7 @@
 | # | Entregável | STEP | Status |
 |---|---|---|---|
 | 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
-| 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ⬜ |
+| 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
@@ -744,6 +744,47 @@ Fora do commit: `.claude/`. Próximo: STEP 1.2, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança, nenhum alto ou crítico (uma leitura intermediária mostrou 9; relidos, o JSON e o texto dão 11);
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 21/11/2026 | **STEP 1.2 ✅** (branch `chore/step-1.2-nucleo-identidade`, PR).
+
+**Entregue:**
+- migration `20261121125657_f01_cria_nucleo_identidade`, aplicada no dev pelo `apply_migration`:
+  - enum `papel_usuario`; `empresas` e `profiles` com as constraints do modelo;
+  - `private.tenant_atual()`, `private.papel_atual()` e `private.is_super_admin()`: `security definer`, `stable`, `search_path` vazio, sempre a partir do `auth.uid()`. Usuário inativo ou de empresa bloqueada fica sem tenant e sem papel;
+  - as cinco policies de leitura do plano, uma por escopo, e nenhuma de escrita;
+  - grants: `authenticated` só `select`; `service_role` `select`, `insert` e `update`; `anon` nada; `authenticated` com `usage` no `private` e `execute` só nas três funções de policy; `service_role` com `execute` no `cnpj_valido` do `check`;
+- migration `20261121161220_f01_restringe_motivo_bloqueio` (achado do code-review, abaixo);
+- testes: `nucleo_identidade_test.sql` (72 asserções), `fixtures_test.sql` (9), `simulacao_de_usuario_test.sql` (11, com `service_role`) e o guardião (20);
+- helpers de fixture no `ambiente.psql`: a tabela `fixture` com `pg_temp.id(nome)`, `criar_empresa`, `criar_usuario` e `acessar_como_service_role`;
+- `frontend/src/types/database.ts` regenerado do dev pelo CLI (`gen types --remote`); `modelo-dados.md` §5.1 e §5.2 com o que a migration fixou.
+
+**Decisões tomadas no STEP (para conferência):**
+1. **Checks a mais, tirados do texto do modelo:** `bloqueada_em` se e somente se a empresa está bloqueada; telefone E.164 sem o `+` (`^[1-9][0-9]{7,14}$`, classes por extenso). O modelo descrevia as duas regras, sem `check`.
+2. **`service_role` com o mínimo:** `select`, `insert` e `update`, sem `delete` nem `truncate`. Os privilégios padrão do projeto davam tudo; empresa se bloqueia e usuário se desativa.
+3. **FKs de rastro sem `on delete`:** quem já cadastrou algo não sai do Auth (achado do code-review, mantido de propósito e provado por teste).
+4. **Policies separadas por escopo**, como no `supabase/CLAUDE.md §6` e na tabela do plano. O advisor de performance acusa `multiple_permissive_policies` (WARN) nas duas tabelas: cada policy permissiva é avaliada, e as funções em `(select …)` rodam uma vez por consulta. **Ponto para o Danilo:** manter (recomendado: o contrato pede uma policy por escopo, e o custo é pequeno com o `select`) ou juntar numa policy por operação, com `or`, mudando a convenção.
+5. Fixtures com `papel` em `text` e corpo em plpgsql: o ambiente carrega mesmo num banco sem as tabelas, e os outros testes não quebram por isso.
+
+**Verificado:**
+- TDD com RED pelo motivo certo antes de cada GREEN: `relation "fixture" does not exist`; depois do code-review, "no exception" no motivo da empresa ativa e a sobrecarga não acusada pela regra por nome.
+- Migration ensaiada dentro da transação do teste (67/67) antes do `apply_migration`; no dev real, pelo MCP: núcleo 72/72, guardião 19/19 (antes da sobrecarga; a regra nova provada no ensaio, 5/5), fixtures 9/9. `migration list`: repositório e dev alinhados nas quatro migrations.
+- **Mutação:** 14 mutantes, todos pegos — `tenant_atual` sem checar a empresa ativa, sem checar o usuário ativo; `papel_atual` sem checar o ativo; policy do super_admin vendo todos os profiles; policy de tenant frouxa; cliente com insert (grant + policy) e só com o grant; `anon` com `select`; `service_role` sem o `execute` do `cnpj_valido`; sem o check papel × tenant; sem o único `master_admin`; `is_super_admin` aceitando `master_admin`; `tenant_atual` como invoker (recursão infinita); policy do super_admin para todos. O original não acusou nada. (A checagem tinha um erro de tipo ao acumular os nomes; cada mutante estourou na primeira checagem que falhou, com o nome dela na mensagem.)
+- Advisors do dev: segurança sem alerta. Performance: `multiple_permissive_policies` (WARN, decisão 4) e `unused_index` (INFO) nos índices das FKs de rastro, que o modelo exige ("toda FK é indexada") e que as tabelas vazias ainda não usaram.
+- Tipos do frontend: diferença só nas tabelas e no enum novos; `typecheck`, `lint` e `format:check` verdes; regenerados de novo depois da 2ª migration, sem mudança.
+
+**Code-review (medium), 5 achados.**
+
+Corrigidos:
+- **`motivo_bloqueio` legível pelo tenant:** o `select` vale para a tabela inteira, e o motivo sobrava depois do desbloqueio. Migration nova: o motivo só existe com a empresa bloqueada, quando ninguém do tenant a lê (RED antes, "no exception"; GREEN depois, com o desbloqueio sem limpar o motivo recusado);
+- **regra 4 do guardião por nome:** passou a comparar a assinatura exata (`to_regprocedure`), com prova de que uma sobrecarga é acusada;
+- **valores fixos nos testes, no dev compartilhado:** e-mails únicos por execução; o prefixo `TST` dos CNPJs reservado às fixtures.
+
+Mantidos:
+- **FKs de rastro prendem o usuário no Auth:** de propósito (decisão 3), registrado no `modelo-dados.md §5.2` e provado por teste — e o recém-criado sem nada continua saindo em cascata (a compensação do STEP 1.9);
+- **`service_role` altera um `master_admin` antes do STEP 1.3:** a ordem do plano já garante o 1.3 antes de qualquer Edge Function que grave em `profiles` (1.9).
+
+**No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations registradas, a RLS ligada e os grants conferidos.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.3, aguardando aprovação. |
 
 ---
 
