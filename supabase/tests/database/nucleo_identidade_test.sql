@@ -16,7 +16,7 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(67);
+insert into tap (linha) select plan(72);
 
 -- Fixtures: A e B ativas, C bloqueada; usuários de cada papel, um inativo em A e um super_admin
 -- inativo
@@ -69,17 +69,19 @@ insert into tap (linha) select throws_ok(
 );
 insert into tap (linha) select throws_ok(
   $$with u as (
-      insert into auth.users (id, email) values (gen_random_uuid(), 'maiuscula@exemplo.test')
+      insert into auth.users (id, email)
+      values (gen_random_uuid(), 'maiuscula-' || gen_random_uuid() || '@exemplo.test')
       returning id
     )
     insert into public.profiles (id, tenant_id, papel, nome, email)
-    select id, pg_temp.id('A'), 'user', 'Teste', 'Maiuscula@exemplo.test' from u$$,
+    select id, pg_temp.id('A'), 'user', 'Teste', 'Maiuscula-' || id || '@exemplo.test' from u$$,
   '23514', null,
   'e-mail do profile só em minúsculas'
 );
 insert into tap (linha) select throws_ok(
   $$with u as (
-      insert into auth.users (id, email) values (gen_random_uuid(), 'outro@exemplo.test')
+      insert into auth.users (id, email)
+      values (gen_random_uuid(), 'outro-' || gen_random_uuid() || '@exemplo.test')
       returning id
     )
     insert into public.profiles (id, tenant_id, papel, nome, email)
@@ -91,7 +93,10 @@ insert into tap (linha) select throws_ok(
 );
 insert into tap (linha) select throws_ok(
   $$insert into public.profiles (id, tenant_id, papel, nome, email)
-    values (gen_random_uuid(), pg_temp.id('A'), 'user', 'Teste', 'sem-auth@exemplo.test')$$,
+    values (
+      gen_random_uuid(), pg_temp.id('A'), 'user', 'Teste',
+      'sem-auth-' || gen_random_uuid() || '@exemplo.test'
+    )$$,
   '23503', null,
   'profile exige o usuário correspondente no Auth'
 );
@@ -124,6 +129,33 @@ insert into tap (linha) select throws_ok(
   '23503', null,
   'empresa com profiles não é excluída (on delete restrict)'
 );
+insert into tap (linha) select throws_ok(
+  $$update public.empresas set motivo_bloqueio = 'Teste' where id = pg_temp.id('A')$$,
+  '23514', null,
+  'empresa ativa não guarda motivo de bloqueio (o tenant lê a própria empresa)'
+);
+insert into tap (linha) select lives_ok(
+  $$update public.empresas set motivo_bloqueio = 'Teste' where id = pg_temp.id('C')$$,
+  'empresa bloqueada aceita o motivo (o tenant dela não lê nada)'
+);
+insert into tap (linha) select throws_ok(
+  $$update public.empresas set ativo = true, bloqueada_em = null where id = pg_temp.id('C')$$,
+  '23514', null,
+  'desbloquear sem limpar o motivo é recusado'
+);
+-- Exclusão no Auth: o usuário que já cadastrou algo fica (as FKs de rastro o prendem; cadastro
+-- se desativa); o recém-criado, sem nada, sai em cascata (a compensação do provisionamento)
+update public.empresas set created_by = pg_temp.id('S') where id = pg_temp.id('A');
+insert into fixture select 'DESCARTAVEL', pg_temp.criar_usuario('user', pg_temp.id('B'));
+insert into tap (linha) select throws_ok(
+  $$delete from auth.users where id = pg_temp.id('S')$$,
+  '23503', null,
+  'usuário que cadastrou algo não sai do Auth (desativa-se)'
+);
+insert into tap (linha) select lives_ok(
+  $$delete from auth.users where id = pg_temp.id('DESCARTAVEL')$$,
+  'usuário recém-criado sai do Auth, e o profile vai junto (compensação)'
+);
 
 -- Privilégios e funções de RLS (como postgres)
 insert into tap (linha) select ok(
@@ -147,10 +179,12 @@ insert into tap (linha) select ok(
 );
 insert into tap (linha) select ok(
   not has_table_privilege(
-    'authenticated', 'public.empresas', 'insert, update, delete, truncate, references, trigger, maintain'
+    'authenticated', 'public.empresas',
+    'insert, update, delete, truncate, references, trigger, maintain'
   )
     and not has_table_privilege(
-      'authenticated', 'public.profiles', 'insert, update, delete, truncate, references, trigger, maintain'
+      'authenticated', 'public.profiles',
+      'insert, update, delete, truncate, references, trigger, maintain'
     ),
   'authenticated não tem privilégio de escrita em empresas nem em profiles'
 );
@@ -306,7 +340,9 @@ insert into tap (linha) select throws_ok(
 );
 insert into tap (linha) select throws_ok(
   $$insert into public.profiles (id, papel, nome, email)
-    values (gen_random_uuid(), 'super_admin', 'Teste', 'cliente@exemplo.test')$$,
+    values (
+      gen_random_uuid(), 'super_admin', 'Teste', 'cliente-' || gen_random_uuid() || '@exemplo.test'
+    )$$,
   '42501', null, 'o cliente não insere profile'
 );
 insert into tap (linha) select throws_ok(
@@ -360,11 +396,9 @@ insert into tap (linha) select throws_ok(
 
 -- service_role (Edge Functions): insere e atualiza; o check do CNPJ executa por ele
 call pg_temp.voltar_ao_postgres();
-with u as (
-  insert into auth.users (id, email) values (gen_random_uuid(), 'servico@exemplo.test')
-  returning id
-)
-insert into fixture select 'AUTH_SERVICO', id from u;
+insert into fixture values ('AUTH_SERVICO', gen_random_uuid());
+insert into auth.users (id, email)
+values (pg_temp.id('AUTH_SERVICO'), 'servico-' || pg_temp.id('AUTH_SERVICO') || '@exemplo.test');
 call pg_temp.acessar_como_service_role();
 insert into tap (linha) select lives_ok(
   $$insert into public.empresas (razao_social, cnpj) values ('Teste', 'TSTD0000000131')$$,
@@ -376,7 +410,10 @@ insert into tap (linha) select lives_ok(
 );
 insert into tap (linha) select lives_ok(
   $$insert into public.profiles (id, tenant_id, papel, nome, email)
-    values (pg_temp.id('AUTH_SERVICO'), pg_temp.id('B'), 'admin', 'Teste', 'servico@exemplo.test')$$,
+    values (
+      pg_temp.id('AUTH_SERVICO'), pg_temp.id('B'), 'admin', 'Teste',
+      'servico-' || pg_temp.id('AUTH_SERVICO') || '@exemplo.test'
+    )$$,
   'service_role insere profile'
 );
 insert into tap (linha) select throws_ok(

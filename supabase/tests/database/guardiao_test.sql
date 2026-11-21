@@ -14,7 +14,7 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(19);
+insert into tap (linha) select plan(20);
 
 -- Regra 1: tabelas (comuns e particionadas) de `public` sem RLS habilitada
 create function pg_temp.tabelas_sem_rls() returns setof text
@@ -100,10 +100,15 @@ as $$
   cross join (values ('anon'), ('authenticated')) as papel (nome)
   where n.nspname = 'private'
     and pg_catalog.has_function_privilege(papel.nome, p.oid, 'execute')
-    -- Funções de policy, as únicas que `authenticated` executa
+    -- Funções de policy, as únicas que `authenticated` executa, pela assinatura exata: uma
+    -- sobrecarga com o mesmo nome não escapa. `to_regprocedure` dá nulo se a função não existir
     and not (
       papel.nome = 'authenticated'
-      and p.proname = any (array['tenant_atual', 'papel_atual', 'is_super_admin']::name[])
+      and p.oid = any (array[
+        to_regprocedure('private.tenant_atual()'),
+        to_regprocedure('private.papel_atual()'),
+        to_regprocedure('private.is_super_admin()')
+      ]::oid[])
     )
 $$;
 
@@ -190,6 +195,10 @@ as 'select 1';
 create function private.guardiao_violacao_authenticated() returns integer
 language sql
 as 'select 1';
+-- Sobrecarga com o nome de uma função de policy: a isenção é pela assinatura, não pelo nome
+create function private.tenant_atual(alvo uuid) returns uuid
+language sql
+as 'select alvo';
 revoke execute on function private.guardiao_violacao_authenticated() from public;
 grant execute on function private.guardiao_violacao_authenticated() to authenticated;
 grant usage on schema private to anon;
@@ -206,6 +215,10 @@ insert into tap (linha) select ok(
 insert into tap (linha) select ok(
   'usage do schema private para anon' in (select * from pg_temp.alcance_no_private()),
   'acusa usage do schema private concedido a anon'
+);
+insert into tap (linha) select ok(
+  'função tenant_atual para authenticated' in (select * from pg_temp.alcance_no_private()),
+  'acusa sobrecarga de uma função de policy executável por authenticated'
 );
 
 -- E não acusa o objeto conforme (o que as migrations das próximas fases vão criar)

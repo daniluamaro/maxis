@@ -139,7 +139,7 @@ O `id` desta tabela **é** o `tenant_id` de todo o sistema. Não tem coluna `ten
 | `cnpj` | `text` | `not null`, **`unique`**, numérico ou alfanumérico, sem máscara e em maiúsculas (12 caracteres `[0-9A-Z]` + 2 dígitos), `check (private.cnpj_valido(cnpj))` — a função cobre o formato e os verificadores. Quem grava normaliza antes (tira a máscara, passa para maiúsculas); o `check` recusa o resto. Atributo de identidade/exibição — **nunca** join nem filtro de segurança. | 1 |
 | `ativo` | `boolean` | `not null default true`. `false` = CNPJ bloqueado → todos os usuários da empresa caem no gate "acesso suspenso". | 1 |
 | `bloqueada_em` | `timestamptz` | preenchido ao bloquear; limpo ao desbloquear — `check (ativo = (bloqueada_em is null))` | 1 |
-| `motivo_bloqueio` | `text` | opcional; visível só no Admin SaaS | 1 |
+| `motivo_bloqueio` | `text` | opcional; só enquanto bloqueada (`check (not ativo or motivo_bloqueio is null)`), limpo ao desbloquear. Visível só no Admin SaaS: o tenant de empresa bloqueada não lê nada, e o histórico fica em `eventos_auditoria` | 1 |
 | `created_at` / `updated_at` | `timestamptz` | `not null default now()` | 1 |
 | `created_by` | `uuid` | FK `→ profiles(id)` (o `super_admin` que cadastrou), indexada | 1 |
 
@@ -174,6 +174,7 @@ Um registro por usuário de `auth.users`, criado pela Edge Function de provision
 - **`admin` tem unidade gerencial obrigatória:** `check (papel <> 'admin' or unidade_gerencial_id is not null)` (Fase 6). `user` pode ter unidade/setor; `master_admin` e `super_admin` não têm (`check`).
 - **`master_admin` imutável:** trigger impede alterar `papel`, `tenant_id` ou `ativo` de um `master_admin` exceto pelo caminho do Admin SaaS (Edge Function com `service_role`). Detalhe na Fase 1/7.
 - `papel` e `tenant_id` nunca mudam por ação do próprio usuário.
+- **Exclusão no Auth:** o usuário que já cadastrou algo não sai (as FKs de rastro `created_by`/`updated_by`, e a auditoria a partir do STEP 1.4, o prendem): usuário se desativa. O recém-criado, sem nada, sai em cascata com o profile — é a compensação do provisionamento.
 
 **Índices:** `(tenant_id, papel)`, `(tenant_id, perfil_acesso_id)`, `(tenant_id, unidade_gerencial_id)`, `(tenant_id, setor_id)`, `unique (tenant_id, id)`, e os das FKs de rastro `(created_by)` e `(updated_by)` (Fase 1).
 
