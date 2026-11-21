@@ -50,11 +50,72 @@ begin
 end;
 $$;
 
+-- O papel das Edge Functions (chave secreta): passa por cima da RLS, mas não dos grants
+create procedure pg_temp.acessar_como_service_role()
+language plpgsql
+as $$
+begin
+  perform pg_catalog.set_config('request.jwt.claims', '{"role": "service_role"}', true);
+  set local role service_role;
+end;
+$$;
+
 create procedure pg_temp.voltar_ao_postgres()
 language plpgsql
 as $$
 begin
   perform pg_catalog.set_config('request.jwt.claims', '', true);
   set local role postgres;
+end;
+$$;
+
+-- Fixtures (STEP 1.2): empresa e usuário de teste, criados como `postgres`, o dono das tabelas.
+-- Cada teste passa os próprios valores (os CNPJs começam por TST, os e-mails ficam em
+-- @exemplo.test): nada colide com o seed do dev, e tudo some no rollback. Os ids ficam na tabela
+-- `fixture`, pelo nome, e `pg_temp.id(nome)` os devolve a qualquer papel simulado. Os corpos em
+-- plpgsql e o papel em `text` deixam este ambiente carregar mesmo num banco sem as tabelas
+create temporary table fixture (nome text primary key, id uuid not null);
+grant select on fixture to public;
+
+create function pg_temp.id(nome_fixture text) returns uuid
+language sql stable
+as $$
+  select id from pg_temp.fixture where nome = nome_fixture
+$$;
+
+create function pg_temp.criar_empresa(cnpj_empresa text, ativa boolean default true)
+returns uuid
+language plpgsql
+as $$
+declare
+  id_novo uuid;
+begin
+  insert into public.empresas (razao_social, cnpj, ativo, bloqueada_em)
+  values (
+    'Empresa de teste ' || cnpj_empresa, cnpj_empresa, ativa,
+    case when ativa then null else pg_catalog.now() end
+  )
+  returning id into id_novo;
+  return id_novo;
+end;
+$$;
+
+create function pg_temp.criar_usuario(
+  papel_usuario text, tenant uuid, usuario_ativo boolean default true
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  id_novo uuid := pg_catalog.gen_random_uuid();
+  email_novo text := 'teste-' || id_novo || '@exemplo.test';
+begin
+  insert into auth.users (id, email) values (id_novo, email_novo);
+  insert into public.profiles (id, tenant_id, papel, nome, email, ativo)
+  values (
+    id_novo, tenant, papel_usuario::public.papel_usuario, 'Usuário de teste', email_novo,
+    usuario_ativo
+  );
+  return id_novo;
 end;
 $$;

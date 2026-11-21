@@ -100,8 +100,11 @@ as $$
   cross join (values ('anon'), ('authenticated')) as papel (nome)
   where n.nspname = 'private'
     and pg_catalog.has_function_privilege(papel.nome, p.oid, 'execute')
-    -- Funções de policy, as únicas que `authenticated` executa (a lista começa no STEP 1.2)
-    and not (papel.nome = 'authenticated' and p.proname = any (array[]::name[]))
+    -- Funções de policy, as únicas que `authenticated` executa
+    and not (
+      papel.nome = 'authenticated'
+      and p.proname = any (array['tenant_atual', 'papel_atual', 'is_super_admin']::name[])
+    )
 $$;
 
 -- O banco de verdade

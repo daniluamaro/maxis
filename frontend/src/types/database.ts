@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      empresas: {
+        Row: {
+          ativo: boolean
+          bloqueada_em: string | null
+          cnpj: string
+          created_at: string
+          created_by: string | null
+          id: string
+          motivo_bloqueio: string | null
+          nome_fantasia: string | null
+          razao_social: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          bloqueada_em?: string | null
+          cnpj: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo_bloqueio?: string | null
+          nome_fantasia?: string | null
+          razao_social: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          bloqueada_em?: string | null
+          cnpj?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo_bloqueio?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          nome: string
+          papel: Database["public"]["Enums"]["papel_usuario"]
+          senha_alterada_em: string | null
+          senha_provisoria: boolean
+          telefone: string | null
+          tenant_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id: string
+          nome: string
+          papel: Database["public"]["Enums"]["papel_usuario"]
+          senha_alterada_em?: string | null
+          senha_provisoria?: boolean
+          telefone?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          papel?: Database["public"]["Enums"]["papel_usuario"]
+          senha_alterada_em?: string | null
+          senha_provisoria?: boolean
+          telefone?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +139,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      papel_usuario: "super_admin" | "master_admin" | "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +266,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      papel_usuario: ["super_admin", "master_admin", "admin", "user"],
+    },
   },
 } as const
