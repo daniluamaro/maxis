@@ -722,6 +722,28 @@ Fora do commit: `.claude/`. Próximo: STEP 1.2, aguardando aprovação. |
 **Pontos decididos com a aprovação:** §11 do `CLAUDE.md` aplicada; conexões do Auth em percentual; pendência #25 aprovada, a aplicar sob autorização.
 
 **No merge:** deploy acompanhado (a 1ª migration da Fase 1 vai para a produção) e, na produção, só leitura: a migration registrada e `anon`/`authenticated` sem `execute` nas duas funções. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.2. |
+| 21/11/2026 | **Merge do PR #17 (STEP 1.1): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.2, branch `chore/step-1.2-nucleo-identidade`).
+
+**Merge com rebase** (commit `941a38b`, branch apagada), depois do CI verde no commit da aprovação (run 44900458581).
+
+**Deploy** (run 44900627745):
+- os 6 jobs verdes, na ordem: o deploy-frontend começou 8s depois do fim do deploy-backend;
+- `db push` aplicou `20261114171911_f01_cria_schema_private_e_utilitarios` na produção ("Finished supabase db push") — a 1ª migration da Fase 1 em produção;
+- `config push`: API, banco, Auth e Storage sem diferença. O ajuste de conexões do Auth, feito no Dashboard, fica fora da comparação e não foi sobrescrito;
+- Edge Functions puladas com aviso;
+- no ar, o build novo (`last-modified` 11:48:11 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):**
+- `list_migrations` com as duas migrations;
+- `cnpj_valido` e `set_updated_at` com ACL só `{postgres=X/postgres}`: `anon`, `authenticated` e `service_role` sem `execute`, ninguém com `usage` no `private`; `search_path` vazio; `cnpj_valido` `immutable` e `strict`;
+- o próprio `supabase_read_only_user` do MCP recebeu `42501` ao chamar a função.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, sem mudança, nenhum alto ou crítico (uma leitura intermediária mostrou 9; relidos, o JSON e o texto dão 11);
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
