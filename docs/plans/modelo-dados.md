@@ -138,13 +138,14 @@ O `id` desta tabela **é** o `tenant_id` de todo o sistema. Não tem coluna `ten
 | `nome_fantasia` | `text` | opcional; exibido na UI quando preenchido | 1 |
 | `cnpj` | `text` | `not null`, **`unique`**, numérico ou alfanumérico, sem máscara e em maiúsculas (12 caracteres `[0-9A-Z]` + 2 dígitos), `check (private.cnpj_valido(cnpj))` — a função cobre o formato e os verificadores. Quem grava normaliza antes (tira a máscara, passa para maiúsculas); o `check` recusa o resto. Atributo de identidade/exibição — **nunca** join nem filtro de segurança. | 1 |
 | `ativo` | `boolean` | `not null default true`. `false` = CNPJ bloqueado → todos os usuários da empresa caem no gate "acesso suspenso". | 1 |
-| `bloqueada_em` | `timestamptz` | preenchido ao bloquear; limpo ao desbloquear | 1 |
+| `bloqueada_em` | `timestamptz` | preenchido ao bloquear; limpo ao desbloquear — `check (ativo = (bloqueada_em is null))` | 1 |
 | `motivo_bloqueio` | `text` | opcional; visível só no Admin SaaS | 1 |
 | `created_at` / `updated_at` | `timestamptz` | `not null default now()` | 1 |
-| `created_by` | `uuid` | FK `→ profiles(id)` (o `super_admin` que cadastrou) | 1 |
+| `created_by` | `uuid` | FK `→ profiles(id)` (o `super_admin` que cadastrou), indexada | 1 |
 
-- **RLS — leitura:** `super_admin` lê todas; usuário de tenant lê **só a própria** (`id = (select private.tenant_atual())`).
+- **RLS — leitura:** `super_admin` lê todas; usuário de tenant lê **só a própria** (`id = (select private.tenant_atual())`). Policies `empresas_select_tenant` e `empresas_select_super_admin`.
 - **RLS — escrita:** nenhuma policy para `authenticated`. Cadastro, edição e bloqueio só via Edge Function (`service_role`) acionada pelo Admin SaaS (Fase 4), com registro em `eventos_auditoria`.
+- **Grants:** `authenticated` só `select`; `service_role` `select`, `insert` e `update` (sem `delete` nem `truncate`: empresa se bloqueia, não se exclui) e `execute` no `private.cnpj_valido` do `check`; `anon` nada.
 
 ### 5.2 `profiles` — usuários · `✅ Definida` · Fases 1, 5, 6
 
@@ -153,11 +154,11 @@ Um registro por usuário de `auth.users`, criado pela Edge Function de provision
 | Coluna | Tipo | Regras | Fase |
 |---|---|---|---|
 | `id` | `uuid` | PK **e** FK `→ auth.users(id) on delete cascade` | 1 |
-| `tenant_id` | `uuid` | FK `→ empresas(id)`. **Nulo se e somente se** `papel = 'super_admin'` (`check ((papel = 'super_admin') = (tenant_id is null))`) | 1 |
+| `tenant_id` | `uuid` | FK `→ empresas(id) on delete restrict`. **Nulo se e somente se** `papel = 'super_admin'` (`check ((papel = 'super_admin') = (tenant_id is null))`) | 1 |
 | `papel` | `papel_usuario` | `not null` | 1 |
 | `nome` | `text` | `not null` | 1 |
 | `email` | `text` | `not null`, `unique`, minúsculo — cópia de `auth.users.email` para listagens (o cliente não lê `auth.users`) | 1 |
-| `telefone` | `text` | opcional; só dígitos (E.164 sem `+`) — usado para repassar a senha provisória por WhatsApp | 1 |
+| `telefone` | `text` | opcional; só dígitos (E.164 sem `+`): começa pelo código do país, de 8 a 15 dígitos (`check (telefone ~ '^[1-9][0-9]{7,14}$')`, com as classes escritas por extenso) — usado para repassar a senha provisória por WhatsApp | 1 |
 | `ativo` | `boolean` | `not null default true` — gate comercial individual | 1 |
 | `senha_provisoria` | `boolean` | `not null default true` — força a troca no próximo login; volta a `true` em todo reset | 1 |
 | `senha_alterada_em` | `timestamptz` | última troca feita pelo próprio usuário | 1 |
@@ -174,9 +175,10 @@ Um registro por usuário de `auth.users`, criado pela Edge Function de provision
 - **`master_admin` imutável:** trigger impede alterar `papel`, `tenant_id` ou `ativo` de um `master_admin` exceto pelo caminho do Admin SaaS (Edge Function com `service_role`). Detalhe na Fase 1/7.
 - `papel` e `tenant_id` nunca mudam por ação do próprio usuário.
 
-**Índices:** `(tenant_id, papel)`, `(tenant_id, perfil_acesso_id)`, `(tenant_id, unidade_gerencial_id)`, `(tenant_id, setor_id)`, `unique (tenant_id, id)`.
+**Índices:** `(tenant_id, papel)`, `(tenant_id, perfil_acesso_id)`, `(tenant_id, unidade_gerencial_id)`, `(tenant_id, setor_id)`, `unique (tenant_id, id)`, e os das FKs de rastro `(created_by)` e `(updated_by)` (Fase 1).
 
-- **RLS — leitura:** o próprio registro sempre; usuários do mesmo tenant (`tenant_id = (select private.tenant_atual())`) — necessário para listas de usuários, líderes e responsáveis; `super_admin` lê os `master_admin` (Admin SaaS).
+- **RLS — leitura:** o próprio registro sempre; usuários do mesmo tenant (`tenant_id = (select private.tenant_atual())`) — necessário para listas de usuários, líderes e responsáveis; `super_admin` lê os `master_admin` (Admin SaaS). Policies `profiles_select_proprio`, `profiles_select_tenant` e `profiles_select_super_admin`.
+- **Grants:** `authenticated` só `select`; `service_role` `select`, `insert` e `update` (sem `delete`: o profile só sai em cascata com o usuário do Auth); `anon` nada.
 - **RLS — escrita:** nenhuma policy e nenhum grant de escrita para o cliente. Criação, edição, reset e (des)ativação só via Edge Function. A troca da própria senha também: Edge Function `trocar-senha` (Fase 1), que troca a senha no Auth e só então marca `senha_provisoria = false` e `senha_alterada_em` — não há caminho para desmarcar a senha provisória sem trocá-la (pendência de governança #5 ajusta o texto do `CLAUDE.md §5`).
 
 ### 5.3 `eventos_auditoria` — rastro de ações privilegiadas · `✅ Definida` · Fase 1

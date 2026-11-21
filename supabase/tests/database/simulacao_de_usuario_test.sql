@@ -8,7 +8,7 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(9);
+insert into tap (linha) select plan(11);
 
 call pg_temp.autenticar_como('00000000-0000-4000-8000-000000000001');
 insert into tap (linha) select is(
@@ -52,6 +52,17 @@ insert into tap (linha) select ok(
 insert into tap (linha) select is(
   auth.jwt() ->> 'role', 'anon',
   'acessar_como_anon põe o papel anon nas claims'
+);
+
+-- O papel das Edge Functions (chave secreta), que escrevem em empresas e profiles
+call pg_temp.acessar_como_service_role();
+insert into tap (linha) select is(
+  current_user::text, 'service_role',
+  'acessar_como_service_role assume o papel service_role'
+);
+insert into tap (linha) select is(
+  auth.jwt() ->> 'role', 'service_role',
+  'acessar_como_service_role põe o papel service_role nas claims'
 );
 
 call pg_temp.voltar_ao_postgres();
