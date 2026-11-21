@@ -70,8 +70,9 @@ end;
 $$;
 
 -- Fixtures (STEP 1.2): empresa e usuário de teste, criados como `postgres`, o dono das tabelas.
--- Cada teste passa os próprios valores (os CNPJs começam por TST, os e-mails ficam em
--- @exemplo.test): nada colide com o seed do dev, e tudo some no rollback. Os ids ficam na tabela
+-- Cada teste passa os próprios valores: os CNPJs começam por TST, prefixo reservado aos testes
+-- pgTAP (o seed e a integração nunca o usam), e os e-mails, em @exemplo.test, levam um uuid.
+-- Nada colide com o seed do dev, e tudo some no rollback. Os ids ficam na tabela
 -- `fixture`, pelo nome, e `pg_temp.id(nome)` os devolve a qualquer papel simulado. Os corpos em
 -- plpgsql e o papel em `text` deixam este ambiente carregar mesmo num banco sem as tabelas
 create temporary table fixture (nome text primary key, id uuid not null);
