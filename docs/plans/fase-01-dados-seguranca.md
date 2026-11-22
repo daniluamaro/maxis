@@ -36,7 +36,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 | 3 | Primeiro `super_admin` em produção por **procedimento manual documentado** (STEP 1.11). Nenhum endpoint de bootstrap no código. | Danilo |
 | 4 | Senha provisória: 12 caracteres, gerador criptográfico, **sem caracteres ambíguos** (`0/O`, `1/l/I`), com ao menos uma letra e um número (atende a política). | proposta |
 | 5 | Troca **voluntária** exige a senha atual; a troca **obrigatória** (senha provisória) não exige. Após trocar, as demais sessões do usuário são encerradas. | proposta |
-| 6 | Estado de acesso para os gates da Fase 2 via RPC `obter_meu_acesso()` — `security definer` justificado: o usuário bloqueado precisa saber **que** está bloqueado, sem enxergar dado algum. | proposta |
+| 6 | Estado de acesso para os gates da Fase 2 via RPC `obter_meu_acesso()` — `security definer` justificado: o usuário bloqueado precisa saber **que** está bloqueado, sem enxergar dado algum. *(No STEP 1.5, por decisão do Danilo: a parte `security definer` fica em `private.acesso_atual()`, e a RPC exposta é `security invoker`. O advisor acusa definer em `public` executável por `authenticated`, regra 0029.)* | proposta |
 | 7 | Validação de entrada das Edge Functions com biblioteca de schema tipado (zod via `npm:`, versão fixada). | proposta |
 | 8 | Cada STEP é um PR com **teste e implementação juntos**, escritos nessa ordem (Red → Green → Refactor). O PR só entra com o CI verde. | `§9` + Fase 0 |
 | 9 | Repositório público: **nenhum e-mail real** (nem o do Danilo) em migration, seed, teste ou plano. | Fase 0 |
@@ -104,11 +104,12 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.5 — RPC `obter_meu_acesso()`
 **Entrega:** o estado de acesso que os gates da Fase 2 vão consultar.
-- [ ] **Testes primeiro:** retorna, só para o próprio usuário, `papel`, `nome`, `ativo`, `empresa_ativa` (nulo para `super_admin`) e `senha_provisoria`; funciona para usuário inativo e para empresa bloqueada **sem** expor nenhum outro dado; `anon` não executa
-- [ ] Migration `<versão>_f01_cria_rpc_obter_meu_acesso`: função em `public`, `security definer` (justificativa na decisão 6), `search_path` vazio, baseada em `auth.uid()`; `execute` só para `authenticated`
-- [ ] Campos que dependem de fases futuras (ex.: `tem_perfil`, Fase 5) entram na fase da tabela correspondente
+- [x] **Testes primeiro:** retorna, só para o próprio usuário, `papel`, `nome`, `ativo`, `empresa_ativa` (nulo para `super_admin`) e `senha_provisoria`; funciona para usuário inativo e para empresa bloqueada **sem** expor nenhum outro dado; `anon` não executa *(`obter_meu_acesso_test.sql`, 18 asserções: cada caso compara o JSON exato que a API devolve; também a Edge Function não executa, o JWT sem profile recebe todos os campos nulos e o bloqueio vale na chamada seguinte)*
+- [x] Migration `20261122133355_f01_cria_rpc_obter_meu_acesso`: `search_path` vazio, baseada em `auth.uid()`; `execute` só para `authenticated` *(por decisão do Danilo, 22/11/2026: a RPC `public.obter_meu_acesso()` é `security invoker` e só chama `private.acesso_atual()`, a parte `security definer` (justificativa na decisão 6); o retorno é o tipo composto `acesso_usuario`, um objeto na API e anulável nos tipos gerados)*
+- [x] Campos que dependem de fases futuras (ex.: `tem_perfil`, Fase 5) entram na fase da tabela correspondente *(como atributo novo de `acesso_usuario`)*
+- [x] Guardião: regra 5, nenhuma função `security definer` em `public`; na regra 4, `private.acesso_atual()` entra na lista do que `authenticated` executa *(e a correção da regra 4, que calava com uma função da lista ausente)*
 
-**Verificação:** testes verdes; advisors sem alerta (a função definer fica justificada no PR).
+**Verificação:** testes verdes; advisors sem alerta *(no dev, pelo `test db`: 8 arquivos, 253 asserções; mutação com 26 mutantes, todos pegos; advisor de segurança sem alerta, e a consulta da regra 0029 provada no ensaio: acusaria a RPC `security definer`)*.
 
 ### STEP 1.6 — Configuração do Auth e política de senha
 **Entrega:** Auth endurecido, igual no dev e na produção.
@@ -241,7 +242,8 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 
 - **API das Edge Functions muda com frequência:** o padrão foi decidido no STEP 0.11 (`createSupabaseContext`); conferir no Context7 a versão vigente antes do STEP 1.8, sem confiar em exemplo antigo.
 - **Sessões já emitidas:** encerrar sessões revoga a renovação, mas um token de acesso já emitido vale até expirar. O corte de **dados** é imediato pela RLS (`tenant_atual()` retorna nulo para inativo/bloqueado) — esse é o mecanismo de segurança; o encerramento de sessão é complementar.
-- **`security definer`:** só em `private` e na RPC `obter_meu_acesso()` (justificada); qualquer outra ocorrência é motivo de bloqueio do PR.
+- **`security definer`:** só em `private`. A RPC que precisa passar por cima da RLS é `security invoker` e chama a função do `private` (como `obter_meu_acesso()` → `private.acesso_atual()`, STEP 1.5); a regra 5 do guardião barra definer em `public`. Ajuste do `supabase/CLAUDE.md §5/§6` na pendência de governança #26.
+- **Gate que fecha por padrão** (code-review do STEP 1.5): para um JWT sem profile, `obter_meu_acesso()` devolve um objeto com todos os campos nulos. O gate da Fase 2 libera só com `ativo === true` e, fora o `super_admin`, `empresa_ativa === true`; campo nulo nunca libera. Testar `=== false` deixaria passar o usuário sem profile.
 - **Repositório público:** comandos do bootstrap e fixtures sem dados pessoais reais.
 - **Dev compartilhado:** o MCP, o `test db`, o job `integracao` e o seed usam o mesmo banco. A proteção é a decisão 13 (nada depende de estado ou de contagem) e a concorrência global do job `integracao` (STEP 1.9). Mesmo serializado, o run de um PR sem mudança de função (docs, frontend) republica no dev as funções da `main`: durante o trabalho num STEP, o dev pode voltar à versão anterior até o próximo deploy pelo MCP.
 - **Caminho direto do Auth para trocar a senha:** o GoTrue aceita a troca pelo token do próprio usuário, fora da `trocar-senha` (sem senha atual, sem auditoria e sem encerrar sessões). A `senha_provisoria` continua só na função, e o tratamento do resto é decidido no STEP 1.10.
@@ -259,7 +261,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
-| 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
+| 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
 | 7 | Seed do dev | 1.7 | ⬜ |
 | 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |

@@ -96,7 +96,7 @@ erDiagram
 
 ## 4. Funções de apoio à RLS (schema `private`, não exposto pela API)
 
-Todas `security definer`, `stable`, `set search_path = ''`; usadas nas policies **sempre** envolvidas em `(select …)` para avaliar uma vez por query. Grants e padrão de policy ficam em `supabase/CLAUDE.md`.
+As de RLS (`tenant_atual`, `papel_atual`, `is_super_admin`, `tem_permissao`): `security definer`, `stable`, `set search_path = ''`; usadas nas policies **sempre** envolvidas em `(select …)` para avaliar uma vez por query. As de trigger dizem o próprio modo na linha. `private.acesso_atual()` não entra em policy: é a parte `security definer` de uma RPC, chamada só por ela. Grants e padrão de policy ficam em `supabase/CLAUDE.md`.
 
 | Função | Retorno | Regra | Fase |
 |---|---|---|---|
@@ -116,7 +116,7 @@ Todas `security definer`, `stable`, `set search_path = ''`; usadas nas policies 
 
 | RPC | Retorno | Regra | Fase |
 |---|---|---|---|
-| `obter_meu_acesso()` | `acesso_usuario` (um objeto) | Só o próprio usuário (`auth.uid()`), sem argumento. `security invoker`: só chama `private.acesso_atual()`, a parte `security definer`, justificada porque o usuário inativo ou de empresa bloqueada precisa saber **que** está bloqueado sem enxergar mais nada. Nenhuma função de `public` é `security definer` (STEP 1.5: o advisor acusa, regra 0029, e o guardião barra, regra 5). `execute` só para `authenticated`; nem `anon` nem `service_role`. `tem_perfil` entra na Fase 5. | 1 |
+| `obter_meu_acesso()` | `acesso_usuario` (um objeto) | Só o próprio usuário (`auth.uid()`), sem argumento. `security invoker`: só chama `private.acesso_atual()`, a parte `security definer`, justificada porque o usuário inativo ou de empresa bloqueada precisa saber **que** está bloqueado sem enxergar mais nada. Nenhuma função de `public` é `security definer` (STEP 1.5: o advisor acusa, regra 0029, e o guardião barra, regra 5). `execute` só para `authenticated`; nem `anon` nem `service_role`. O gate fecha por padrão: libera só com `ativo` verdadeiro e, fora o `super_admin`, `empresa_ativa` verdadeira — campo nulo (o JWT sem profile) nunca libera. `tem_perfil` entra na Fase 5. | 1 |
 | `listar_empresas_admin(busca, situacao, limite, deslocamento)` | linhas com dados da empresa, `master_admin` (id, nome, e-mail, `senha_provisoria`), total de usuários ativos e total de registros | Só `super_admin` (checagem como primeira instrução; demais chamadores → erro de permissão). `security definer` justificado: contar usuários por empresa sem dar ao `super_admin` leitura sobre os profiles de tenant — como em `obter_meu_acesso()`, a parte `security definer` fica no `private`, atrás da RPC `security invoker`. Busca por razão social, nome fantasia ou dígitos do CNPJ; filtro ativas/bloqueadas; paginação. | 4 |
 | `obter_meu_acesso()` — campo `tem_perfil` | `boolean` | `master_admin`/`super_admin` → verdadeiro; `admin`/`user` → tem `perfil_acesso_id`. Atributo novo de `acesso_usuario`, lido em `private.acesso_atual()`. | 5 |
 | `listar_minhas_permissoes()` | `text[]` (chaves) | Permissões ativas do próprio usuário; `master_admin` → todas as ativas do catálogo. `security invoker`. Fonte do `usePermissao` no frontend. | 5 |

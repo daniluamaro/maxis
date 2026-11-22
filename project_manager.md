@@ -69,7 +69,7 @@
 **Status:** 🔄 Em andamento — aberta em 14/11/2026, com o plano revisado para o projeto de dev online (pendência #10) e aprovado pelo Danilo (PR #16).
 **Objetivo:** construir e provar por testes a fundação de segurança multi-tenant (schema base, RLS por `tenant_id`, provisionamento por Edge Function, troca da própria senha, primeiro `super_admin`), antes de qualquer tela depender dela.
 
-**Plano:** `docs/plans/fase-01-dados-seguranca.md` (12 STEPs). Decisões 10–13 da revisão para o dev online; pendência #24 proposta (aplicar no STEP 1.9).
+**Plano:** `docs/plans/fase-01-dados-seguranca.md` (12 STEPs). Decisões 10–13 da revisão para o dev online; pendência #24 proposta (aplicar no STEP 1.9); #26 proposta no STEP 1.5.
 
 **Entregáveis** *(espelho da §9 do plano)*
 
@@ -79,7 +79,7 @@
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
-| 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
+| 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
 | 7 | Seed do dev | 1.7 | ⬜ |
 | 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
@@ -126,6 +126,7 @@
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
 | 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Aprovada (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
 | 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
+| 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | Proposta (22/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
 
 ---
 
@@ -987,6 +988,68 @@ Fora do commit: `.claude/`. Próximo: STEP 1.5, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 22/11/2026 | **STEP 1.5 ✅** (branch `chore/step-1.5-obter-meu-acesso`, PR).
+
+**Decisões do Danilo** (perguntadas no portão do `apply_migration`, depois do RED e do ensaio):
+1. **A parte `security definer` fica no `private`:** a RPC `public.obter_meu_acesso()` é `security invoker` e só chama `private.acesso_atual()`. O plano pedia a própria RPC `security definer` em `public`, mas o advisor tem a regra 0029 (WARN), que acusa definer em schema exposto executável por `authenticated`, e o contrato pede zero alerta. O ensaio provou isso com a consulta da regra (do repositório `supabase/splinter`). O que sai pela API é o mesmo. Recusado: a RPC definer em `public`, com o alerta aceito.
+2. **Retorno no tipo composto `acesso_usuario`:** a API devolve um objeto, e os tipos gerados marcam cada campo como anulável (`empresa_ativa` é nula para o `super_admin`). Recusado: `returns table`, que o gerador tipa como não nulo (conferido nos testes do `postgres-meta`).
+
+**Entregue:**
+- migration `20261122133355_f01_cria_rpc_obter_meu_acesso`:
+  - o tipo `acesso_usuario`;
+  - `private.acesso_atual()`: `security definer`, `stable`, `search_path` vazio, pelo `auth.uid()`, com `left join` na empresa;
+  - a RPC, `security invoker`;
+  - `execute` só para `authenticated`, nas duas;
+- teste `obter_meu_acesso_test.sql` (18 asserções);
+- guardião: regra 5 (nenhuma função `security definer` em `public`, com as provas de que acusa e de que não acusa) e `private.acesso_atual()` na lista da regra 4;
+- **correção na regra 4 do guardião**, achada no RED, em commit próprio (`fix:`):
+  - com uma função da lista ainda inexistente, o `to_regprocedure` dava nulo, e o `= any` com um nulo dava nulo para toda função de fora da lista: a regra calava;
+  - o nulo sai da lista;
+  - uma prova nova renomeia o `is_super_admin` dentro da transação: sem a correção, ela falha; com ela, passa;
+- tipos do frontend regenerados; `modelo-dados.md` §3, §4 e §11.
+
+**Verificado:**
+- TDD com RED pelo motivo certo: `function public.obter_meu_acesso() does not exist`.
+- A migration foi ensaiada dentro da transação, pelo `test db` com arquivos temporários:
+  - o teste: 18/18;
+  - o guardião: 23/23;
+  - a consulta da regra 0029: nada acusado; com a RPC `security definer`, acusada.
+- O arquivo tem o mesmo md5 do que o dev registrou.
+- No dev real, pelo `test db`: 8 arquivos, 253 asserções, PASS.
+- **Mutação:** 26 mutantes, todos pegos; o original não acusou nada. Entre eles:
+  - leitura `security invoker` (a empresa bloqueada some pela RLS) e RPC `security definer` (pega pela estrutura e pela regra 5);
+  - a RPC lendo direto, sem o `private`;
+  - `inner join` (o `super_admin` fica sem resultado), sem o filtro por `auth.uid()`, só usuário ativo, só empresa ativa;
+  - `ativo` e `empresa_ativa` trocados ou combinados, `empresa_ativa` verdadeira para o `super_admin`, `senha_provisoria` fixa, um campo a mais (`tenant_id`);
+  - `execute` para `anon`, `service_role` ou PUBLIC em cada função (os de `anon` e PUBLIC, também pela regra 2 ou 4 do guardião);
+  - sem `search_path`, `volatile`, sobrecarga que escolhe o usuário, o nome de outro usuário;
+  - os dois que tiram o `execute` de `authenticated`, pegos pelo erro da própria chamada.
+- Advisors do dev: segurança sem alerta. Performance sem nada novo: o `multiple_permissive_policies` aceito no STEP 1.2 e o `unused_index` do 1.4.
+- Tipos do frontend: só a função e o tipo composto, com `isSetofReturn: false` (um objeto).
+- Nenhum resíduo no dev: zero fixtures e eventos, pgTAP desinstalado.
+- Portões: os cinco do frontend verdes (178 testes) e os quatro do Deno (14).
+
+**Code-review (medium), 5 achados.**
+
+Corrigidos:
+- **o contrato diz que `authenticated` só executa função de policy** (`supabase/CLAUDE.md §5`), e agora ele executa a que a RPC chama: entra na pendência #26, junto com o §6;
+- **plano desatualizado:** a decisão 6, o STEP 1.5 e o risco do `security definer` agora dizem o que foi feito;
+- **o JWT sem profile recebe um objeto de nulos:** um gate que testasse `=== false` deixaria passar. A regra está no plano (§8) e no `modelo-dados.md §4`: o gate da Fase 2 fecha por padrão e libera só com `ativo === true` e, fora o `super_admin`, `empresa_ativa === true`;
+- **cabeçalho da §4 do modelo:** dizia que toda função do `private` é de policy.
+
+Mantido:
+- **o `usage` padrão do tipo `acesso_usuario` para PUBLIC:** um tipo não dá acesso a dado, o `papel_usuario` (STEP 1.2) está igual, e mudar exigiria migration nova sem ganho.
+
+**Pendência de governança nova:** #26 (`supabase/CLAUDE.md §5/§6`), proposta.
+
+**Para os próximos STEPs e fases:**
+- 1.7: a primeira chamada pela Data API de verdade (login com cada usuário do seed e `obter_meu_acesso()`). Aqui, só a simulação do papel no banco: não há `.env.local` nesta máquina.
+- Fase 2: o gate fecha por padrão (acima).
+- Fase 4, na revisão do plano: `listar_empresas_admin` e a troca do titular seguem o mesmo padrão (definer no `private`, RPC invoker). A regra 5 barra definer em `public` mesmo quando só a `service_role` executa.
+
+**No merge:** deploy acompanhado (a migration vai para a produção) e, na produção, só leitura: a migration, o tipo, as duas funções (modo, `search_path` e `execute` só de `authenticated`) e os advisors.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.6, aguardando aprovação. |
 
 ---
 
