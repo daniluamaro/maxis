@@ -78,7 +78,7 @@
 | 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
-| 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
+| 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
 | 7 | Seed do dev | 1.7 | ⬜ |
@@ -904,6 +904,52 @@ Fora do commit: `.claude/`. Próximo: STEP 1.4, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 22/11/2026 | **STEP 1.4 ✅** (branch `chore/step-1.4-eventos-auditoria`, PR).
+
+**Decisão do Danilo** (perguntada no STEP, antes de aplicar no dev): a Edge Function (`service_role`) só **insere**, e só nas colunas do evento (`tenant_id`, `ator_profile_id`, `acao`, `alvo_tabela`, `alvo_id`, `detalhes`). Não lê, e `id` e `created_at` vêm sempre do banco: o rastro não escolhe a própria data. Conferido na documentação do PostgREST 14.18: o insert padrão (`return=minimal`, o do `supabase-js`) funciona em tabela só de escrita. Recusado: `insert` e `select` na tabela inteira, como em `empresas` e `profiles`.
+
+**Entregue:**
+- migration `20261122122108_f01_cria_eventos_auditoria`:
+  - a tabela do `modelo-dados.md §5.3`, com as FKs sem `on delete` (o evento prende a empresa e o ator) e o `check` do formato da ação;
+  - os três índices;
+  - RLS e duas policies de leitura: o `super_admin` lê tudo, inclusive os eventos do SaaS; o `master_admin` ativo de empresa ativa lê os do próprio tenant;
+  - o trigger `trg_impedir_alteracao_auditoria` (`private.impedir_alteracao_auditoria()`), por comando: recusa `update`, `delete` e `truncate` para todo papel, inclusive o dono do banco;
+  - grants: o cliente só lê; a Edge Function só insere, por coluna; `anon` nada;
+- migration `20261122124033_f01_ajusta_eventos_auditoria` (achados do code-review, abaixo);
+- teste `eventos_auditoria_test.sql` (49 asserções);
+- tipos do frontend regenerados (a tabela nova); `modelo-dados.md` §4 e §5.3; plano do STEP 1.8 com o que a `service_role` pode mandar.
+
+**Decisões tomadas no STEP (para conferência):**
+1. **Trigger por comando, não por linha:** barra também o `truncate` (que não dispara trigger de linha) e o comando que não acha linha.
+2. **O dono do banco também não altera:** a imutabilidade não tem caminho privilegiado, ao contrário do `master_admin` (STEP 1.3). Corrigir um evento errado é gravar outro.
+3. **Erro `42501` com mensagem própria** ("eventos_auditoria é imutável: só aceita inserção"), como no STEP 1.3.
+4. **`alvo_id` sem FK:** o alvo pode ser de qualquer tabela.
+
+**Verificado:**
+- TDD com RED pelo motivo certo antes de cada GREEN: na 1ª migration, `relation "public.eventos_auditoria" does not exist`; na 2ª, as 5 falhas novas (a ordem dos eventos e os 4 formatos de ação).
+- Cada migration ensaiada dentro da transação do teste antes do `apply_migration`: a 1ª pelo MCP (42/42); a 2ª por um arquivo temporário rodado pelo `test db` e apagado no mesmo comando (49/49). Os arquivos têm o mesmo md5 do que o dev registrou.
+- No dev real, pelo `test db` (o caminho do CI): 7 arquivos, 231 asserções, PASS — inclusive o guardião com a tabela nova.
+- **Mutação** (no dev real, cada mutante num bloco desfeito): 31 mutantes, todos pegos; o original não acusou nada. Entre eles: sem o trigger, trigger por linha, sem o `update` ou o `delete` no trigger, trigger por linha mais um de `truncate`, sem RLS, policy do `master_admin` sem o papel ou sem o tenant, policy do `super_admin` para todos, escrita concedida ao cliente, `select` para `anon`, `insert` na tabela toda, `select` ou `update` para a `service_role`, oito afrouxamentos do formato da ação, ação opcional, sem cada FK, FK do ator com `on delete set null`, função `security definer`, função sem o `revoke` (pega pela regra 4 do guardião), sem o índice do ator e `created_at` com `now()`. Desta vez o harness rodou pelo `test db`, como arquivo temporário: cada resultado vira uma linha TAP, e a saída mostra o texto sem colar o arquivo no MCP.
+- Advisors do dev: segurança sem alerta. Performance: `multiple_permissive_policies` na tabela nova (aceito no STEP 1.2 para toda tabela com mais de um escopo de leitura) e `unused_index` (INFO) no índice do alvo, que o modelo exige e a tabela vazia ainda não usou.
+- Tipos do frontend: diferença só na tabela nova; regenerados de novo depois da 2ª migration, sem mudança.
+- Nenhum resíduo no dev (zero eventos, empresas, profiles e usuários; pgTAP desinstalado).
+- Portões: os cinco do frontend verdes (178 testes) e os quatro do Deno (14).
+
+**Code-review (medium), 6 achados.**
+
+Corrigidos:
+- **eventos da mesma transação com a mesma data:** `now()` é o início da transação. `created_at` passa a `clock_timestamp()` (migration nova; RED antes);
+- **formato da ação frouxo:** `'_._'`, `'usuario_.criado'` e o sublinhado repetido passavam. Cada segmento começa e termina com letra (migration nova; RED antes);
+- **comando sem linha sem teste:** a razão do trigger por comando não estava provada, e um trigger por linha mais um de `truncate` passaria. Dois testes novos, como o dono do banco (já passavam; agora o mutante é pego);
+- **falta de `select` da `service_role` sem registro para quem escreve a Edge Function:** o item do STEP 1.8 no plano diz o que ela pode mandar.
+
+Mantidos:
+- **o ator de um evento não sai do Auth:** de propósito (FK sem `on delete`), registrado no `modelo-dados.md §5.2/§5.3` e provado por teste. Na v1 não há exclusão de usuário, só desativação (Fase 7), e o dev não se limpa (decisão 13);
+- **o `revoke` da função do trigger sem teste no arquivo:** a regra 4 do guardião já o cobre (o mutante foi pego por ela), e uma função de trigger não pode ser chamada direto.
+
+**No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, a tabela com RLS, as duas policies, o trigger, os grants por coluna e os advisors.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.5, aguardando aprovação. |
 
 ---
 
