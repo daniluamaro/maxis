@@ -1138,6 +1138,25 @@ Fora do commit: `.claude/`. Próximo: STEP 1.7, aguardando aprovação. |
 - a proposta para o STEP 1.9: a integração confere também que o cadastro público é recusado. Entrou no item do teste de integração do plano.
 
 **No merge:** só documentação; deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.7. |
+| 22/11/2026 | **Merge do PR #22 (STEP 1.6): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.7, branch `chore/step-1.7-seed-dev`).
+
+**Merge com rebase** em 22/11/2026 15:04:30Z (commit `1589364`, branch apagada), depois do CI verde no commit da aprovação `be13e0c` (run 45036057853).
+
+**Deploy** (run 45036264051):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 15:07:17 e o deploy-frontend começou às 15:07:21;
+- `db push`: "Remote database is up to date" (nenhuma migration nova);
+- `config push`: API, banco, Auth e Storage "up to date";
+- "Nenhuma Edge Function para publicar";
+- no ar, o build novo (`last-modified` 15:07:29 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura de chave secreta, token do Supabase, JWT, URL com senha e token do GitHub: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):** as mesmas nove migrations; advisors de segurança: nenhum alerta.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes; o Prettier sobre os arquivos versionados);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
