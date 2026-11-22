@@ -48,7 +48,8 @@ const esquemaDoAcesso = z.object({
   empresa_ativa: z.boolean().nullable(),
   senha_provisoria: z.boolean().nullable(),
 });
-const esquemaDosProfiles = z.array(z.object({ tenant_id: z.uuid().nullable() }));
+// `guid`: só o formato. O `uuid` do zod exige versão e variante da RFC, e o Postgres aceita qualquer
+const esquemaDosProfiles = z.array(z.object({ tenant_id: z.guid().nullable() }));
 
 /**
  * Identifica quem chama pelo JWT (`createSupabaseContext`, com o emissor preso a este projeto) e

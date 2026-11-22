@@ -1,9 +1,9 @@
-import { assert, assertEquals, assertMatch } from '@std/assert';
+import { assert, assertEquals, assertMatch, assertThrows } from '@std/assert';
 import { gerarSenhaProvisoria, problemasDaSenha, type Sorteio } from './senha.ts';
 
 const CURTA = 'A senha precisa ter ao menos 8 caracteres.';
 const SEM_LETRAS_E_NUMEROS = 'A senha precisa ter letras e números.';
-const LONGA = 'A senha pode ter no máximo 72 caracteres.';
+const LONGA = 'A senha é longa demais: use até 72 caracteres (letra acentuada conta como dois).';
 
 // O alfabeto da senha provisória (decisão 4 da Fase 1), escrito à mão: letras e números sem os
 // que se confundem ao ditar ou ler no WhatsApp (0/O, 1/l/I)
@@ -114,4 +114,19 @@ Deno.test('sem número ou sem letra, sorteia de novo a senha inteira', () => {
   const { sortear } = sorteioDaFila([...soLetras, ...soNumeros, ...valida]);
 
   assertEquals(gerarSenhaProvisoria(sortear), 'A9A9Zaz2CLgr');
+});
+
+Deno.test('fonte de bytes que não devolve nada é erro, não laço sem fim', () => {
+  let chamadas = 0;
+  const vazia: Sorteio = () => {
+    // Guarda do teste: sem ela, o laço sem fim travaria a execução em vez de falhar
+    if (++chamadas > 1000) throw new Error('laço sem fim');
+    return new Uint8Array(0);
+  };
+
+  assertThrows(
+    () => gerarSenhaProvisoria(vazia),
+    Error,
+    'A fonte de bytes aleatórios não devolveu nenhum byte.',
+  );
 });
