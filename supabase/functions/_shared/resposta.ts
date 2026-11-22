@@ -33,13 +33,14 @@ export function erro(status: StatusDeErro, codigo: string, mensagem: string): Re
 
 /**
  * Entrada recusada pela validação: além do `{ codigo, mensagem }` padrão, a mensagem de cada campo
- * (pelo nome do campo da entrada), para o formulário mostrar ao lado dele.
+ * (pelo nome do campo da entrada), para o formulário mostrar ao lado dele. A `mensagem` é a geral:
+ * a de uma regra entre campos, quando houver.
  */
-export function erroDeValidacao(campos: Record<string, string>): Response {
-  return respostaJson(
-    { error: { codigo: 'entrada_invalida', mensagem: 'Revise os campos destacados.', campos } },
-    400,
-  );
+export function erroDeValidacao(
+  campos: Record<string, string>,
+  mensagem = 'Revise os campos destacados.',
+): Response {
+  return respostaJson({ error: { codigo: 'entrada_invalida', mensagem, campos } }, 400);
 }
 
 /** Passo que pode parar a requisição: segue com o valor, ou devolve a resposta pronta. */

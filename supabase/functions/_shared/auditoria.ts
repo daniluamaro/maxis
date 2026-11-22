@@ -16,9 +16,10 @@ export interface EventoDeAuditoria {
 /** Falha ao gravar, ou dado sensível nos detalhes. A mensagem nunca leva o valor. */
 export class ErroDeAuditoria extends Error {}
 
-// Nome de campo de senha, token ou chave: em `detalhes`, só pode marcar (booleano) ou ser nulo
+// Nome de campo de credencial: em `detalhes`, só pode marcar (booleano) ou ser nulo. Não pega
+// `chave` nem `key` soltos, que no domínio são as chaves de permissão (`modulo.funcionalidade…`)
 const NOME_SENSIVEL =
-  /senha|password|passwd|token|secret|segredo|chave|key|jwt|authorization|credencia/i;
+  /senha|password|passwd|token|secret|segredo|jwt|authorization|credencia|api_?key|private_?key|chave_?(?:secreta|privada|de_?api|api)/i;
 
 // Valor com cara de credencial, em qualquer campo: JWT, chave de API e token de acesso do Supabase
 const VALOR_SENSIVEL = [

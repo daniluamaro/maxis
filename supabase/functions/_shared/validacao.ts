@@ -13,24 +13,30 @@ export async function lerEntrada<T>(req: Request, esquema: z.ZodType<T>): Promis
     return { ok: false, resposta: corpoInvalido() };
   }
 
+  // Só objeto: texto, número, lista ou null não têm campos para apontar
+  if (typeof corpo !== 'object' || corpo === null || Array.isArray(corpo)) {
+    return { ok: false, resposta: corpoInvalido() };
+  }
+
   // A mensagem definida no schema vence; o mapa só dá o padrão de cada tipo de problema
   const validado = esquema.safeParse(corpo, { error: mensagemPadrao });
   if (validado.success) return { ok: true, valor: validado.data };
 
   const campos: Record<string, string> = {};
+  let mensagemGeral: string | undefined;
   for (const problema of validado.error.issues) {
     if (problema.code === 'unrecognized_keys') {
       for (const chave of problema.keys) {
         campos[[...problema.path, chave].join('.')] ??= problema.message;
       }
     } else if (problema.path.length === 0) {
-      // O problema é o corpo inteiro (texto, número, lista, null), não um campo
-      return { ok: false, resposta: corpoInvalido() };
+      // Regra entre campos sem campo apontado (um `refine` do objeto): vira a mensagem geral
+      mensagemGeral ??= problema.message;
     } else {
       campos[problema.path.join('.')] ??= problema.message;
     }
   }
-  return { ok: false, resposta: erroDeValidacao(campos) };
+  return { ok: false, resposta: erroDeValidacao(campos, mensagemGeral) };
 }
 
 function corpoInvalido(): Response {

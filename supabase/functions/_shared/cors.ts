@@ -15,8 +15,9 @@ const LOCALHOST_DO_VITE = 'http://localhost:5173';
 const PROJETO_DEV = 'https://ddaqbcfrplzdywpgilbf.supabase.co';
 
 /**
- * Os cabeçalhos que o supabase-js envia, da própria biblioteca: atualizada a versão, o preflight
- * acompanha. Cabeçalho fora da lista derruba o preflight no navegador.
+ * Os cabeçalhos que o supabase-js envia, da própria biblioteca, na versão fixada no deno.json. Quem
+ * envia é o supabase-js do navegador: o frontend usa a mesma versão. Cabeçalho fora da lista
+ * derruba o preflight.
  */
 const CABECALHOS_PERMITIDOS = lerCabecalhosDoSupabaseJs();
 

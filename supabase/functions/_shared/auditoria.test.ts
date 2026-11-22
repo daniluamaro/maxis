@@ -90,7 +90,9 @@ Deno.test('senha, token ou chave em detalhes: recusa antes de gravar, sem repeti
     'refresh token': { refreshToken: valor },
     'chave de API': { apiKey: valor },
     'segredo': { segredo: valor },
-    'chave em pt-BR': { chave: valor },
+    'chave secreta em pt-BR': { chave_secreta: valor },
+    'chave de API em pt-BR': { chave_de_api: valor },
+    'chave privada': { private_key: valor },
     'secret': { client_secret: valor },
     'cabeçalho de autorização': { Authorization: `Bearer ${valor}` },
     'JWT em campo comum': { observacao: jwt },
@@ -123,6 +125,9 @@ Deno.test('marca booleana com nome sensível e dados comuns passam', async () =>
     papel: 'admin',
     nome: 'Ana Ribeiro',
     tentativas: [1, 2],
+    // Chave de permissão é do domínio (modulo.funcionalidade.aba.acao), não credencial
+    chave: 'operacoes.gestao.pedidos.edit',
+    chaves: ['operacoes.gestao.pedidos.view', 'operacoes.gestao.pedidos.edit'],
   };
 
   await registrarEvento(admin, { ...EVENTO, detalhes });

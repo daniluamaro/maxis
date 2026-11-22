@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert';
+import { assert, assertEquals } from '@std/assert';
 import { z } from 'zod';
 import { lerEntrada } from './validacao.ts';
 
@@ -135,4 +135,41 @@ Deno.test('campo com mais de um problema mostra o primeiro', async () => {
   );
 
   assertEquals(json, camposRecusados({ codigo: 'Use ao menos 3 caracteres.' }));
+});
+
+const esquemaDaTroca = z
+  .strictObject({ senha: z.string(), confirmacao: z.string() })
+  .refine((dados) => dados.senha === dados.confirmacao, { error: 'As senhas não conferem.' });
+
+Deno.test('regra entre campos sem caminho vira a mensagem geral do 400', async () => {
+  const resultado = await lerEntrada(
+    requisicao(JSON.stringify({ senha: 'a1b2c3d4', confirmacao: 'a1b2c3d5' })),
+    esquemaDaTroca,
+  );
+
+  assert(!resultado.ok);
+  assertEquals(resultado.resposta.status, 400);
+  assertEquals(await resultado.resposta.json(), {
+    error: { codigo: 'entrada_invalida', mensagem: 'As senhas não conferem.', campos: {} },
+  });
+});
+
+Deno.test('regra entre campos com caminho vai para o campo', async () => {
+  const esquema = z
+    .strictObject({ senha: z.string(), confirmacao: z.string() })
+    .refine((dados) => dados.senha === dados.confirmacao, {
+      error: 'Repita a mesma senha.',
+      path: ['confirmacao'],
+    });
+
+  const resultado = await lerEntrada(
+    requisicao(JSON.stringify({ senha: 'a1b2c3d4', confirmacao: 'x' })),
+    esquema,
+  );
+
+  assert(!resultado.ok);
+  assertEquals(
+    await resultado.resposta.json(),
+    camposRecusados({ confirmacao: 'Repita a mesma senha.' }),
+  );
 });

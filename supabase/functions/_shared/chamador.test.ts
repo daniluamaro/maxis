@@ -115,6 +115,16 @@ Deno.test('o acesso e o tenant são lidos com o token do chamador, sob a RLS', a
   }
 });
 
+Deno.test('tenant é qualquer uuid que o Postgres aceita, de qualquer versão', async () => {
+  const resultado = await identificar(
+    await emissor.assinar(MASTER_ALFA),
+    banco(MASTER_ATIVO, [{ tenant_id: '11111111-1111-1111-1111-111111111111' }]),
+  );
+
+  assert(resultado.ok);
+  assertEquals(resultado.valor.chamador.tenantId, '11111111-1111-1111-1111-111111111111');
+});
+
 Deno.test('o super_admin segue sem tenant: a empresa_ativa nula não o barra', async () => {
   const acesso = { ...MASTER_ATIVO, papel: 'super_admin', empresa_ativa: null };
 

@@ -30,7 +30,9 @@ export function problemasDaSenha(senha: string): string[] {
     problemas.push('A senha precisa ter letras e números.');
   }
   if (new TextEncoder().encode(senha).length > BYTES_MAXIMOS) {
-    problemas.push(`A senha pode ter no máximo ${BYTES_MAXIMOS} caracteres.`);
+    problemas.push(
+      `A senha é longa demais: use até ${BYTES_MAXIMOS} caracteres (letra acentuada conta como dois).`,
+    );
   }
   return problemas;
 }
@@ -53,7 +55,10 @@ export function gerarSenhaProvisoria(
 function sortearCaractere(sortear: Sorteio): string {
   const byte = new Uint8Array(1);
   for (;;) {
-    const [valor = LIMITE_DO_BYTE] = sortear(byte);
+    const [valor] = sortear(byte);
+    if (valor === undefined) {
+      throw new Error('A fonte de bytes aleatórios não devolveu nenhum byte.');
+    }
     if (valor < LIMITE_DO_BYTE) return ALFABETO.charAt(valor % ALFABETO.length);
   }
 }
