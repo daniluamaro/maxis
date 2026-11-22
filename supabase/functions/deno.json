@@ -33,9 +33,15 @@
   "tasks": {
     "hash-senha-seed": "deno run --no-prompt --allow-read=../../.env.local _seed/hashDaSenha.ts"
   },
+  "test": {
+    "permissions": { "env": true }
+  },
   "imports": {
     "@std/assert": "jsr:@std/assert@1.0.19",
-    "bcryptjs": "npm:bcryptjs@3.0.3"
+    "@supabase/server": "npm:@supabase/server@1.9.2",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.119.2",
+    "bcryptjs": "npm:bcryptjs@3.0.3",
+    "zod": "npm:zod@4.6.7"
   },
   "lock": {
     "path": "./deno.lock",

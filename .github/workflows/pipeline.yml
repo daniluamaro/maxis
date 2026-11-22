@@ -190,8 +190,10 @@ jobs:
       - name: Tipos
         run: deno check
 
+      # `-P`: as permissões vêm do `test.permissions` do deno.json (só ambiente, que o
+      # @supabase/server lê ao carregar); rede e arquivos continuam negados.
       - name: Testes
-        run: deno test
+        run: deno test -P
 
   deploy-backend:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
