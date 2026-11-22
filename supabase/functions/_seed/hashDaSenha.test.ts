@@ -43,6 +43,10 @@ Deno.test('lê o arquivo salvo com a quebra de linha do Windows', () => {
   assertEquals(lerSenhaDoSeed(env), SENHA);
 });
 
+Deno.test('lê o arquivo salvo com BOM, com a variável na primeira linha', () => {
+  assertEquals(lerSenhaDoSeed(`\uFEFFSENHA_SEED_DEV=${SENHA}\nOUTRA=1\n`), SENHA);
+});
+
 Deno.test('recusa o arquivo sem a variável (a comentada e a de nome parecido não contam)', () => {
   const env = [`# SENHA_SEED_DEV=${SENHA}`, `SENHA_SEED_DEV_ANTIGA=${SENHA}`].join('\n');
 
@@ -130,6 +134,29 @@ Deno.test('executar sem o .env.local avisa no erro e sai com 1', async () => {
   assertEquals(codigo, 1);
   assertEquals(saida.saidas, []);
   assertEquals(saida.erros, ['Não achei o .env.local na raiz do repositório.']);
+});
+
+Deno.test('executar sem permissão de leitura diz como rodar e sai com 1', async () => {
+  const semPermissao: Record<string, Error> = {
+    'fora da task (sandbox do Deno)': new Deno.errors.NotCapable('Requires read access'),
+    'arquivo sem leitura no sistema': new Deno.errors.PermissionDenied('Permission denied'),
+  };
+
+  for (const [caso, falha] of Object.entries(semPermissao)) {
+    const saida = saidaCapturada();
+
+    const codigo = await executar(() => Promise.reject(falha), saida);
+
+    assertEquals(codigo, 1, caso);
+    assertEquals(saida.saidas, [], caso);
+    assertEquals(
+      saida.erros,
+      [
+        'Sem permissão para ler o .env.local: rode `deno task hash-senha-seed` em supabase/functions e confira a permissão do arquivo.',
+      ],
+      caso,
+    );
+  }
 });
 
 Deno.test('executar com o valor fora do formato avisa sem repetir o valor e sai com 1', async () => {

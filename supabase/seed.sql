@@ -7,8 +7,8 @@
 --
 -- Idempotente e sem apagar nada (decisão 13: o dev é compartilhado, e a auditoria imutável prende o
 -- que existe). Reaplicar cria o que falta e devolve os dados do seed ao estado canônico do que muda
--- no uso: senha, `senha_provisoria` e `senha_alterada_em`, o `ativo` de quem não é `master_admin`,
--- nome e e-mail, e o cadastro e o bloqueio das empresas. Não reescreve o que é imutável: `papel`,
+-- no uso: senha e o que o login exige no Auth, `senha_provisoria` e `senha_alterada_em`, o `ativo`
+-- de quem não é `master_admin`, nome e e-mail, e o cadastro e o bloqueio das empresas. Não reescreve o que é imutável: `papel`,
 -- `tenant_id` e o `ativo` do `master_admin` (STEP 1.3). Reaplicar sem mudança não grava nenhuma
 -- linha: o resumo do fim mostra quantas cada passo gravou.
 --
@@ -136,15 +136,20 @@ with gravados as (
     now(), now(), '', '', '', '', '', '', '', ''
   from seed_usuarios as u
     cross join (values ('$2b$10$IZR6AQD9f9u40YX5ZdmQsOylwDOOTEK3AHGPWJFmTlPXKTkiqcugi')) as senha (hash)
+  -- O que o login exige volta ao canônico: e-mail, senha, confirmação, sem ban, sem exclusão
+  -- lógica e o provedor no app_metadata
   on conflict (id) do update set
     email = excluded.email,
     encrypted_password = excluded.encrypted_password,
     email_confirmed_at = coalesce(atual.email_confirmed_at, excluded.email_confirmed_at),
     banned_until = null,
+    deleted_at = null,
+    raw_app_meta_data = excluded.raw_app_meta_data,
     updated_at = now()
   where (atual.email, atual.encrypted_password, atual.email_confirmed_at is not null,
-      atual.banned_until)
-    is distinct from (excluded.email, excluded.encrypted_password, true, null)
+      atual.banned_until, atual.deleted_at, atual.raw_app_meta_data)
+    is distinct from (excluded.email, excluded.encrypted_password, true, null, null,
+      excluded.raw_app_meta_data)
   returning 1
 )
 insert into seed_resumo (passo, gravadas) select 'auth.users', count(*) from gravados;

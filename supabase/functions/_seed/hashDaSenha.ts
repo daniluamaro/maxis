@@ -17,6 +17,8 @@ const CUSTO_DO_BCRYPT = 10;
 const FORMATO = /^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{24,72}$/;
 
 const NAO_ACHEI_O_ARQUIVO = 'Não achei o .env.local na raiz do repositório.';
+const SEM_PERMISSAO =
+  'Sem permissão para ler o .env.local: rode `deno task hash-senha-seed` em supabase/functions e confira a permissão do arquivo.';
 const FALHA_INESPERADA = 'Falha inesperada ao gerar o hash; nenhum valor foi impresso.';
 
 /** Erro com mensagem própria, que nunca contém o valor da senha. */
@@ -30,7 +32,9 @@ export interface Saida {
 /** A senha da linha `SENHA_SEED_DEV=<valor>` do conteúdo do `.env.local`. */
 export function lerSenhaDoSeed(conteudoDoEnv: string): string {
   const prefixo = `${VARIAVEL}=`;
+  // O BOM e o CRLF de editores do Windows não fazem parte da linha
   const valores = conteudoDoEnv
+    .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .filter((linha) => linha.startsWith(prefixo))
     .map((linha) => linha.slice(prefixo.length));
@@ -64,6 +68,11 @@ export async function executar(lerEnv: () => Promise<string>, saida: Saida): Pro
       saida.escreverErro(erro.message);
     } else if (erro instanceof Deno.errors.NotFound) {
       saida.escreverErro(NAO_ACHEI_O_ARQUIVO);
+    } else if (
+      // NotCapable: o sandbox do Deno (fora da task); PermissionDenied: a permissão do arquivo
+      erro instanceof Deno.errors.NotCapable || erro instanceof Deno.errors.PermissionDenied
+    ) {
+      saida.escreverErro(SEM_PERMISSAO);
     } else {
       // A mensagem de uma falha qualquer pode carregar o conteúdo do arquivo: não sai
       saida.escreverErro(FALHA_INESPERADA);
