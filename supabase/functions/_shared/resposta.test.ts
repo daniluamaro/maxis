@@ -1,6 +1,6 @@
 import { assertEquals, assertMatch, assertStringIncludes } from '@std/assert';
 import { capturandoConsoleError } from './consoleDeTeste.ts';
-import { erro, erroInterno, sucesso } from './resposta.ts';
+import { erro, erroDeValidacao, erroInterno, sucesso } from './resposta.ts';
 
 const MENSAGEM_DO_ERRO_INTERNO =
   'Não foi possível concluir a operação. Tente de novo em instantes.';
@@ -24,6 +24,23 @@ Deno.test('erro responde { error: { codigo, mensagem } } em JSON, com o status p
   assertMatch(resposta.headers.get('content-type') ?? '', /^application\/json\b/);
   assertEquals(await resposta.json(), {
     error: { codigo: 'email_em_uso', mensagem: 'Já existe um usuário com este e-mail.' },
+  });
+});
+
+Deno.test('erroDeValidacao responde 400 com a mensagem de cada campo, para o formulário', async () => {
+  const resposta = erroDeValidacao({
+    email: 'Informe um e-mail válido.',
+    tenant_id: 'Campo não permitido.',
+  });
+
+  assertEquals(resposta.status, 400);
+  assertEquals(resposta.headers.get('cache-control'), 'no-store');
+  assertEquals(await resposta.json(), {
+    error: {
+      codigo: 'entrada_invalida',
+      mensagem: 'Revise os campos destacados.',
+      campos: { email: 'Informe um e-mail válido.', tenant_id: 'Campo não permitido.' },
+    },
   });
 });
 

@@ -31,6 +31,20 @@ export function erro(status: StatusDeErro, codigo: string, mensagem: string): Re
   return corpoDeErro(status, codigo, mensagem);
 }
 
+/**
+ * Entrada recusada pela validação: além do `{ codigo, mensagem }` padrão, a mensagem de cada campo
+ * (pelo nome do campo da entrada), para o formulário mostrar ao lado dele.
+ */
+export function erroDeValidacao(campos: Record<string, string>): Response {
+  return respostaJson(
+    { error: { codigo: 'entrada_invalida', mensagem: 'Revise os campos destacados.', campos } },
+    400,
+  );
+}
+
+/** Passo que pode parar a requisição: segue com o valor, ou devolve a resposta pronta. */
+export type Resultado<T> = { ok: true; valor: T } | { ok: false; resposta: Response };
+
 /** Falha inesperada: quem chamou nunca recebe o detalhe (stack, mensagem do Postgres). */
 export function erroInterno(): Response {
   return corpoDeErro(500, 'erro_interno', MENSAGEM_DO_ERRO_INTERNO);
