@@ -88,10 +88,11 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.3 — Imutabilidade do `master_admin`
 **Entrega:** o dono da empresa não pode ser rebaixado, movido nem desativado por engano.
-- [ ] **Testes primeiro:** alterar `papel`, `tenant_id` ou `ativo` de um `master_admin` falha; um update que não muda esses campos passa (o seed reaplica sem erro, STEP 1.7); o caminho do Admin SaaS (operação privilegiada explícita) continua possível; outros papéis não são afetados
-- [ ] Migration `<versão>_f01_protege_master_admin`: trigger em `profiles` que bloqueia essas alterações fora do caminho privilegiado (mecanismo exato — ex.: flag de sessão definida só pela Edge Function — fixado no PR e registrado aqui)
+- [x] **Testes primeiro:** alterar `papel`, `tenant_id` ou `ativo` de um `master_admin` falha; um update que não muda esses campos passa (o seed reaplica sem erro, STEP 1.7); o caminho do Admin SaaS (operação privilegiada explícita) continua possível; outros papéis não são afetados *(`master_admin_imutavel_test.sql`, 28 asserções, com a exclusão do code-review)*
+- [x] Migration `20261122034817_f01_protege_master_admin`: trigger em `profiles` que bloqueia essas alterações fora do caminho privilegiado *(mais a `20261122042412_f01_protege_exclusao_master_admin`, do code-review: a exclusão, direta ou pela cascata do Auth, também passa pela autorização)*
+- [x] **Mecanismo fixado (decisão do Danilo, 22/11/2026):** marca da transação. O trigger `trg_proteger_master_admin` (`before update`, com `when` que compara os três campos) e o `trg_proteger_exclusao_master_admin` (`before delete`) chamam `private.proteger_master_admin()`, que recusa (`42501`) sem a marca `maxis.alteracao_master_admin` igual ao id da transação corrente. A marca é gravada por `private.autorizar_alteracao_master_admin()`, que só o dono do banco executa. Vale para todo papel, inclusive `service_role` e `postgres`; uma marca fixa ou vazada de outra transação (conexão do pool) não vale. É proteção contra engano: quem roda SQL livre (na prática, só o dono do banco) pode gravar a marca sem a procedure. **Desvio do exemplo do plano:** a Edge Function (`service_role`) não autoriza sozinha — na v1 não há caminho no código; a troca do titular (backlog da Fase 4) chega por uma RPC própria, `security definer` e só para `service_role`, justificada no plano daquela fase
 
-**Verificação:** testes verdes.
+**Verificação:** testes verdes *(no dev, pelo MCP e pelo `test db`: 6 arquivos, 182 asserções; mutação com 22 mutantes, 21 pegos e o sobrevivente inofensivo)*.
 
 ### STEP 1.4 — `eventos_auditoria`
 **Entrega:** rastro imutável das ações privilegiadas.
@@ -245,6 +246,8 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 - **Caminho direto do Auth para trocar a senha:** o GoTrue aceita a troca pelo token do próprio usuário, fora da `trocar-senha` (sem senha atual, sem auditoria e sem encerrar sessões). A `senha_provisoria` continua só na função, e o tratamento do resto é decidido no STEP 1.10.
 - **Resíduo no dev:** a auditoria imutável prende no dev as empresas e os usuários criados pela integração. Ficam identificáveis (razão social e e-mail próprios de teste); a tela do Admin SaaS (Fase 4) vai listá-los no dev — tratar quando ela chegar.
 - **Token do dev com escrita em Edge Functions:** o escopo continua só o projeto de dev, e o código publicado é o do PR, que passa pelos mesmos portões. PR de fork não recebe os secrets do `development` e fica barrado, como já acontece com o `banco`.
+- **Promoção a `master_admin` fora da proteção** (decisão do Danilo no STEP 1.3): mudar outro papel para `master_admin` só é possível em empresa sem dono (o índice único barra o resto) e nenhuma Edge Function da v1 faz isso. Decidir junto com a troca do titular, no backlog da Fase 4.
+- **Compensação do provisionamento × `master_admin`:** desde o STEP 1.3, o `master_admin` não sai do Auth sem a autorização da transação, nem recém-criado. A compensação do STEP 1.9 continua valendo porque apaga o usuário do Auth **antes** de o profile existir; um passo que falhe depois do profile não pode compensar apagando o usuário.
 - **Hash da senha do seed no repositório público:** a senha é aleatória e forte (sem ataque de dicionário viável) e só vale no dev. Trocá-la exige hash novo no seed, `.env.local` e secret, juntos.
 
 ## 9. Status dos Entregáveis
@@ -253,7 +256,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 |---|---|---|---|
 | 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
-| 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
+| 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
