@@ -194,11 +194,11 @@ Somente inserção (append-only). Gravada **apenas** por Edge Functions/RPCs pri
 | `id` | `uuid` | PK, `default gen_random_uuid()` — sempre do banco | 1 |
 | `tenant_id` | `uuid` | FK `→ empresas(id)`, sem `on delete` (o evento prende a empresa); empresa afetada; nulo só em evento do SaaS sem empresa | 1 |
 | `ator_profile_id` | `uuid` | FK `→ profiles(id)`, sem `on delete` (o evento prende o ator no Auth); quem executou; nulo = sistema | 1 |
-| `acao` | `text` | `not null`, formato `dominio.evento` em minúsculas com sublinhado: `check (acao ~ '^[a-z_]+[.][a-z_]+$')`, com as classes escritas por extenso (`eventos_auditoria_acao_check`) | 1 |
+| `acao` | `text` | `not null`, formato `dominio.evento` em minúsculas: cada segmento começa e termina com letra, e o sublinhado só aparece entre letras — `check (acao ~ '^[a-z]+(_[a-z]+)*[.][a-z]+(_[a-z]+)*$')`, com as classes escritas por extenso (`eventos_auditoria_acao_check`) | 1 |
 | `alvo_tabela` | `text` | tabela afetada (ex.: `profiles`) | 1 |
 | `alvo_id` | `uuid` | id do registro afetado (sem FK: o alvo pode ser de qualquer tabela) | 1 |
 | `detalhes` | `jsonb` | contexto (antes/depois relevantes). **Nunca** senha, token ou chave. | 1 |
-| `created_at` | `timestamptz` | `not null default now()` — sempre do banco: o rastro não escolhe a própria data | 1 |
+| `created_at` | `timestamptz` | `not null default clock_timestamp()` — sempre do banco: o rastro não escolhe a própria data. O momento da gravação, não o início da transação (`now()`): os eventos de uma mesma transação ficam em ordem | 1 |
 
 **Ações iniciais** (a lista cresce por fase; registrar aqui): `empresa.criada`, `empresa.atualizada`, `empresa.bloqueada`, `empresa.desbloqueada` (Fase 4) · `usuario.criado`, `usuario.senha_alterada` (Fase 1) · `usuario.senha_resetada`, `usuario.ativado`, `usuario.desativado`, `usuario.atualizado` (Fases 4, 7) · `perfil.criado`, `perfil.atualizado`, `perfil.excluido` (Fase 5) · `unidade_gerencial.criada`, `unidade_gerencial.atualizada`, `unidade_gerencial.desativada`, `unidade_gerencial.reativada`, `setor.criado`, `setor.atualizado`, `setor.desativado`, `setor.reativado`, `lider.criado`, `lider.atualizado`, `lider.desativado`, `lider.reativado` (Fase 6).
 

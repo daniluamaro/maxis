@@ -16,7 +16,7 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(42);
+insert into tap (linha) select plan(49);
 
 -- Evento de teste, gravado como postgres (o dono da tabela). Só este arquivo grava eventos
 create function pg_temp.criar_evento(acao_evento text, tenant uuid, ator uuid)
@@ -129,6 +129,11 @@ insert into tap (linha) select ok(
    from public.eventos_auditoria where id = pg_temp.id('EA_MA')),
   'id e created_at vêm do banco'
 );
+insert into tap (linha) select ok(
+  (select created_at from public.eventos_auditoria where id = pg_temp.id('ES'))
+    > (select created_at from public.eventos_auditoria where id = pg_temp.id('EA_MA')),
+  'eventos da mesma transação ficam em ordem (a data é a da gravação, não a do início)'
+);
 insert into tap (linha) select lives_ok(
   $$select pg_temp.criar_evento('unidade_gerencial.reativada', null, null)$$,
   'ação no formato dominio.evento, com sublinhado, é aceita'
@@ -156,6 +161,22 @@ insert into tap (linha) select throws_ok(
 insert into tap (linha) select throws_ok(
   $$select pg_temp.criar_evento('perfil2.criado', null, null)$$, '23514', null,
   'ação com dígito é recusada'
+);
+insert into tap (linha) select throws_ok(
+  $$select pg_temp.criar_evento('_._', null, null)$$, '23514', null,
+  'ação só com sublinhados é recusada'
+);
+insert into tap (linha) select throws_ok(
+  $$select pg_temp.criar_evento('_usuario.criado', null, null)$$, '23514', null,
+  'segmento começando com sublinhado é recusado'
+);
+insert into tap (linha) select throws_ok(
+  $$select pg_temp.criar_evento('usuario_.criado', null, null)$$, '23514', null,
+  'segmento terminando com sublinhado é recusado'
+);
+insert into tap (linha) select throws_ok(
+  $$select pg_temp.criar_evento('usuario.senha__alterada', null, null)$$, '23514', null,
+  'sublinhado repetido é recusado'
 );
 insert into tap (linha) select throws_ok(
   $$select pg_temp.criar_evento(null, null, null)$$, '23502', null,
@@ -189,6 +210,17 @@ insert into tap (linha) select throws_ok(
   'truncate public.eventos_auditoria',
   '42501', 'eventos_auditoria é imutável: só aceita inserção',
   'o dono do banco não esvazia a tabela'
+);
+-- O trigger é por comando: barra até o que não acha linha
+insert into tap (linha) select throws_ok(
+  'update public.eventos_auditoria set detalhes = null where false',
+  '42501', 'eventos_auditoria é imutável: só aceita inserção',
+  'nem um update que não acha linha passa'
+);
+insert into tap (linha) select throws_ok(
+  'delete from public.eventos_auditoria where false',
+  '42501', 'eventos_auditoria é imutável: só aceita inserção',
+  'nem um delete que não acha linha passa'
 );
 
 -- Nenhuma escrita pelo cliente, nem pelo master_admin

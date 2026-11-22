@@ -137,7 +137,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [ ] CORS do `_shared` (pendências do STEP 0.11): cabeçalhos permitidos vindos do `corsHeaders` do `@supabase/supabase-js`, no lugar da lista copiada à mão; localhost aceito **só no dev**, decidido pelo `SUPABASE_URL` que a plataforma injeta
 - [ ] Validação de entrada com schema tipado → erro 400 com mensagem pt-BR por campo
 - [ ] Política de senha (mínimo 8, letras + números) e gerador de senha provisória (decisão 4)
-- [ ] Registro em `eventos_auditoria` (com garantia de nunca incluir senha/token em `detalhes`)
+- [ ] Registro em `eventos_auditoria` (com garantia de nunca incluir senha/token em `detalhes`). Desde o STEP 1.4, a `service_role` só insere, e só as colunas do evento: insert simples, sem `.select()`, `upsert` nem `return=representation` (falham com `42501`), e sem mandar `id` nem `created_at`
 
 **Verificação:** `deno fmt/lint/check/test` verdes; teste prova que o gerador nunca produz caractere ambíguo e sempre atende a política.
 
