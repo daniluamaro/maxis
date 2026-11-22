@@ -28,7 +28,7 @@ Portões, verdes antes de todo commit (o CI roda os mesmos, mais a auditoria das
 
 ```bash
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
-(cd supabase/functions && deno fmt --check && deno lint && deno check && deno test)
+(cd supabase/functions && deno fmt --check && deno lint && deno check && deno test -P)
 ```
 
 Todos os comandos: [frontend/CLAUDE.md §15](frontend/CLAUDE.md) e [supabase/CLAUDE.md §12](supabase/CLAUDE.md). Variáveis do frontend: [frontend/.env.example](frontend/.env.example). Senha dos usuários do seed do dev: [.env.example](.env.example).
