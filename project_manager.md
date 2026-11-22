@@ -868,6 +868,19 @@ Mantido: **promoção a `master_admin` desprotegida** (decisão 2 do Danilo).
 **No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations registradas, os dois triggers em `profiles` e as duas funções com `execute` só do `postgres`.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.4, aguardando aprovação. |
+| 22/11/2026 | Danilo aprova o STEP 1.3 (PR #19).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes. No `banco`, o `pg_prove` rodou os 6 arquivos (182 asserções), PASS, inclusive o `master_admin_imutavel_test.sql` (28).
+
+**Desvios aceitos:**
+- a Edge Function não autoriza sozinha: só o dono do banco autoriza, e a troca do titular chega na Fase 4 por uma RPC própria, `security definer`, só para `service_role`;
+- a exclusão do `master_admin` no escopo, numa 2ª migration (`f01_protege_exclusao_master_admin`).
+
+**Também aceitas:** as decisões 1–4 do STEP (erro `42501` com mensagem própria para alteração e exclusão, trigger sem `update of`, autorização por procedure, marca como proteção contra engano sem endurecer com `current_user`) e os achados do code-review (4 corrigidos, 1 mantido).
+
+**Riscos novos na §8 do plano:** promoção a `master_admin` fora da proteção (decidir com a troca do titular, Fase 4); a compensação do STEP 1.9 vale só antes de o profile existir.
+
+**No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, os dois triggers e o `execute` das duas funções só do `postgres`. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.4. |
 
 ---
 
