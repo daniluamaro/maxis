@@ -77,7 +77,7 @@
 |---|---|---|---|
 | 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
-| 3 | Imutabilidade do `master_admin` | 1.3 | ⬜ |
+| 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
@@ -819,6 +819,55 @@ Fora do commit: `.claude/`. Próximo: STEP 1.3, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 22/11/2026 | **STEP 1.3 ✅** (branch `chore/step-1.3-protege-master-admin`, PR).
+
+**Decisões do Danilo** (perguntadas no STEP, antes de aplicar no dev):
+1. **Mecanismo: marca da transação.** A alteração legítima passa por `private.autorizar_alteracao_master_admin()`, que só o dono do banco executa e que grava o id da transação corrente em `maxis.alteracao_master_admin`. Recusadas: a marca simples `'on'` (um `set_config` de sessão vazado numa conexão do pool desligaria a proteção para os pedidos seguintes) e a checagem só pelo papel (não protegeria o seed nem a manutenção, que rodam como `postgres`).
+2. **Promoção a `master_admin` fora deste STEP:** segue o plano ("outros papéis não são afetados"); risco registrado na §8 do plano, para decidir com a troca do titular (Fase 4).
+3. **Exclusão protegida agora** (achado do code-review): migration nova no mesmo PR.
+
+**Entregue:**
+- migration `20261122034817_f01_protege_master_admin`: `private.proteger_master_admin()` (trigger, `security invoker`, `search_path` vazio), `private.autorizar_alteracao_master_admin()` (procedure) e o trigger `trg_proteger_master_admin` (`before update`), com `execute` revogado de `PUBLIC` nas duas;
+- migration `20261122042412_f01_protege_exclusao_master_admin` (achado do code-review, abaixo): a função passa a cobrir o delete e nasce o `trg_proteger_exclusao_master_admin` (`before delete`);
+- teste `master_admin_imutavel_test.sql` (28 asserções);
+- `modelo-dados.md` §4 e §5.2; plano com o mecanismo fixado e dois riscos novos na §8.
+
+**Decisões tomadas no STEP (para conferência):**
+1. Erro `42501` (`insufficient_privilege`) com mensagem própria, uma para o update e outra para a exclusão: os testes conferem a mensagem exata, e assim não se confundem com a falta de grant, que também é `42501`.
+2. Trigger de update **sem** `update of <colunas>`: o `when` compara os valores, inclusive os que um trigger anterior tenha mudado, e a função só roda quando um dos três muda de fato.
+3. A autorização é uma **procedure**, e não um `set_config` escrito à mão: o nome e o formato da marca ficam num lugar só, ao lado do trigger. O `revoke` evita que um caminho do código a chame por engano.
+4. As duas funções `security invoker`: o trigger não lê tabela nenhuma, e a autorização só grava a marca.
+
+**Verificado:**
+- TDD com RED pelo motivo certo antes de cada GREEN: na 1ª migration, 12 falhas ("no exception" nas alterações; trigger e procedure inexistentes); na 2ª, as 3 da exclusão (trigger inexistente; "no exception" nas duas exclusões).
+- Cada migration ensaiada dentro da transação do teste (22/22 e 28/28) antes do `apply_migration`; os arquivos têm o mesmo md5 do que o dev registrou.
+- No dev real, pelo `test db` (o caminho do CI): 6 arquivos, 182 asserções, PASS — inclusive o guardião com as duas funções novas no `private`.
+- **Mutação** (pelo MCP, no dev real): 22 mutantes; o original não acusou nada; 21 pegos — sem cada trigger, `when` sem comparar os valores, sem cada um dos três campos, `when` com `new.papel`, função que nunca recusa, que isenta o `postgres`, marca simples `'on'`, qualquer marca não vazia, função que sempre recusa, autorização com valor fixo, autorização para `service_role` ou sem o `revoke` de `PUBLIC`, função do trigger sem o `revoke` (pego pelo guardião), `security definer`, exclusão sem o `when`, função que devolve `new` no delete (a exclusão cancelada em silêncio, pega só pela conferência de que o profile saiu), uma só mensagem, delete sem a checagem. **Sobrevive** a autorização gravada na sessão (`set_config(…, false)`): dentro da transação ela se comporta igual, e fora dela a marca leva o id de uma transação passada, que não vale em nenhuma outra — é o que o id da transação garante.
+- Advisors do dev: segurança sem alerta; performance só com o `multiple_permissive_policies` aceito no STEP 1.2.
+- Tipos do frontend regenerados do dev (`--schema public`): sem diferença (a mudança é toda no `private`).
+- Nenhum resíduo no dev (zero linhas em `empresas`, `profiles` e `auth.users`; pgTAP desinstalado); ACL das duas funções só `postgres`.
+- Portões: os cinco do frontend verdes (178 testes) e os quatro do Deno (14). O `format:check` acusou só o `.claude/settings.json`, local e fora do commit; o Prettier sobre os arquivos versionados passa.
+
+**Code-review (medium), 5 achados.**
+
+Corrigidos:
+- **exclusão do `master_admin` sem proteção:** pela cascata do `auth.users` (o `auth.admin.deleteUser`) ou por um `delete` do dono do banco. Migration nova (decisão 3 do Danilo), com a compensação do provisionamento provada (o user recém-criado sai do Auth);
+- **teste da marca "de outra transação" com o literal `'1'`:** passou a usar o id real da transação anterior, o que uma marca vazada carregaria;
+- **plano sem o mecanismo registrado:** este commit, com o desvio do exemplo do plano — a Edge Function não autoriza sozinha; a troca do titular chega na Fase 4 por uma RPC própria, `security definer`, só para `service_role`;
+- **"a marca não se falsifica" exagerado na documentação:** quem roda SQL livre grava a marca sem a procedure. O `modelo-dados.md §4` agora diz que é proteção contra engano. Na prática, só o dono do banco roda SQL livre: `service_role` e `authenticated` não fazem login (conferido no dev) e chegam ao banco só pela Data API. Não endureci com `current_user`: o ganho seria só contra quem já pode desligar o trigger.
+
+Mantido: **promoção a `master_admin` desprotegida** (decisão 2 do Danilo).
+
+**Para os próximos STEPs e fases:**
+- 1.7: o seed reaplica o `master_admin` com os mesmos valores sem erro (provado com o upsert); reescrever `papel`, `tenant_id` ou `ativo` dele falha.
+- 1.9: a compensação apaga o usuário do Auth só **antes** de o profile existir; depois dele, o `master_admin` não sai.
+- 1.10: a `trocar-senha` desmarca a `senha_provisoria` do `master_admin` normalmente (provado).
+- 1.11: o bootstrap é `insert`, fora dos triggers.
+- Fase 4, na revisão do plano: a troca do titular por RPC `security definer` só para `service_role`, que chama a autorização; e a decisão sobre a promoção.
+
+**No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations registradas, os dois triggers em `profiles` e as duas funções com `execute` só do `postgres`.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.4, aguardando aprovação. |
 
 ---
 
