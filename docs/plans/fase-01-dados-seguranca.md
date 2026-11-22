@@ -132,16 +132,16 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.8 — Código compartilhado das Edge Functions
 **Entrega:** blocos reutilizáveis para toda função privilegiada.
-- [ ] **Testes primeiro (`deno test`)** para cada módulo abaixo
-- [ ] Identificação do chamador pelo JWT com `@supabase/server` (`createSupabaseContext({ auth: 'user' })`) dentro do `comCors`, com a versão exata fixada no `deno.json` da função (API conferida no Context7 antes de começar)
-- [ ] Carga do profile do chamador com checagem de `ativo` e empresa ativa
-- [ ] Cliente admin criado **por requisição** a partir de `SUPABASE_SECRET_KEYS` (chave `default`), nunca exportado como instância
-- [ ] CORS do `_shared` (pendências do STEP 0.11): cabeçalhos permitidos vindos do `corsHeaders` do `@supabase/supabase-js`, no lugar da lista copiada à mão; localhost aceito **só no dev**, decidido pelo `SUPABASE_URL` que a plataforma injeta
-- [ ] Validação de entrada com schema tipado → erro 400 com mensagem pt-BR por campo
-- [ ] Política de senha (mínimo 8, letras + números) e gerador de senha provisória (decisão 4)
-- [ ] Registro em `eventos_auditoria` (com garantia de nunca incluir senha/token em `detalhes`). Desde o STEP 1.4, a `service_role` só insere, e só as colunas do evento: insert simples, sem `.select()`, `upsert` nem `return=representation` (falham com `42501`), e sem mandar `id` nem `created_at`
+- [x] **Testes primeiro (`deno test`)** para cada módulo abaixo *(56 testes no `_shared`, os novos com RED antes do GREEN; mutação com 62 mutantes, todos pegos e compilando. Os testes rodam com `deno test -P`: o `@supabase/server` lê variáveis de ambiente ao carregar, e o `test.permissions` do `deno.json` concede só ambiente)*
+- [x] Identificação do chamador pelo JWT com `@supabase/server` (`createSupabaseContext({ auth: 'user' })`) dentro do `comCors`, com a versão exata fixada no `deno.json` da função (API conferida no Context7 antes de começar) *(`_shared/chamador.ts`, `identificarChamador`; `@supabase/server` 1.9.2, com o emissor preso ao projeto (`issuer: fromSupabaseUrl`); testes com o SDK real, JWT ES256 assinado no teste e JWKS injetado. Versões no `deno.json` da pasta das funções: o da função nasce com ela, no 1.9)*
+- [x] Carga do profile do chamador com checagem de `ativo` e empresa ativa *(pelo `obter_meu_acesso()` e pelo profile, os dois com o token do chamador, sob a RLS; 403 para inativo, empresa bloqueada, JWT sem profile e senha provisória pendente, exceto na função que aceita; campo nulo nunca libera)*
+- [x] Cliente admin criado **por requisição** a partir de `SUPABASE_SECRET_KEYS` (chave `default`), nunca exportado como instância *(o `supabaseAdmin` do contexto do SDK, que lê a chave `default`; provado por teste que é um por requisição)*
+- [x] CORS do `_shared` (pendências do STEP 0.11): cabeçalhos permitidos vindos do `corsHeaders` do `@supabase/supabase-js`, no lugar da lista copiada à mão; localhost aceito **só no dev**, decidido pelo `SUPABASE_URL` que a plataforma injeta *(pela origem da URL, igual à do projeto de dev; sem ela, ou com outra, só o domínio de produção)*
+- [x] Validação de entrada com schema tipado → erro 400 com mensagem pt-BR por campo *(`_shared/validacao.ts`, `lerEntrada`, com zod 4.6.7: `entrada_invalida` com `campos`, e a mensagem geral para a regra entre campos; `corpo_invalido` quando o corpo não é objeto JSON; nenhuma mensagem repete o valor)*
+- [x] Política de senha (mínimo 8, letras + números) e gerador de senha provisória (decisão 4) *(`_shared/senha.ts`; também o limite de 72 bytes do bcrypt; sorteio sem viés de módulo)*
+- [x] Registro em `eventos_auditoria` (com garantia de nunca incluir senha/token em `detalhes`). Desde o STEP 1.4, a `service_role` só insere, e só as colunas do evento: insert simples, sem `.select()`, `upsert` nem `return=representation` (falham com `42501`), e sem mandar `id` nem `created_at` *(`_shared/auditoria.ts`, `registrarEvento`: o pedido HTTP provado por teste; credencial recusada pelo nome do campo e pelo formato do valor)*
 
-**Verificação:** `deno fmt/lint/check/test` verdes; teste prova que o gerador nunca produz caractere ambíguo e sempre atende a política.
+**Verificação:** `deno fmt/lint/check/test` verdes; teste prova que o gerador nunca produz caractere ambíguo e sempre atende a política. *(22/11/2026: os quatro portões verdes, 56 testes no `_shared` e 70 no total. Prova além do plano: o `identificarChamador` contra o dev, com tokens do Auth do dev e o JWKS público dele (só a chave EC P-256, tokens ES256), deixou passar o `master_admin`, o `admin` e o `super_admin` e recusou o inativo, a empresa bloqueada e a senha provisória.)*
 
 ### STEP 1.9 — Edge Function `provisionar-usuario`
 **Entrega:** criação de usuário em cascata, sem SMTP, e a integração rodando no CI.
@@ -157,6 +157,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [ ] Handler fino: valida entrada (`papel`, `nome`, `email`, `telefone?`, `tenant_id?`) → aplica a cascata → cria no Auth com senha provisória e `email_confirm: true` → cria o profile (`senha_provisoria = true`, `created_by` = chamador) → **se o profile falhar, remove o usuário do Auth** → grava `usuario.criado` → responde `{ data: { profile_id, email, senha_provisoria } }`
 - [ ] A senha provisória aparece **só** nessa resposta — nunca em log, banco ou auditoria
 - [ ] `[functions.provisionar-usuario]` com `verify_jwt = true` explícito no `config.toml`
+- [ ] `deno.json` da função com as mesmas versões do `deno.json` da pasta (`@supabase/server`, `@supabase/supabase-js`, `zod`), e o deploy conferido: o `functions deploy --use-api` resolve os imports do `_shared` pelo `deno.json` da função (STEP 1.8)
 - [ ] **Teste de integração** contra a função publicada no dev, com os usuários do seed como chamadores: `super_admin` cria `master_admin` numa empresa sem dono (criada a cada execução, com CNPJ único: o `master_admin` criado fica no dev, decisão 13); `master_admin` da empresa A tenta criar na B → 403; segundo `master_admin` → 409; e-mail repetido → 409; usuário recém-criado consegue autenticar com a senha provisória; o cadastro público pela API (chave publishable) é recusado com `signup_disabled` *(aceito pelo Danilo no STEP 1.6: pega no PR uma mudança no `config.toml` antes de ela chegar ao Auth)*
 - [ ] Teste de compensação: falha forçada na criação do profile não deixa usuário órfão no Auth (no módulo, com a falha injetada; na integração, com o conflito montado por fixture — ex.: o profile de outro usuário já com o e-mail pedido, já que `profiles.email` é só uma cópia: o Auth cria, o insert do profile falha no `unique`)
 - [ ] No dev publicado: preflight com `verify_jwt` responde; o 401 da plataforma chega legível ao navegador; localhost aceito só no dev (pendências do STEP 0.11)
@@ -268,7 +269,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ✅ |
 | 7 | Seed do dev | 1.7 | ✅ |
-| 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
+| 8 | Código compartilhado das Edge Functions | 1.8 | ✅ |
 | 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
 | 10 | Edge Function `trocar-senha` | 1.10 | ⬜ |
 | 11 | Primeiro `super_admin` em produção | 1.11 | ⬜ |

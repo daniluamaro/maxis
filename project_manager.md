@@ -82,7 +82,7 @@
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ✅ |
 | 7 | Seed do dev | 1.7 | ✅ |
-| 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
+| 8 | Código compartilhado das Edge Functions | 1.8 | ✅ |
 | 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
 | 10 | Edge Function `trocar-senha` | 1.10 | ⬜ |
 | 11 | Primeiro `super_admin` em produção | 1.11 | ⬜ |
@@ -127,6 +127,7 @@
 | 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. **Complemento (22/11/2026, STEP 1.7):** §10: o valor da senha fica na variável `SENHA_SEED_DEV`, no `.env.local` da raiz e no secret de mesmo nome do `development`; §12: o comando `deno task hash-senha-seed` (em `supabase/functions`), que gera o hash do seed. | Aprovada (14/11/2026; complemento em 22/11/2026) · aplicar sob autorização (no STEP 1.9) |
 | 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
 | 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | ✅ Aplicada em 22/11/2026 |
+| 27 | `supabase/CLAUDE.md §8/§12` | Registrar o que o STEP 1.8 fixou no `_shared`. **§8, passo 3 do fluxo:** além de papel, `ativo` e tenant, a função confere que a **senha provisória já foi trocada**; só a `trocar-senha` aceita a provisória (`identificarChamador`, `aceitarSenhaProvisoria`). **§8, resposta padrão:** o 400 de validação leva também `campos`, a mensagem de cada campo: `{ error: { codigo: 'entrada_invalida', mensagem, campos } }`, com a `mensagem` geral para a regra entre campos; o corpo que não é objeto JSON recebe `corpo_invalido`. **§12:** `deno test -P` no lugar de `deno test`: o `@supabase/server` lê variáveis de ambiente ao carregar, e o `test.permissions` do `deno.json` concede só ambiente (rede e arquivos seguem negados). | Proposta (22/11/2026) · aplicar sob autorização |
 
 ---
 
@@ -1256,6 +1257,64 @@ Fora do commit: `.claude/`. Próximo: STEP 1.8, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (28 testes);
 - `git fetch --prune`: só a `main`. |
+| 22/11/2026 | **STEP 1.8 ✅** (branch `chore/step-1.8-codigo-compartilhado`, PR).
+
+**Versões** (npm e Context7, conferidas antes de começar):
+- `@supabase/server` **1.9.2** (12/10, a API do `createSupabaseContext` conferida no Context7);
+- `@supabase/supabase-js` **2.119.2** (19/11): a 2.119.0 mais duas correções, a última de segurança no Storage;
+- `zod` **4.6.7** (12/10).
+
+As 15 entradas npm do lock têm a integridade igual à do registro; nenhum alerta no GitHub Advisory para nenhuma delas. As dependências opcionais do `@supabase/server` (hono, elysia, h3, pg, nestjs) não entraram.
+
+**Entregue (`supabase/functions/_shared/`):**
+- `chamador.ts`: `identificarChamador`, com o JWT pelo `createSupabaseContext` (modo `user`, emissor preso ao projeto). Confere o acesso pelo `obter_meu_acesso()` e o tenant pelo profile, os dois com o token do chamador. Devolve o chamador, o cliente sob RLS e o `admin` da requisição;
+- `validacao.ts`: `lerEntrada`, com o corpo JSON e o schema zod, e o 400 com a mensagem de cada campo;
+- `senha.ts`: `problemasDaSenha` e `gerarSenhaProvisoria`;
+- `auditoria.ts`: `registrarEvento`;
+- `cors.ts`: as duas pendências do STEP 0.11;
+- `resposta.ts`: `erroDeValidacao` e o tipo `Resultado`;
+- `jwtDeTeste.ts` e `fetchDeTeste.ts`, só para testes, como o `consoleDeTeste.ts`.
+- Testes com `deno test -P` (CI e README atualizados).
+
+**Decisões tomadas no STEP (para conferência):**
+1. **`deno test -P`:** o `@supabase/server` lê variáveis de ambiente já ao ser importado (`NODE_ENV`, pelo `std-env`). O `test.permissions` do `deno.json` concede só ambiente; rede e arquivos seguem negados (provado). Sem o `-P`, o `deno test` falha alto, pedindo a flag. Pendência #27 para o §12.
+2. **Versões no `deno.json` da pasta das funções**, que os portões usam. A documentação recomenda um `deno.json` por função; o da `provisionar-usuario` nasce com ela no 1.9, que também confere o deploy dos imports do `_shared` (item novo no plano).
+3. **Emissor preso ao projeto** (`issuer: fromSupabaseUrl`), além do JWKS: o token de outro projeto é recusado mesmo com chave válida.
+4. **Acesso lido com o token do chamador, sob a RLS**, não com o admin (o §8 proíbe o admin na leitura que a RLS resolve). São duas leituras: a RPC dos gates e o `tenant_id` do próprio profile.
+5. **Senha provisória pendente barra por padrão** (403 `troca_de_senha_pendente`); só a `trocar-senha` passa `aceitarSenhaProvisoria`. É defesa em profundidade além do plano: sem isso, um `master_admin` com a senha provisória poderia provisionar pela API, pulando o gate da Fase 2. Pendência #27.
+6. **400 de validação com `campos`.** A mensagem de cada campo vai para o formulário, e a regra entre campos sem caminho vira a mensagem geral. O corpo que não é objeto JSON recebe `corpo_invalido`. Pendência #27 para o formato do §8.
+7. **Mensagens padrão em pt-BR por tipo de problema:** campo obrigatório, tamanho, opção, formato e campo não permitido. A mensagem do schema vence, e nenhuma repete o valor recebido.
+8. **CORS:** o dev é reconhecido pela origem da URL (esquema e host inteiros). Se o supabase-js deixar de declarar os cabeçalhos, o módulo falha ao carregar, nos testes da atualização, em vez de liberar o preflight sem eles.
+9. **Política de senha:** também o limite de 72 bytes do bcrypt. O mínimo conta caracteres, e o Auth conta bytes: com acento, a revalidação é um pouco mais estrita, nunca mais frouxa.
+10. **Senha provisória:** alfabeto de 57 caracteres, exatamente sem `0 O 1 l I` (decisão 4), sorteio sem viés de módulo (o byte acima de 228 é descartado). Sem letra ou sem número, sorteia a senha inteira de novo; são cerca de 70 bits.
+11. **Auditoria:** a ação é um tipo fechado (`usuario.criado`, `usuario.senha_alterada`), conferido na compilação. Credencial em `detalhes` é recusada pelo nome do campo (só marca booleana ou nulo) e pelo formato do valor (JWT, chave de API, token de acesso, `Bearer`). A falha leva só o código.
+
+**Verificado:**
+- os quatro portões verdes: 56 testes no `_shared` e 70 no total;
+- TDD com RED por asserção antes de cada GREEN. Dois testes de guarda passavam no esqueleto ("nunca repete o valor" e "fora do formato"); a mutação provou os dois;
+- **mutação com 62 mutantes, todos pegos e todos compilando.** Os 8 que, na 1ª rodada, só falhavam na compilação foram reescritos como mutantes válidos. Um deles achou uma lacuna: o caso "tenant que não é uuid" usava um número, e passou a usar um texto;
+- **prova contra o dev, além do plano:** o `identificarChamador` com tokens do Auth do dev (logins do seed) e o JWKS público do dev:
+  - `master_admin`, `admin` e `super_admin` seguem, com o tenant certo;
+  - o inativo, a empresa bloqueada e a senha provisória recebem 403 com o motivo, e a provisória passa quando aceita;
+  - o token adulterado e a chave publishable no lugar do token recebem 401;
+- **item (b) do STEP 0.11 resolvido:** o JWKS do dev tem só a chave EC P-256, e os tokens saem em ES256.
+
+**Code-review (medium), 8 achados:**
+- **Corrigidos (5):**
+  - `chave` e `key` soltos no nome barravam as chaves de permissão do domínio: agora só nomes de credencial;
+  - a regra entre campos virava `corpo_invalido` e perdia a mensagem;
+  - a mensagem do limite dizia "caracteres" para um limite em bytes;
+  - o `z.uuid()` exigia versão e variante da RFC (agora `z.guid()`);
+  - a fonte de bytes vazia travava o gerador num laço sem fim.
+- **Comentário corrigido (1):** quem envia os cabeçalhos é o supabase-js do navegador; proposta para a Fase 2 abaixo.
+- **Para depois (2):** o §12 com `deno test -P` (pendência #27) e o `deno.json` da função (item novo do STEP 1.9).
+
+**Para os próximos STEPs:**
+- **1.9:** o `deno.json` da `provisionar-usuario` com as mesmas versões, e o deploy conferido resolvendo os imports do `_shared`.
+- **1.10:** a `trocar-senha` usa `aceitarSenhaProvisoria: true` e o `problemasDaSenha` no schema.
+- **Fase 2 (proposta):** o frontend com o mesmo `@supabase/supabase-js` 2.119.2, e uma checagem no CI de que as duas versões são iguais. O CORS libera os cabeçalhos da versão das funções.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.9, aguardando aprovação. |
 
 ---
 
