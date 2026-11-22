@@ -1,13 +1,15 @@
 -- Testes da imutabilidade do master_admin (Fase 1, STEP 1.3): o dono da empresa não é rebaixado,
--- movido nem desativado por engano (docs/plans/modelo-dados.md §5.2):
+-- movido, desativado nem excluído por engano (docs/plans/modelo-dados.md §5.2):
 --   - alterar `papel`, `tenant_id` ou `ativo` de um master_admin falha, para a Edge Function
 --     (`service_role`) e para o dono do banco (`postgres`: seed, manutenção);
+--   - excluí-lo falha, pela cascata do Auth (o caminho do `auth.admin.deleteUser`) ou direto;
 --   - um update que não muda esses campos passa (troca de senha, dados de contato, o seed
 --     reaplicado com os mesmos valores);
---   - os outros papéis não são afetados;
+--   - os outros papéis não são afetados, e a compensação do provisionamento continua;
 --   - o caminho privilegiado continua possível: `private.autorizar_alteracao_master_admin()`, só
---     do dono do banco, libera a alteração na transação em que é chamado, e em nenhuma outra.
--- O cliente (`authenticated`) já não altera profile algum (sem grant de escrita, STEP 1.2).
+--     do dono do banco, libera a alteração e a exclusão na transação em que é chamado, e em
+--     nenhuma outra.
+-- O cliente (`authenticated`) já não altera nem exclui profile algum (sem grant, STEP 1.2).
 --
 -- Roda no projeto de dev, pelo MCP e por `npx supabase test db --remote=<ref do dev>`, numa
 -- transação desfeita no fim. Nunca em produção.
@@ -15,20 +17,28 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(22);
+insert into tap (linha) select plan(28);
 
 -- Fixtures: A com o master_admin, um admin e um user; B sem master_admin, para que mover o de A
--- só possa falhar pela proteção (e não pelo único master_admin por empresa)
+-- só possa falhar pela proteção (e não pelo único master_admin por empresa); C com o master_admin
+-- das provas de exclusão; e um user recém-criado, sem rastro (o caso da compensação)
 insert into fixture select 'A', pg_temp.criar_empresa('TSTA0000000199');
 insert into fixture select 'B', pg_temp.criar_empresa('TSTB0000000170');
+insert into fixture select 'C', pg_temp.criar_empresa('TSTC0000000150');
 insert into fixture select 'MA', pg_temp.criar_usuario('master_admin', pg_temp.id('A'));
 insert into fixture select 'AA', pg_temp.criar_usuario('admin', pg_temp.id('A'));
 insert into fixture select 'UA', pg_temp.criar_usuario('user', pg_temp.id('A'));
+insert into fixture select 'MC', pg_temp.criar_usuario('master_admin', pg_temp.id('C'));
+insert into fixture select 'UN', pg_temp.criar_usuario('user', pg_temp.id('C'));
 
 -- Estrutura
 insert into tap (linha) select trigger_is(
   'public', 'profiles', 'trg_proteger_master_admin', 'private', 'proteger_master_admin',
   'profiles protege o master_admin por trigger'
+);
+insert into tap (linha) select trigger_is(
+  'public', 'profiles', 'trg_proteger_exclusao_master_admin', 'private', 'proteger_master_admin',
+  'profiles protege o master_admin da exclusão por trigger'
 );
 insert into tap (linha) select ok(
   (select count(*) = 2
@@ -137,6 +147,24 @@ insert into tap (linha) select lives_ok(
   'o seed reaplicado com os mesmos valores passa'
 );
 
+-- Exclusão: a cascata do Auth (é o que o `auth.admin.deleteUser` faz) e o `delete` direto
+insert into tap (linha) select throws_ok(
+  $$delete from auth.users where id = pg_temp.id('MC')$$,
+  '42501',
+  'master_admin imutável: a exclusão só ocorre pela operação privilegiada',
+  'o master_admin não sai do Auth (a cascata para em profiles)'
+);
+insert into tap (linha) select throws_ok(
+  $$delete from public.profiles where id = pg_temp.id('MC')$$,
+  '42501',
+  'master_admin imutável: a exclusão só ocorre pela operação privilegiada',
+  'o profile do master_admin não é excluído direto'
+);
+insert into tap (linha) select lives_ok(
+  $$delete from auth.users where id = pg_temp.id('UN')$$,
+  'o user recém-criado sai do Auth (a compensação do provisionamento continua)'
+);
+
 -- A autorização não se falsifica com um valor qualquer: vale o id da transação corrente
 do $$ begin perform pg_catalog.set_config('maxis.alteracao_master_admin', 'on', true); end $$;
 insert into tap (linha) select throws_ok(
@@ -145,7 +173,14 @@ insert into tap (linha) select throws_ok(
   'master_admin imutável: papel, tenant_id e ativo só mudam pela operação privilegiada',
   'a marca com um valor qualquer não autoriza'
 );
-do $$ begin perform pg_catalog.set_config('maxis.alteracao_master_admin', '1', true); end $$;
+-- O id de uma transação anterior: o que uma marca vazada numa conexão reaproveitada carregaria
+do $$
+begin
+  perform pg_catalog.set_config(
+    'maxis.alteracao_master_admin', (pg_catalog.pg_current_xact_id()::text::bigint - 1)::text, true
+  );
+end
+$$;
 insert into tap (linha) select throws_ok(
   $$update public.profiles set ativo = false where id = pg_temp.id('MA')$$,
   '42501',
@@ -175,6 +210,14 @@ insert into tap (linha) select ok(
   (select not ativo and tenant_id = pg_temp.id('B')
    from public.profiles where id = pg_temp.id('MA')),
   'as alterações autorizadas são gravadas'
+);
+insert into tap (linha) select lives_ok(
+  $$delete from auth.users where id = pg_temp.id('MC')$$,
+  'com a autorização, o master_admin sai do Auth'
+);
+insert into tap (linha) select ok(
+  not exists (select 1 from public.profiles where id = pg_temp.id('MC')),
+  'a exclusão autorizada remove o profile'
 );
 
 insert into tap (linha) select * from finish();
