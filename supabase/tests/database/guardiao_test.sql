@@ -17,7 +17,7 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(23);
+insert into tap (linha) select plan(24);
 
 -- Regra 1: tabelas (comuns e particionadas) de `public` sem RLS habilitada
 create function pg_temp.tabelas_sem_rls() returns setof text
@@ -104,17 +104,18 @@ as $$
   where n.nspname = 'private'
     and pg_catalog.has_function_privilege(papel.nome, p.oid, 'execute')
     -- As únicas que `authenticated` executa, pela assinatura exata: uma sobrecarga com o mesmo
-    -- nome não escapa. `to_regprocedure` dá nulo se a função não existir
+    -- nome não escapa. `to_regprocedure` dá nulo se a função não existir, e o nulo sai da lista:
+    -- com ele, o `= any` daria nulo para toda função de fora dela, e a regra calaria
     and not (
       papel.nome = 'authenticated'
-      and p.oid = any (array[
+      and p.oid = any (array_remove(array[
         -- de policy
         to_regprocedure('private.tenant_atual()'),
         to_regprocedure('private.papel_atual()'),
         to_regprocedure('private.is_super_admin()'),
         -- chamadas por RPC: `obter_meu_acesso()`
         to_regprocedure('private.acesso_atual()')
-      ]::oid[])
+      ]::oid[], null))
     )
 $$;
 
@@ -242,6 +243,18 @@ insert into tap (linha) select ok(
   'função tenant_atual para authenticated' in (select * from pg_temp.alcance_no_private()),
   'acusa sobrecarga de uma função de policy executável por authenticated'
 );
+
+-- Uma função da lista que deixa de existir não cala a regra: o nome some (renomeada aqui, de volta
+-- logo depois), o `to_regprocedure` dá nulo, e a função de fora da lista continua acusada
+alter function private.is_super_admin() rename to guardiao_is_super_admin_ausente;
+
+insert into tap (linha) select ok(
+  'função guardiao_violacao_authenticated para authenticated'
+    in (select * from pg_temp.alcance_no_private()),
+  'acusa função fora da lista mesmo com uma função da lista ausente'
+);
+
+alter function private.guardiao_is_super_admin_ausente() rename to is_super_admin;
 
 -- Violação da regra 5: a função `security definer` em `public`, mesmo sem `execute` para ninguém
 create function public.guardiao_violacao_definer() returns integer
