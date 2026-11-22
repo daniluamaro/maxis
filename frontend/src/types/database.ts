@@ -184,13 +184,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      obter_meu_acesso: {
+        Args: never
+        Returns: Database["public"]["CompositeTypes"]["acesso_usuario"]
+        SetofOptions: {
+          from: "*"
+          to: "acesso_usuario"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       papel_usuario: "super_admin" | "master_admin" | "admin" | "user"
     }
     CompositeTypes: {
-      [_ in never]: never
+      acesso_usuario: {
+        papel: Database["public"]["Enums"]["papel_usuario"] | null
+        nome: string | null
+        ativo: boolean | null
+        empresa_ativa: boolean | null
+        senha_provisoria: boolean | null
+      }
     }
   }
 }

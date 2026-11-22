@@ -1,10 +1,13 @@
--- Teste guardião (Fase 0, STEP 0.10; regra 4 no STEP 1.1): regras de segurança que valem para
--- todo objeto, hoje e em qualquer fase (supabase/CLAUDE.md §5 e §6):
+-- Teste guardião (Fase 0, STEP 0.10; regra 4 no STEP 1.1; regra 5 no STEP 1.5): regras de
+-- segurança que valem para todo objeto, hoje e em qualquer fase (supabase/CLAUDE.md §5 e §6):
 --   1. toda tabela de `public` tem RLS habilitada;
 --   2. `anon` não alcança tabela, view, sequência nem função de `public` (o app exige login);
 --   3. toda view de `public` tem `security_invoker` (sem ele, a view ignora a RLS);
---   4. no schema `private`, `anon` não alcança nada, e `authenticated` só executa as funções de
---      policy, listadas na regra (uma função nova nasce com `execute` para PUBLIC).
+--   4. no schema `private`, `anon` não alcança nada, e `authenticated` só executa as funções
+--      listadas na regra: as de policy e as que uma RPC chama (uma função nova nasce com
+--      `execute` para PUBLIC);
+--   5. nenhuma função de `public` é `security definer`: a API expõe `public`, e o que precisa
+--      passar por cima da RLS fica em `private`, chamado por uma RPC `security invoker`.
 -- Passa com zero tabelas. Por isso cada regra também prova, mais abaixo, que acusa a violação e
 -- não acusa o objeto conforme: sem essa prova, uma consulta errada passaria para sempre.
 --
@@ -14,7 +17,7 @@ begin;
 
 \ir ../helpers/ambiente.psql
 
-insert into tap (linha) select plan(20);
+insert into tap (linha) select plan(23);
 
 -- Regra 1: tabelas (comuns e particionadas) de `public` sem RLS habilitada
 create function pg_temp.tabelas_sem_rls() returns setof text
@@ -83,9 +86,9 @@ as $$
     )
 $$;
 
--- Regra 4: o que `anon` e `authenticated` alcançam no schema `private`. A lista das funções de
--- policy cresce com elas (STEP 1.2). O schema é localizado pelo catálogo: num banco sem ele, a
--- regra não acusa nada
+-- Regra 4: o que `anon` e `authenticated` alcançam no schema `private`. A lista cresce com as
+-- funções de policy (STEP 1.2) e com as que uma RPC chama (STEP 1.5). O schema é localizado pelo
+-- catálogo: num banco sem ele, a regra não acusa nada
 create function pg_temp.alcance_no_private() returns setof text
 language sql stable
 as $$
@@ -100,16 +103,31 @@ as $$
   cross join (values ('anon'), ('authenticated')) as papel (nome)
   where n.nspname = 'private'
     and pg_catalog.has_function_privilege(papel.nome, p.oid, 'execute')
-    -- Funções de policy, as únicas que `authenticated` executa, pela assinatura exata: uma
-    -- sobrecarga com o mesmo nome não escapa. `to_regprocedure` dá nulo se a função não existir
+    -- As únicas que `authenticated` executa, pela assinatura exata: uma sobrecarga com o mesmo
+    -- nome não escapa. `to_regprocedure` dá nulo se a função não existir
     and not (
       papel.nome = 'authenticated'
       and p.oid = any (array[
+        -- de policy
         to_regprocedure('private.tenant_atual()'),
         to_regprocedure('private.papel_atual()'),
-        to_regprocedure('private.is_super_admin()')
+        to_regprocedure('private.is_super_admin()'),
+        -- chamadas por RPC: `obter_meu_acesso()`
+        to_regprocedure('private.acesso_atual()')
       ]::oid[])
     )
+$$;
+
+-- Regra 5: funções `security definer` em `public`. A API (PostgREST) expõe toda função de
+-- `public` que o papel executa; uma `security definer` ali passa por cima da RLS de dentro da API
+create function pg_temp.definer_em_public() returns setof text
+language sql stable
+as $$
+  select p.proname::text
+  from pg_catalog.pg_proc as p
+  join pg_catalog.pg_namespace as n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.prosecdef
 $$;
 
 -- O banco de verdade
@@ -127,7 +145,11 @@ insert into tap (linha) select is_empty(
 );
 insert into tap (linha) select is_empty(
   'select * from pg_temp.alcance_no_private()',
-  'anon não alcança o schema private, e authenticated só executa as funções de policy'
+  'anon não alcança o schema private, e authenticated só executa as funções da lista'
+);
+insert into tap (linha) select is_empty(
+  'select * from pg_temp.definer_em_public()',
+  'nenhuma função de public é security definer'
 );
 
 -- Prova de que cada regra acusa a violação. Os objetos somem no rollback; o estado de cada um é
@@ -221,6 +243,19 @@ insert into tap (linha) select ok(
   'acusa sobrecarga de uma função de policy executável por authenticated'
 );
 
+-- Violação da regra 5: a função `security definer` em `public`, mesmo sem `execute` para ninguém
+create function public.guardiao_violacao_definer() returns integer
+language sql
+security definer
+set search_path = ''
+as 'select 1';
+revoke execute on function public.guardiao_violacao_definer() from public, anon, authenticated;
+
+insert into tap (linha) select ok(
+  'guardiao_violacao_definer' in (select * from pg_temp.definer_em_public()),
+  'acusa função security definer em public'
+);
+
 -- E não acusa o objeto conforme (o que as migrations das próximas fases vão criar)
 create table public.guardiao_conforme (id integer);
 alter table public.guardiao_conforme enable row level security;
@@ -249,6 +284,10 @@ insert into tap (linha) select ok(
 insert into tap (linha) select ok(
   'guardiao_conforme_view' not in (select * from pg_temp.views_sem_security_invoker()),
   'não acusa view com security_invoker'
+);
+insert into tap (linha) select ok(
+  'guardiao_conforme_funcao' not in (select * from pg_temp.definer_em_public()),
+  'não acusa função security invoker em public'
 );
 
 create function private.guardiao_conforme_privada() returns integer
