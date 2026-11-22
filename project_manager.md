@@ -950,6 +950,18 @@ Mantidos:
 **No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, a tabela com RLS, as duas policies, o trigger, os grants por coluna e os advisors.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.5, aguardando aprovação. |
+| 22/11/2026 | Danilo aprova o STEP 1.4 (PR #20).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes. No `banco`, o `pg_prove` rodou os 7 arquivos (231 asserções), PASS, inclusive o `eventos_auditoria_test.sql` (49).
+
+**Desvios aceitos:**
+- duas migrations no lugar de uma (`f01_ajusta_eventos_auditoria`, pelos achados do code-review);
+- a imutabilidade cobre também o `truncate` e o dono do banco, sem caminho privilegiado: corrigir um evento errado é gravar outro;
+- o formato da ação mais estrito que o regex original do modelo (cada segmento começa e termina com letra).
+
+**Também aceitas:** as decisões 1–4 do STEP (trigger por comando, dono do banco sem exceção, erro `42501` com mensagem própria, `alvo_id` sem FK), a mudança do método (o 2º ensaio e a mutação pelo `test db`, com arquivo temporário apagado no mesmo comando) e os achados do code-review (4 corrigidos, 2 mantidos).
+
+**No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, a tabela com RLS, as policies, o trigger, os grants por coluna e os advisors. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.5. |
 
 ---
 
