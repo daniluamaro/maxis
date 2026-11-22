@@ -1126,6 +1126,18 @@ Os três itens do STEP já estavam feitos desde o STEP 0.10 (07/11/2026): a pol�
 - 1.9: o job `integracao` roda contra o dev com a chave publishable. Uma asserção de "cadastro público recusado" pegaria, em todo PR, uma mudança no `config.toml` que o `config diff` só confirma depois de aplicada.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.7, aguardando aprovação. |
+| 22/11/2026 | Danilo aprova o STEP 1.6 (PR #22).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes. No `banco`, o `pg_prove` rodou os 8 arquivos (253 asserções), PASS, e o `config diff` do dev sem diferença.
+
+**Desvios:** nenhum.
+
+**Também aceitas:**
+- as decisões 1–3 do STEP: a chave publishable do dev pelo MCP; nenhuma tentativa de cadastro na produção; as provas além do plano;
+- os achados do code-review (3, todos corrigidos);
+- a proposta para o STEP 1.9: a integração confere também que o cadastro público é recusado. Entrou no item do teste de integração do plano.
+
+**No merge:** só documentação; deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.7. |
 
 ---
 
