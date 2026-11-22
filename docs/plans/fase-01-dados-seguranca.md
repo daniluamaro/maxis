@@ -117,7 +117,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [x] Produção igual ao `config.toml` (mesmo mecanismo definido no STEP 0.10) *(dev e produção com `config push --remote` e `config diff --exit-code` sem diferença, 07/11/2026)*
 - [x] Registrar em `supabase/CLAUDE.md` *(sob autorização)* se o mecanismo de sincronização mudar algo da convenção *(nada a registrar: o `config.toml` aplicado com `config push --remote` e conferido com `config diff` já está no `supabase/CLAUDE.md §10/§12` — pendência #10 e comandos do STEP 0.14)*
 
-**Verificação:** no dev, o cadastro público pela API (chave publishable) é recusado; na produção, `config diff --remote=<produção> --exit-code` sem diferença; a senha fraca recusada pelo Auth é provada no STEP 1.7, com um usuário do seed.
+**Verificação:** no dev, o cadastro público pela API (chave publishable) é recusado; na produção, `config diff --remote=<produção> --exit-code` sem diferença; a senha fraca recusada pelo Auth é provada no STEP 1.7, com um usuário do seed. *(22/11/2026: no dev, pela API, com a chave publishable: cadastro com e-mail e senha e código por e-mail criando usuário recusados com 422 `signup_disabled`; login anônimo com 422 `anonymous_provider_disabled`; nenhum usuário criado. A chave legada `anon` é recusada com 401 nos dois projetos. `config diff --exit-code` sem diferença no dev e na produção, e ele compara a política de senha (contraprova com uma mudança local); o CLI 3.0.0 deixa fora 11 propriedades, todas de recursos desligados ou sem efeito sem SMTP (log de 22/11/2026).)*
 
 ### STEP 1.7 — Seed do dev
 **Entrega:** dados fictícios para desenvolver e testar à mão a partir da Fase 2, e os chamadores dos testes de integração.
@@ -262,7 +262,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 | 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
-| 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
+| 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ✅ |
 | 7 | Seed do dev | 1.7 | ⬜ |
 | 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
 | 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
