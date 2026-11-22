@@ -124,7 +124,7 @@
 | 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | ✅ Aplicada em 08/11/2026 |
 | 22 | `CLAUDE.md §1` | "Plano Pro na conclusão do SaaS" → **plano Pro desde nov/2026**, nos dois projetos: assinado pelo Danilo depois da pausa da produção no 1º deploy (o plano free pausa projeto parado). | ✅ Aplicada em 14/11/2026 |
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
-| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Aprovada (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
+| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. **Complemento (22/11/2026, STEP 1.7):** §10: o valor da senha fica na variável `SENHA_SEED_DEV`, no `.env.local` da raiz e no secret de mesmo nome do `development`; §12: o comando `deno task hash-senha-seed` (em `supabase/functions`), que gera o hash do seed. | Aprovada (14/11/2026; complemento em 22/11/2026) · aplicar sob autorização (no STEP 1.9) |
 | 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
 | 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | ✅ Aplicada em 22/11/2026 |
 
@@ -1217,6 +1217,26 @@ Fora do commit: `.claude/`. Próximo: STEP 1.7, aguardando aprovação. |
 - **1.9:** complemento à pendência #24 (§10/§12): a variável `SENHA_SEED_DEV` (`.env.local` da raiz e secret do `development`) e o comando `deno task hash-senha-seed`.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.8, aguardando aprovação. |
+| 22/11/2026 | Danilo aprova o STEP 1.7 (PR #23).
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes. No `banco`, o `pg_prove` rodou os 8 arquivos (253 asserções), PASS, com o seed já no dev; no `edge-functions`, 28 testes.
+
+**Desvios aceitos:**
+1. a 2ª aplicação e os ensaios pelo `db query --remote=<dev> --file`, não pelo MCP;
+2. o script do hash em `supabase/functions/_seed/`, com o `bcryptjs` 3.0.3;
+3. o estado canônico além do plano (nome, e-mail, bloqueio das empresas e, no Auth, ban, exclusão lógica e `app_metadata`);
+4. o `.env.example` na raiz, com link no README;
+5. o CNPJ alfanumérico com o prefixo `SEED`.
+
+**Também aceitas:**
+- as decisões 1–7 do STEP;
+- o code-review (8 achados: 4 corrigidos, 1 refutado pela prova, 3 mantidos);
+- as três propostas, registradas onde vão valer:
+  - **HIBP:** decidir no STEP 1.10, junto com o caminho direto do Auth. Item novo no 1.10 e o risco da §8 do plano atualizado;
+  - **STEP 1.9:** o job `integracao` confere que o ref de destino é o do dev e diferente do `REF_PRODUCAO` antes de publicar e de reaplicar o seed. Item novo no 1.9; o secret do `development` se chama `SENHA_SEED_DEV` (pré-requisito da §2);
+  - **pendência #24 complementada:** a variável `SENHA_SEED_DEV` (§10) e o comando `deno task hash-senha-seed` (§12).
+
+**No merge:** nenhuma migration e nenhuma Edge Function (a pasta `_seed` fica fora do deploy); o seed nunca vai para a produção. Deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.8. |
 
 ---
 
