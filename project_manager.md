@@ -1069,6 +1069,32 @@ Fora do commit: `.claude/`. Próximo: STEP 1.6, aguardando aprovação. |
 - **§6:** o `security definer` sai da exceção "(ou RPC pública com justificativa no plano da fase)". A linha da RPC pública passa de "`security invoker` por padrão" a "sempre `security invoker`": a que precisa passar por cima da RLS, com a justificativa no plano, chama a função `security definer` do `private`, com o motivo (regra 0029 do advisor e regra 5 do guardião).
 
 **No merge:** deploy acompanhado (a migration vai para a produção) e, na produção, só leitura: a migration, o tipo, as duas funções e os advisors. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.6. |
+| 22/11/2026 | **Merge do PR #21 (STEP 1.5): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.6, branch `chore/step-1.6-auth-endurecido`).
+
+**Merge com rebase** em 22/11/2026 14:30:54Z (commit `9aece44`, branch apagada), depois do CI verde no commit da aprovação `3a66ead` (run 45033026721).
+
+**Deploy** (run 45033229107):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 14:33:57 e o deploy-frontend começou às 14:34:02;
+- `db push` aplicou `20261122133355_f01_cria_rpc_obter_meu_acesso` na produção ("Finished supabase db push");
+- `config push`: API, banco, Auth e Storage "up to date";
+- Edge Functions puladas com aviso;
+- no ar, o build novo (`last-modified` 14:34:14 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura de chave secreta, token do Supabase, JWT, URL com senha e token do GitHub: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):**
+- `list_migrations` com as nove migrations;
+- o tipo `acesso_usuario` com os cinco atributos, na ordem;
+- `public.obter_meu_acesso()`: `security invoker`, `stable`, `search_path` vazio, sem sobrecarga;
+- `private.acesso_atual()`: `security definer`, `stable`, `search_path` vazio;
+- as duas devolvem `acesso_usuario`, com ACL só de `postgres` e `authenticated` e o mesmo corpo do dev (mesmo md5);
+- nenhuma função `security definer` em `public`;
+- advisors de segurança da produção: nenhum alerta.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes; o Prettier sobre os arquivos versionados);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
