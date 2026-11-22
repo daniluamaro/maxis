@@ -80,7 +80,7 @@
 | 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
 | 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
-| 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
+| 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ✅ |
 | 7 | Seed do dev | 1.7 | ⬜ |
 | 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
 | 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
@@ -1095,6 +1095,37 @@ Fora do commit: `.claude/`. Próximo: STEP 1.6, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 22/11/2026 | **STEP 1.6 ✅** (branch `chore/step-1.6-auth-endurecido`, PR).
+
+Os três itens do STEP já estavam feitos desde o STEP 0.10 (07/11/2026): a política de senha e o cadastro público desligado no `config.toml`, e a produção igual a ele. Este STEP faz a verificação do plano.
+
+**Verificado:**
+- **Cadastro público recusado no dev, pela API**, como qualquer pessoa na internet chamaria: só com a chave publishable e um e-mail em domínio reservado (`@exemplo.test`):
+  - cadastro com e-mail e senha: 422 `signup_disabled` ("Signups not allowed for this instance");
+  - código por e-mail criando usuário (`/otp` com `create_user`): 422 `signup_disabled`;
+  - login anônimo: 422 `anonymous_provider_disabled`;
+  - nenhum usuário criado: o Auth do dev segue com zero usuários e nenhum anônimo (conferido pelo MCP).
+- As configurações públicas do Auth (`/auth/v1/settings`): `disable_signup` verdadeiro, confirmação por e-mail exigida e só o provedor de e-mail ligado.
+- **Chave legada recusada nos dois projetos:** a `anon` (JWT), que o MCP mostra desativada, recebe 401 ("Legacy API keys are disabled", desde 07/11/2026) no dev e na produção. Na produção, só uma leitura (`GET /auth/v1/settings`), que não grava nada.
+- **Produção, só leitura:** as configurações públicas do Auth com `disable_signup` verdadeiro e só o provedor de e-mail, sem nenhuma tentativa de cadastro.
+- **`config diff --exit-code` sem diferença** na produção e também no dev (só leitura). O CLI 3.0.0 deixa 11 propriedades declaradas fora da comparação. São todas de recursos desligados (restrição de rede, vetores do Storage, Twilio, Apple, servidor OAuth) ou o limite de e-mails enviados, que não se aplica sem SMTP. Nenhuma lacuna de endurecimento.
+- **O `diff` compara a política de senha** (contraprova): com `minimum_password_length = 9` e `password_requirements = "lower_upper_letters_digits"` só no arquivo local, o `diff` contra a produção saiu 2 e mostrou as duas chaves, com os valores dela (8 e `letters_digits`). O arquivo voltou ao original.
+- **A senha fraca recusada pelo Auth** continua no STEP 1.7, com um usuário do seed, como no plano. Até lá, o entregável 6 vale pela configuração (dev e produção iguais ao `config.toml`, conferido), não pelo comportamento.
+
+**Decisões tomadas no STEP (para conferência):**
+1. **A chave publishable do dev veio do MCP** (`get_publishable_keys`): não há `.env.local` nesta máquina, e ela é pública por design. Ficou num arquivo do scratchpad durante as chamadas, apagado no fim; nada versionado.
+2. **Nenhuma tentativa de cadastro na produção:** o MCP dela é só leitura e o contrato proíbe teste contra ela. O `config diff` é a prova de que ela tem a mesma configuração.
+3. **Provas além do plano:** o código por e-mail, o login anônimo e a chave legada, que são outros caminhos de criar conta ou de usar a API.
+
+**Code-review (medium), 3 achados, todos corrigidos:**
+- **o `diff` podia não comparar a política de senha:** a contraprova acima prova que compara;
+- **a chave legada só no dev:** conferida também na produção, por leitura;
+- **a nota do plano sem a ressalva das 11 propriedades fora da comparação:** acrescentada.
+
+**Para os próximos STEPs:**
+- 1.9: o job `integracao` roda contra o dev com a chave publishable. Uma asserção de "cadastro público recusado" pegaria, em todo PR, uma mudança no `config.toml` que o `config diff` só confirma depois de aplicada.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.7, aguardando aprovação. |
 
 ---
 
