@@ -25,7 +25,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [x] Pendência de governança #3 resolvida (formato das chaves), aplicada em 07/11/2026: as Edge Functions recebem `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS` e `SUPABASE_JWKS` (`supabase/CLAUDE.md §9`).
 - [x] Padrão de autenticação das Edge Functions decidido no STEP 0.11: `@supabase/server` com `createSupabaseContext({ auth: 'user' })` dentro do `comCors`, com `verify_jwt` ligado (`supabase/CLAUDE.md §8`). Antes do STEP 1.8, só conferir no Context7 a versão vigente e se a API mudou.
 - [x] 📋 Antes do STEP 1.7: o Danilo define no `.env.local` (fora do git) a senha dos usuários do seed do dev — aleatória e forte; o valor não passa pela conversa (decisão 12). *(22/11/2026: `SENHA_SEED_DEV` no `.env.local` da raiz, gerada direto no arquivo pelo comando do `.env.example`, sem aparecer na tela)*
-- [ ] 📋 Antes do STEP 1.9: o Danilo dá ao token do dev (`SUPABASE_ACCESS_TOKEN` do environment `development`) a escrita em Edge Functions e cadastra a mesma senha do seed como secret do `development`, pelo prompt do `gh` (decisão 11).
+- [ ] 📋 Antes do STEP 1.9: o Danilo dá ao token do dev (`SUPABASE_ACCESS_TOKEN` do environment `development`) a escrita em Edge Functions e cadastra a mesma senha do seed como secret do `development`, pelo prompt do `gh` (decisão 11). *(O secret se chama `SENHA_SEED_DEV`, como a variável do `.env.local`, STEP 1.7.)*
 
 ## 3. Decisões desta fase
 
@@ -162,6 +162,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 - [ ] No dev publicado: preflight com `verify_jwt` responde; o 401 da plataforma chega legível ao navegador; localhost aceito só no dev (pendências do STEP 0.11)
 - [ ] Job `integracao` no pipeline (decisão 11): só em PR, environment `development`, depois de `banco` e `edge-functions`. Publica as funções da branch no dev (`functions deploy --remote=<dev> --use-api`), reaplica o seed (`db query --remote=<dev> --file`), cria as fixtures da execução e roda os testes de integração. Sem as variáveis do dev, falha — nunca pula em silêncio. Os testes de integração ficam fora do `deno test` do job `edge-functions`
 - [ ] Concorrência **global** no job (um grupo fixo, sem cancelar no meio): runs de PRs diferentes nunca publicam funções nem reaplicam o seed no dev ao mesmo tempo. Cada run testa o código que ele mesmo publicou; depois dele, o dev fica com as funções do último PR que rodou
+- [ ] Antes de publicar as funções e de reaplicar o seed, o job confere que o ref de destino é o do dev e diferente do `REF_PRODUCAO`; senão, falha. O seed não sabe em que projeto roda: nenhuma configuração do banco traz o ref (aprovado no STEP 1.7)
 - [ ] Variáveis públicas do dev (URL e chave publishable) no environment `development`, cadastradas pelo Claude (como as de produção no STEP 0.12); token e senha do seed pelo 📋 do Danilo (§2)
 - [ ] `integracao` nos checks obrigatórios do ruleset `main` *(com aprovação do Danilo)*
 - [ ] Deploy: no dev pelo MCP (`deploy_edge_function`) durante o STEP e pelo job `integracao` no PR; na produção, pelo deploy-backend no merge (o token de produção já tem Edge Functions em leitura-escrita). Durante o STEP, a mesma suíte de integração roda daqui contra o dev: credenciais públicas e senha do seed pelo `.env.local`; as fixtures da execução pela mesma rotina do CI (`db query --remote=<dev>`, com o login do CLI e a aprovação do Danilo)
@@ -185,6 +186,7 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
   - teste provando que esse caminho não desmarca `senha_provisoria` (o gate da Fase 2 continua exigindo a troca pela função) e não grava auditoria;
   - conferir na documentação atual do Auth se há como fechá-lo (configuração ou hook) e decidir com o Danilo o `secure_password_change` (exige login recente; sem SMTP, a reautenticação por código não chega);
   - registrar a decisão no risco da §8
+- [ ] **Proteção contra senha vazada (HIBP)** (aprovado no STEP 1.7, risco da §8): decidir com o Danilo se liga nos dois projetos. Fica no Dashboard, fora do `config.toml` do CLI 3.0.0, como a pendência #25. Se ligar, provar o efeito na troca pela `trocar-senha` e pelo caminho direto, e conferir que os advisors dos dois projetos ficam sem o alerta (o 1.12 exige zero)
 
 **Verificação:** testes verdes no CI; tentativa de update direto em `profiles` pelo cliente continua negada (já coberta no 1.2); o caminho direto do Auth decidido e registrado.
 
@@ -253,7 +255,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 - **Compensação do provisionamento × `master_admin`:** desde o STEP 1.3, o `master_admin` não sai do Auth sem a autorização da transação, nem recém-criado. A compensação do STEP 1.9 continua valendo porque apaga o usuário do Auth **antes** de o profile existir; um passo que falhe depois do profile não pode compensar apagando o usuário.
 - **Hash da senha do seed no repositório público:** a senha é aleatória e forte (sem ataque de dicionário viável) e só vale no dev. Trocá-la exige hash novo no seed, `.env.local` e secret, juntos.
 - **Seed aplicado no projeto errado:** o banco não traz o ref do projeto em nenhuma configuração (conferido no STEP 1.7), então o seed não tem como recusar sozinho a produção. A proteção é do pipeline (sem `--include-seed`; o job `integracao` só com o ref do dev) e do MCP da produção, somente leitura.
-- **Proteção contra senha vazada (HIBP) desligada:** desde que o seed criou usuários, o advisor de segurança do dev acusa `auth_leaked_password_protection` (WARN); a produção, ainda sem usuários, não. Não há chave no `config.toml` do CLI 3.0.0 (só o `password_hibp_enabled` da API de gestão). Proposta no PR do STEP 1.7; o fechamento (1.12) exige zero alerta.
+- **Proteção contra senha vazada (HIBP) desligada:** desde que o seed criou usuários, o advisor de segurança do dev acusa `auth_leaked_password_protection` (WARN); a produção, ainda sem usuários, não. Não há chave no `config.toml` do CLI 3.0.0 (só o `password_hibp_enabled` da API de gestão). Decidir no STEP 1.10, junto com o caminho direto do Auth (aprovado no STEP 1.7); o fechamento (1.12) exige zero alerta.
 
 ## 9. Status dos Entregáveis
 
