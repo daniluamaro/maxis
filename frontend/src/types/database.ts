@@ -61,6 +61,54 @@ export type Database = {
           },
         ]
       }
+      eventos_auditoria: {
+        Row: {
+          acao: string
+          alvo_id: string | null
+          alvo_tabela: string | null
+          ator_profile_id: string | null
+          created_at: string
+          detalhes: Json | null
+          id: string
+          tenant_id: string | null
+        }
+        Insert: {
+          acao: string
+          alvo_id?: string | null
+          alvo_tabela?: string | null
+          ator_profile_id?: string | null
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          acao?: string
+          alvo_id?: string | null
+          alvo_tabela?: string | null
+          ator_profile_id?: string | null
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_auditoria_ator_profile_id_fkey"
+            columns: ["ator_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_auditoria_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ativo: boolean

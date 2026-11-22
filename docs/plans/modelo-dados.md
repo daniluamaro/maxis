@@ -106,6 +106,7 @@ Todas `security definer`, `stable`, `set search_path = ''`; usadas nas policies 
 | `private.set_updated_at()` | trigger | Atualiza `updated_at`. | 1 |
 | `private.proteger_master_admin()` | trigger | `security invoker`, `search_path` vazio. Em `profiles`, dois triggers: `trg_proteger_master_admin` (`before update`) recusa (`42501`) mudar `papel`, `tenant_id` ou `ativo` de quem **já é** `master_admin`; `trg_proteger_exclusao_master_admin` (`before delete`, inclusive na cascata do `auth.users`) recusa excluí-lo. Vale para qualquer papel — inclusive `service_role` e `postgres` —, sem a autorização da transação corrente. O de update só roda quando um dos três campos muda de fato (o `when` compara os valores): regravar os mesmos valores passa. `execute` revogado de `PUBLIC` (o trigger dispara sem conferi-lo). | 1 |
 | `private.autorizar_alteracao_master_admin()` | procedure | A operação privilegiada do `master_admin` (§5.2): grava em `maxis.alteracao_master_admin`, local à transação, o id da transação corrente (`pg_current_xact_id()`), e o trigger só aceita esse valor — um valor fixo ou vazado de outra transação (`set_config` de sessão, numa conexão do pool) não vale. `execute` só do dono do banco (`postgres`): nem `anon`, nem `authenticated`, nem `service_role`. É proteção contra **engano**, não contra quem roda SQL livre: esse pode gravar a marca sem a procedure (e desligar o trigger). Na prática, só o dono do banco: `service_role` e `authenticated` não fazem login (`nologin`) e chegam ao banco só pela Data API, que não roda SQL livre. | 1 |
+| `private.impedir_alteracao_auditoria()` | trigger | `security invoker`, `search_path` vazio. Em `eventos_auditoria` (`trg_impedir_alteracao_auditoria`, `before update or delete or truncate`, **por comando**): recusa (`42501`) qualquer `update`, `delete` ou `truncate`, para todo papel — inclusive `service_role` e `postgres` —, mesmo o comando que não acha linha. `execute` revogado de `PUBLIC` (o trigger dispara sem conferi-lo). | 1 |
 | `private.registrar_auditoria()` | trigger | Grava em `eventos_auditoria` as alterações de tabelas **escritas pelo cliente** (sob RLS), com ator = `auth.uid()` e tenant = tenant da linha. Roda como `security definer`, sem o cliente precisar de permissão de escrita em `eventos_auditoria`. Usado em `perfis_acesso` (Fase 5) e na estrutura organizacional (Fase 6). | 5 |
 
 **RPCs públicas (schema `public`, chamáveis pelo app):**
@@ -190,20 +191,21 @@ Somente inserção (append-only). Gravada **apenas** por Edge Functions/RPCs pri
 
 | Coluna | Tipo | Regras | Fase |
 |---|---|---|---|
-| `id` | `uuid` | PK | 1 |
-| `tenant_id` | `uuid` | FK `→ empresas(id)`; empresa afetada; nulo só em evento do SaaS sem empresa | 1 |
-| `ator_profile_id` | `uuid` | FK `→ profiles(id)`; quem executou; nulo = sistema | 1 |
-| `acao` | `text` | `not null`, formato `^[a-z_]+\.[a-z_]+$` (`dominio.evento`) | 1 |
+| `id` | `uuid` | PK, `default gen_random_uuid()` — sempre do banco | 1 |
+| `tenant_id` | `uuid` | FK `→ empresas(id)`, sem `on delete` (o evento prende a empresa); empresa afetada; nulo só em evento do SaaS sem empresa | 1 |
+| `ator_profile_id` | `uuid` | FK `→ profiles(id)`, sem `on delete` (o evento prende o ator no Auth); quem executou; nulo = sistema | 1 |
+| `acao` | `text` | `not null`, formato `dominio.evento` em minúsculas com sublinhado: `check (acao ~ '^[a-z_]+[.][a-z_]+$')`, com as classes escritas por extenso (`eventos_auditoria_acao_check`) | 1 |
 | `alvo_tabela` | `text` | tabela afetada (ex.: `profiles`) | 1 |
-| `alvo_id` | `uuid` | id do registro afetado | 1 |
+| `alvo_id` | `uuid` | id do registro afetado (sem FK: o alvo pode ser de qualquer tabela) | 1 |
 | `detalhes` | `jsonb` | contexto (antes/depois relevantes). **Nunca** senha, token ou chave. | 1 |
-| `created_at` | `timestamptz` | `not null default now()` | 1 |
+| `created_at` | `timestamptz` | `not null default now()` — sempre do banco: o rastro não escolhe a própria data | 1 |
 
 **Ações iniciais** (a lista cresce por fase; registrar aqui): `empresa.criada`, `empresa.atualizada`, `empresa.bloqueada`, `empresa.desbloqueada` (Fase 4) · `usuario.criado`, `usuario.senha_alterada` (Fase 1) · `usuario.senha_resetada`, `usuario.ativado`, `usuario.desativado`, `usuario.atualizado` (Fases 4, 7) · `perfil.criado`, `perfil.atualizado`, `perfil.excluido` (Fase 5) · `unidade_gerencial.criada`, `unidade_gerencial.atualizada`, `unidade_gerencial.desativada`, `unidade_gerencial.reativada`, `setor.criado`, `setor.atualizado`, `setor.desativado`, `setor.reativado`, `lider.criado`, `lider.atualizado`, `lider.desativado`, `lider.reativado` (Fase 6).
 
-- **Índices:** `(tenant_id, created_at desc)`, `(ator_profile_id)`, `(alvo_tabela, alvo_id)`.
-- **RLS — leitura:** `super_admin` lê todos; `master_admin` lê os do próprio tenant (tela futura).
-- **RLS — escrita:** nenhuma policy; `update`/`delete` bloqueados também por trigger (imutável inclusive para `service_role`).
+- **Índices:** `(tenant_id, created_at desc)`, `(ator_profile_id)`, `(alvo_tabela, alvo_id)` — `eventos_auditoria_tenant_id_created_at_idx`, `_ator_profile_id_idx`, `_alvo_tabela_alvo_id_idx`.
+- **RLS — leitura:** `super_admin` lê todos, inclusive os do SaaS (`eventos_auditoria_select_super_admin`); `master_admin` ativo de empresa ativa lê os do próprio tenant (`eventos_auditoria_select_master_admin`: `tenant_id = tenant_atual()` e `papel_atual() = 'master_admin'`); `admin`, `user`, inativo e empresa bloqueada não leem nada (tela futura).
+- **RLS — escrita:** nenhuma policy; `update`, `delete` e `truncate` bloqueados por trigger (`private.impedir_alteracao_auditoria()`, §4) — imutável para todo papel, inclusive `service_role` e o dono do banco.
+- **Grants:** `authenticated` só `select`; `service_role` só `insert`, e só nas colunas do evento (`tenant_id`, `ator_profile_id`, `acao`, `alvo_tabela`, `alvo_id`, `detalhes`) — sem `select` (o insert padrão da Data API, `return=minimal`, não precisa dele; a Edge Function grava sem `.select()`), sem escolher `id` nem `created_at`; `anon` nada.
 
 ---
 
