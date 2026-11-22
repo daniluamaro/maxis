@@ -794,6 +794,31 @@ Fora do commit: `.claude/`. Próximo: STEP 1.3, aguardando aprovação. |
 **Também aceitas:** a migration de correção do motivo do bloqueio; as decisões 1–5 do STEP (checks de `bloqueada_em` e do telefone, `service_role` sem `delete` nem `truncate`, FKs de rastro sem `on delete`, policies por escopo, fixtures em plpgsql); e os achados mantidos do code-review.
 
 **No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, a RLS e os grants. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.3. |
+| 21/11/2026 | **Merge do PR #18 (STEP 1.2): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.3, branch `chore/step-1.3-protege-master-admin`).
+
+**Merge com rebase** em 21/11/2026 23:10:14Z (commit `830c715`, branch apagada), depois do CI verde no commit da aprovação (run 44959172071).
+
+**Deploy** (run 44960451269):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 23:13:09 e o deploy-frontend começou às 23:13:23, 4s depois do fim do build-frontend;
+- `db push` aplicou `20261121125657_f01_cria_nucleo_identidade` e `20261121161220_f01_restringe_motivo_bloqueio` na produção ("Finished supabase db push");
+- `config push`: API, banco, Auth e Storage "up to date";
+- Edge Functions puladas com aviso;
+- no ar, o build novo (`last-modified` 23:13:29 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):**
+- `list_migrations` com as quatro migrations;
+- `empresas` e `profiles` com RLS ligada, as cinco policies (só `SELECT`) e três checks cada;
+- `anon` sem privilégio algum nas duas tabelas e sem `usage` no `private`;
+- `authenticated` só com `select`, `usage` no `private` e `execute` só nas três funções de policy (não no `cnpj_valido`);
+- `service_role` com `select`, `insert` e `update`, sem o resto, e `execute` no `cnpj_valido`;
+- advisors de segurança da produção: nenhum alerta.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
