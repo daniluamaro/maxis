@@ -2,7 +2,8 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@1.0.19": "1.0.19",
-    "jsr:@std/internal@^1.0.12": "1.0.14"
+    "jsr:@std/internal@^1.0.12": "1.0.14",
+    "npm:bcryptjs@3.0.3": "3.0.3"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -15,9 +16,16 @@
       "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
     }
   },
+  "npm": {
+    "bcryptjs@3.0.3": {
+      "integrity": "sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==",
+      "bin": true
+    }
+  },
   "workspace": {
     "dependencies": [
-      "jsr:@std/assert@1.0.19"
+      "jsr:@std/assert@1.0.19",
+      "npm:bcryptjs@3.0.3"
     ]
   }
 }
