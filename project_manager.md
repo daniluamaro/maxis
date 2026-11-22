@@ -881,6 +881,29 @@ Fora do commit: `.claude/`. Próximo: STEP 1.4, aguardando aprovação. |
 **Riscos novos na §8 do plano:** promoção a `master_admin` fora da proteção (decidir com a troca do titular, Fase 4); a compensação do STEP 1.9 vale só antes de o profile existir.
 
 **No merge:** deploy acompanhado (as duas migrations vão para a produção) e, na produção, só leitura: as migrations, os dois triggers e o `execute` das duas funções só do `postgres`. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.4. |
+| 22/11/2026 | **Merge do PR #19 (STEP 1.3): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.4, branch `chore/step-1.4-eventos-auditoria`).
+
+**Merge com rebase** em 22/11/2026 11:41:27Z (commit `d40f65a`, branch apagada), depois do CI verde no commit da aprovação `d4eaf03` (run 45018387004).
+
+**Deploy** (run 45018556295):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 11:44:48 e o deploy-frontend começou às 11:44:52;
+- `db push` aplicou `20261122034817_f01_protege_master_admin` e `20261122042412_f01_protege_exclusao_master_admin` na produção ("Finished supabase db push");
+- `config push`: API, banco, Auth e Storage "up to date";
+- Edge Functions puladas com aviso;
+- no ar, o build novo (`last-modified` 11:45:02 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura de chave secreta, token do Supabase, JWT, URL com senha e token do GitHub: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):**
+- `list_migrations` com as seis migrations;
+- em `profiles`, os triggers `trg_proteger_master_admin` (`before update`, com o `when` dos três campos) e `trg_proteger_exclusao_master_admin` (`before delete`), além do `trg_set_updated_at`;
+- `private.proteger_master_admin()` e `private.autorizar_alteracao_master_admin()`: `security invoker`, `search_path` vazio, ACL só `postgres`, com o mesmo corpo do dev (mesmo md5); `anon`, `authenticated` e `service_role` sem `execute` nas duas;
+- advisors de segurança da produção: nenhum alerta.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes). O Prettier rodou sobre os arquivos versionados: o `.claude/settings.json` local, fora do repositório, não passa no `format:check`;
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (14 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
