@@ -96,10 +96,11 @@ Nenhuma tela nesta fase — a Fase 2 consome o que for entregue aqui.
 
 ### STEP 1.4 — `eventos_auditoria`
 **Entrega:** rastro imutável das ações privilegiadas.
-- [ ] **Testes primeiro:** `super_admin` lê tudo; `master_admin` lê só eventos do próprio tenant; `admin`/`user` não leem; ninguém insere pelo cliente; `update` e `delete` falham **inclusive com `service_role`** (o papel da chave secreta)
-- [ ] Migration `<versão>_f01_cria_eventos_auditoria`: tabela conforme `modelo-dados.md §5.3`, `check` de formato da `acao`, índices, trigger que impede `update`/`delete`, RLS, policies (`eventos_auditoria_select_super_admin`, `eventos_auditoria_select_master_admin`), grant `select` a `authenticated`
+- [x] **Testes primeiro:** `super_admin` lê tudo; `master_admin` lê só eventos do próprio tenant; `admin`/`user` não leem; ninguém insere pelo cliente; `update` e `delete` falham **inclusive com `service_role`** (o papel da chave secreta) *(`eventos_auditoria_test.sql`, 49 asserções; também inativo, empresa bloqueada, `anon`, o dono do banco e o `truncate`)*
+- [x] Migration `20261122122108_f01_cria_eventos_auditoria`: tabela conforme `modelo-dados.md §5.3`, `check` de formato da `acao`, índices, trigger que impede `update`/`delete`, RLS, policies (`eventos_auditoria_select_super_admin`, `eventos_auditoria_select_master_admin`), grant `select` a `authenticated` *(mais a `20261122124033_f01_ajusta_eventos_auditoria`, do code-review: `created_at` com `clock_timestamp()` e formato da ação mais estrito)*
+- [x] **Grants da Edge Function (decisão do Danilo, 22/11/2026):** `service_role` só com `insert`, e só nas colunas do evento — sem `select`, sem escolher `id` nem `created_at`. O trigger (por comando) barra também o `truncate` e vale para o dono do banco
 
-**Verificação:** testes verdes.
+**Verificação:** testes verdes *(no dev, pelo MCP e pelo `test db`: 7 arquivos, 231 asserções; mutação com 31 mutantes, todos pegos)*.
 
 ### STEP 1.5 — RPC `obter_meu_acesso()`
 **Entrega:** o estado de acesso que os gates da Fase 2 vão consultar.
@@ -257,7 +258,7 @@ Atualizações feitas no `modelo-dados.md` junto com este plano: RPC `obter_meu_
 | 1 | Schema `private`, utilitários e helpers de teste | 1.1 | ✅ |
 | 2 | `empresas`, `profiles` e funções de RLS com isolamento provado | 1.2 | ✅ |
 | 3 | Imutabilidade do `master_admin` | 1.3 | ✅ |
-| 4 | `eventos_auditoria` imutável | 1.4 | ⬜ |
+| 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ⬜ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ⬜ |
 | 7 | Seed do dev | 1.7 | ⬜ |
