@@ -31,7 +31,7 @@ npm run lint && npm run format:check && npm run typecheck && npm test && npm run
 (cd supabase/functions && deno fmt --check && deno lint && deno check && deno test)
 ```
 
-Todos os comandos: [frontend/CLAUDE.md §15](frontend/CLAUDE.md) e [supabase/CLAUDE.md §12](supabase/CLAUDE.md). Variáveis do frontend: [frontend/.env.example](frontend/.env.example).
+Todos os comandos: [frontend/CLAUDE.md §15](frontend/CLAUDE.md) e [supabase/CLAUDE.md §12](supabase/CLAUDE.md). Variáveis do frontend: [frontend/.env.example](frontend/.env.example). Senha dos usuários do seed do dev: [.env.example](.env.example).
 
 ## Publicação
 
