@@ -1,19 +1,31 @@
+import { corsHeaders } from '@supabase/supabase-js/cors';
 import { erro, erroInterno } from './resposta.ts';
 
 type Handler = (req: Request) => Promise<Response>;
 
 /** Origens do app (`supabase/CLAUDE.md §8`): o domínio de produção e o Vite de desenvolvimento. */
-const ORIGENS_PERMITIDAS: readonly string[] = [
-  'https://maxis.vemperformar.com.br',
-  'http://localhost:5173',
-];
+const DOMINIO_DE_PRODUCAO = 'https://maxis.vemperformar.com.br';
+const LOCALHOST_DO_VITE = 'http://localhost:5173';
 
 /**
- * Cabeçalhos que o supabase-js 2.119.0 envia (`@supabase/supabase-js/cors`). Conferir a cada
- * atualização dele: cabeçalho novo fora da lista derruba o preflight no navegador.
+ * O projeto de dev (`[remotes.dev]` do `config.toml`), o único que aceita o localhost, como o
+ * redirect do Auth. Decidido pelo `SUPABASE_URL` que a plataforma injeta: sem ele, ou com outro
+ * projeto, só o domínio de produção.
  */
-const CABECALHOS_PERMITIDOS =
-  'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage';
+const PROJETO_DEV = 'https://ddaqbcfrplzdywpgilbf.supabase.co';
+
+/**
+ * Os cabeçalhos que o supabase-js envia, da própria biblioteca: atualizada a versão, o preflight
+ * acompanha. Cabeçalho fora da lista derruba o preflight no navegador.
+ */
+const CABECALHOS_PERMITIDOS = lerCabecalhosDoSupabaseJs();
+
+function lerCabecalhosDoSupabaseJs(): string {
+  const cabecalhos = corsHeaders['Access-Control-Allow-Headers'];
+  // Sem a lista, todo preflight cairia: melhor quebrar ao carregar, nos testes da atualização
+  if (!cabecalhos) throw new Error('O supabase-js não declarou os cabeçalhos de CORS.');
+  return cabecalhos;
+}
 
 /** As funções do Maxis são comandos: só POST. */
 const METODOS_PERMITIDOS = 'POST, OPTIONS';
@@ -26,11 +38,18 @@ const VALIDADE_DO_PREFLIGHT_EM_SEGUNDOS = '7200';
  * trabalho), responde o preflight e devolve toda resposta — inclusive o 500 de uma exceção —
  * com os cabeçalhos que o navegador precisa para lê-la.
  */
-export function comCors(handler: Handler): Handler {
+export function comCors(
+  handler: Handler,
+  urlDoProjeto: string | undefined = Deno.env.get('SUPABASE_URL'),
+): Handler {
+  const origensPermitidas = ehOProjetoDev(urlDoProjeto)
+    ? [DOMINIO_DE_PRODUCAO, LOCALHOST_DO_VITE]
+    : [DOMINIO_DE_PRODUCAO];
+
   return async (req) => {
     const origem = req.headers.get('Origin');
 
-    if (origem !== null && !ORIGENS_PERMITIDAS.includes(origem)) {
+    if (origem !== null && !origensPermitidas.includes(origem)) {
       return comVaryOrigin(
         erro(403, 'origem_nao_permitida', 'Esta origem não tem permissão para chamar o Maxis.'),
       );
@@ -63,6 +82,12 @@ export function comCors(handler: Handler): Handler {
     }
     return comCabecalhosCors(resposta, origem);
   };
+}
+
+function ehOProjetoDev(urlDoProjeto: string | undefined): boolean {
+  if (!urlDoProjeto || !URL.canParse(urlDoProjeto)) return false;
+  // A origem da URL ignora caminho e barra final, e compara esquema e host inteiros
+  return new URL(urlDoProjeto).origin === PROJETO_DEV;
 }
 
 /**
