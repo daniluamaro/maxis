@@ -58,7 +58,7 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 - Tabelas novas **não** ficam expostas automaticamente na Data API: todo acesso é concedido por `grant` explícito e mínimo.
 - **`anon` não recebe grant algum** em tabela, view ou função do Maxis — o app inteiro exige login.
 - `authenticated` recebe só as operações que a matriz de RLS permite (`modelo-dados.md §10`). Tabela escrita apenas por Edge Function recebe só `select`.
-- Schema `private` nunca é exposto na API. `authenticated` recebe `usage` nele e `execute` apenas nas funções usadas em policies; `public` e `anon` têm `execute` revogado.
+- Schema `private` nunca é exposto na API. `authenticated` recebe `usage` nele e `execute` apenas nas funções usadas em policies e nas que uma RPC chama (§6); `public` e `anon` têm `execute` revogado.
 
 ## 6. Padrões de RLS
 
@@ -71,8 +71,8 @@ Tabelas, colunas, tipos e FKs seguem `modelo-dados.md §1`.
 - **Exclusão física:** só onde o modelo prevê (ex.: perfil sem usuários).
 - **Tabelas escritas só por Edge Function** (`empresas`, `profiles`, `eventos_auditoria`, criação de `notificacoes`): nenhuma policy de escrita e nenhum grant de escrita.
 - **Views:** sempre `security_invoker = true` (sem isso, a view ignora a RLS).
-- **`security definer`:** só no schema `private` (ou RPC pública com justificativa no plano da fase), com `search_path` vazio, nomes totalmente qualificados e verificação de `auth.uid()` no corpo. **Nunca** usar `security definer` para contornar erro de permissão.
-- **RPC pública:** `security invoker` por padrão (a RLS continua valendo).
+- **`security definer`:** só no schema `private`, com `search_path` vazio, nomes totalmente qualificados e verificação de `auth.uid()` no corpo. **Nunca** usar `security definer` para contornar erro de permissão.
+- **RPC pública:** sempre `security invoker` (a RLS continua valendo). A que precisa passar por cima da RLS (com justificativa no plano da fase) chama a função `security definer` do `private`: o advisor acusa definer em `public` executável por `authenticated` (regra 0029), e o guardião barra (regra 5).
 
 ## 7. Testes de banco (pgTAP) — TDD a partir da Fase 1
 
