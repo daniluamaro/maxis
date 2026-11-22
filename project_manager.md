@@ -81,7 +81,7 @@
 | 4 | `eventos_auditoria` imutável | 1.4 | ✅ |
 | 5 | RPC `obter_meu_acesso()` | 1.5 | ✅ |
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ✅ |
-| 7 | Seed do dev | 1.7 | ⬜ |
+| 7 | Seed do dev | 1.7 | ✅ |
 | 8 | Código compartilhado das Edge Functions | 1.8 | ⬜ |
 | 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
 | 10 | Edge Function `trocar-senha` | 1.10 | ⬜ |
@@ -1157,6 +1157,66 @@ Fora do commit: `.claude/`. Próximo: STEP 1.7, aguardando aprovação. |
 - `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
 - os quatro portões do Deno verdes com cache vazio (14 testes);
 - `git fetch --prune`: só a `main`. |
+| 22/11/2026 | **STEP 1.7 ✅** (branch `chore/step-1.7-seed-dev`, PR).
+
+**Entregue:**
+- `supabase/seed.sql`, com 3 empresas fictícias e 13 usuários:
+  - Alfa e Beta ativas; Gama bloqueada;
+  - um `super_admin`; em Alfa e Beta: `master_admin`, `admin`, `user`, um inativo e um com senha provisória; na Gama, `master_admin` e `user`;
+  - e-mails `<papel>.<empresa>@exemplo.test` e ids fixos começados por `5eed`;
+  - `auth.users`, `auth.identities` e `profiles` no mesmo arquivo, que traz só o hash bcrypt da senha.
+- `supabase/functions/_seed/hashDaSenha.ts`: lê a `SENHA_SEED_DEV` do `.env.local` da raiz e imprime só o hash. Pela `deno task hash-senha-seed`, com permissão só de leitura do `.env.local`. TDD com 14 testes; mutação com 19 mutantes, todos pegos.
+- `.env.example` na raiz, com a variável e o comando que gera a senha direto no arquivo, sem mostrá-la; link no README.
+- O `.env.local` foi criado pelo Danilo com esse comando: `-rw-------`, ignorado pelo git; o valor não passou pela conversa.
+
+**Verificado no dev:**
+- **RED e ensaio:** as 7 verificações do estado (empresas, profiles, formato do Auth, hash único de custo 10, identidades) falharam com o dev vazio. O ensaio, numa transação desfeita no fim, provou:
+  - a 1ª aplicação, a reaplicação sem gravar nada e a restauração depois de bagunçar o estado;
+  - que o `master_admin` desativado pela operação privilegiada não é reescrito e não dispara o trigger.
+  - O dev voltou vazio.
+- **Aplicado duas vezes:** a 1ª pelo MCP gravou 13/13/3/13/3 linhas (`auth.users`, `auth.identities`, `empresas`, `profiles`, `created_by` das empresas). A 2ª, pelo `db query --remote=<dev> --file supabase/seed.sql`, gravou zero, o que prova também que os dados do arquivo são os mesmos aplicados pelo MCP.
+- **Login pela API**, com a chave publishable e a senha lida do `.env.local` por um script que nunca a imprime:
+  - os 13 usuários autenticam (200, sem `weak_password`);
+  - a senha errada dá 400 `invalid_credentials`;
+  - o `GET /auth/v1/user` devolve `aud` e `role` `authenticated`, e-mail confirmado e a identidade `email`.
+- **`obter_meu_acesso()`** informa o motivo:
+  - `ativo: false` nos dois inativos;
+  - `empresa_ativa: false` na Gama;
+  - `empresa_ativa` nula no `super_admin`;
+  - `senha_provisoria: true` nos dois de senha provisória.
+- **RLS:** inativos e Gama leem 0 empresas e só o próprio profile; os demais, a própria empresa e os 5 profiles dela; o `super_admin`, as 3 empresas e os 4 profiles (os 3 `master_admin` e o dele).
+- **Senha fora da política recusada pelo Auth**, pelo caminho direto (`PUT /auth/v1/user` com o token do usuário): `abcdefgh` e `12345678` com 422 `weak_password` `characters`; `abc1234` com `length`. Fecha a verificação do STEP 1.6.
+- **O caminho direto existe:** a troca para uma senha válida e descartável passou (200), e a do seed deixou de valer. A reaplicação gravou 1 linha em `auth.users` e devolveu a senha canônica; a seguinte, zero. Os mais de 20 logins não mudaram nada que o seed compare: o GoTrue não refaz o hash nem mexe na identidade.
+- **Produção, só leitura:** nenhuma linha do seed; advisors de segurança sem alerta.
+- Portões verdes: os cinco do frontend (178 testes; o Prettier só acusa o `.claude/settings.json`, local e não versionado) e os quatro do Deno (28 testes).
+
+**Decisões tomadas no STEP (para conferência):**
+1. **CNPJ alfanumérico com o prefixo `SEED`** (`SEED0001000147`, `SEED0002000191`, `SEED0003000136`), verificadores por um cálculo independente que reproduz o exemplo da Receita, conferidos no `cnpj_valido` do dev. Não colide com o `TST` do pgTAP, e um CNPJ numérico poderia ser o de uma empresa real, num repositório público.
+2. **Script em Deno, na pasta `_seed` das funções**, com o `bcryptjs` 3.0.3 (sem dependências; integridade do lock igual à do registro npm): fica coberto pelos quatro portões do CI e fora do deploy (o pipeline só publica `[a-z]*/index.ts`). Bcrypt de custo 10, o padrão do GoTrue.
+3. **A senha tem de 24 a 72 letras e números**, com ao menos uma letra e um número: forte (32 no comando documentado), dentro da política do Auth, sem escape no `.env.local` nem no secret do CI, e no limite de 72 bytes do bcrypt.
+4. **`.env.local` na raiz**, separado do `frontend/.env.local` (o Vite só lê o da pasta do frontend).
+5. **Canônico além do plano:** `senha_alterada_em`, nome e e-mail, o bloqueio das empresas e, no Auth, ban, exclusão lógica e `app_metadata`. `papel` e `tenant_id` nunca são reescritos, de ninguém.
+6. **O seed não grava auditoria:** é carga de dados do dev, não ação no produto, e a cada run do `integracao` empilharia eventos imutáveis.
+7. **2ª aplicação pelo `db query --file`**, e não de novo pelo MCP: lê o arquivo versionado (prova que os dados dele são os aplicados) e é o caminho do job `integracao`. Com `--read-only`, o CLI usa o `supabase_read_only_user`; sem a flag, escreve em `auth.users`.
+
+**Code-review (medium), 8 achados:**
+- **Corrigidos (4):**
+  - exclusão lógica e `app_metadata` do Auth fora do estado canônico;
+  - script sem permissão de leitura caía em "falha inesperada": agora diz como rodar, com TDD do `NotCapable` e do `PermissionDenied`;
+  - `.env.local` salvo com BOM não era lido: TDD, e o BOM no código como sequência de escape, não o caractere invisível que o editor gravou;
+  - o comando do `.env.example` falhava calado quando o arquivo já existia.
+- **Refutado (1):** "o resumo do fim se perde pelo MCP". A aplicação pelo MCP o devolveu.
+- **Mantidos (3):**
+  - reaplicar o seed não encerra sessões: é dado do dev, e o corte é da RLS (risco da §8);
+  - e-mail do seed já usado com outro id aborta tudo: falhar alto, com rollback, é o certo;
+  - `bcryptjs` no `deno.json` compartilhado: mesmo caso do `@std/assert`, só de teste; mapeamento sem uso não entra no bundle das funções.
+
+**Para os próximos STEPs:**
+- **Proteção contra senha vazada (HIBP):** o advisor de segurança do dev passou a acusar `auth_leaked_password_protection` (WARN), porque agora há usuários. A produção acusará quando o primeiro `super_admin` existir (STEP 1.11). Sem chave no `config.toml` do CLI 3.0.0, como na pendência #25. Proposta: decidir no STEP 1.10, junto com o caminho direto do Auth (os dois tratam da troca de senha), antes do fechamento (1.12 exige zero alerta).
+- **1.9:** o seed não sabe em que projeto roda (nenhuma configuração do banco traz o ref). Proposta: o job `integracao` confere que o ref de destino é o do dev e diferente do `REF_PRODUCAO` antes do `db query`.
+- **1.9:** complemento à pendência #24 (§10/§12): a variável `SENHA_SEED_DEV` (`.env.local` da raiz e secret do `development`) e o comando `deno task hash-senha-seed`.
+
+Fora do commit: `.claude/`. Próximo: STEP 1.8, aguardando aprovação. |
 
 ---
 
