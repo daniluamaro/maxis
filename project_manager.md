@@ -69,7 +69,7 @@
 **Status:** 🔄 Em andamento — aberta em 14/11/2026, com o plano revisado para o projeto de dev online (pendência #10) e aprovado pelo Danilo (PR #16).
 **Objetivo:** construir e provar por testes a fundação de segurança multi-tenant (schema base, RLS por `tenant_id`, provisionamento por Edge Function, troca da própria senha, primeiro `super_admin`), antes de qualquer tela depender dela.
 
-**Plano:** `docs/plans/fase-01-dados-seguranca.md` (12 STEPs). Decisões 10–13 da revisão para o dev online; pendência #24 proposta (aplicar no STEP 1.9); #26 proposta no STEP 1.5.
+**Plano:** `docs/plans/fase-01-dados-seguranca.md` (12 STEPs). Decisões 10–13 da revisão para o dev online; pendência #24 proposta (aplicar no STEP 1.9); #26 proposta e aplicada no STEP 1.5.
 
 **Entregáveis** *(espelho da §9 do plano)*
 
@@ -126,7 +126,7 @@
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
 | 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. | Aprovada (14/11/2026) · aplicar sob autorização (no STEP 1.9) |
 | 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
-| 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | Proposta (22/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
+| 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | ✅ Aplicada em 22/11/2026 |
 
 ---
 
@@ -1050,6 +1050,25 @@ Mantido:
 **No merge:** deploy acompanhado (a migration vai para a produção) e, na produção, só leitura: a migration, o tipo, as duas funções (modo, `search_path` e `execute` só de `authenticated`) e os advisors.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.6, aguardando aprovação. |
+| 22/11/2026 | Danilo aprova o STEP 1.5 (PR #21) e autoriza aplicar a pendência de governança #26.
+
+**CI do PR:** `frontend`, `banco` e `edge-functions` verdes. No `banco`, o `pg_prove` rodou os 8 arquivos (253 asserções), PASS, inclusive o `obter_meu_acesso_test.sql` (18).
+
+**Desvios aceitos:**
+- a RPC `security invoker`, com a parte `security definer` em `private.acesso_atual()` (decisão dele no STEP);
+- a regra 5 do guardião e a correção da regra 4, fora do STEP.
+
+**Também aceitas:**
+- os nomes `private.acesso_atual()` e `acesso_usuario`;
+- o JWT sem profile com todos os campos nulos, e o gate da Fase 2 que fecha por padrão;
+- o mesmo padrão na Fase 4 (`listar_empresas_admin` e a troca do titular);
+- os achados do code-review (4 corrigidos, 1 mantido).
+
+**Pendência #26 aplicada** no `supabase/CLAUDE.md`:
+- **§5:** `authenticated` executa no `private` as funções de policy e as que uma RPC chama;
+- **§6:** o `security definer` sai da exceção "(ou RPC pública com justificativa no plano da fase)". A linha da RPC pública passa de "`security invoker` por padrão" a "sempre `security invoker`": a que precisa passar por cima da RLS, com a justificativa no plano, chama a função `security definer` do `private`, com o motivo (regra 0029 do advisor e regra 5 do guardião).
+
+**No merge:** deploy acompanhado (a migration vai para a produção) e, na produção, só leitura: a migration, o tipo, as duas funções e os advisors. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.6. |
 
 ---
 
