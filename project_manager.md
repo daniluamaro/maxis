@@ -1237,6 +1237,25 @@ Fora do commit: `.claude/`. Próximo: STEP 1.8, aguardando aprovação. |
   - **pendência #24 complementada:** a variável `SENHA_SEED_DEV` (§10) e o comando `deno task hash-senha-seed` (§12).
 
 **No merge:** nenhuma migration e nenhuma Edge Function (a pasta `_seed` fica fora do deploy); o seed nunca vai para a produção. Deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.8. |
+| 22/11/2026 | **Merge do PR #23 (STEP 1.7): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.8, branch `chore/step-1.8-codigo-compartilhado`).
+
+**Merge com rebase** em 22/11/2026 21:12:40Z (commit `52bcfae`, branch apagada), depois do CI verde no commit da aprovação `8f1d86b` (run 45070546191). O "ok" do merge veio junto com o pedido de abrir o STEP 1.8.
+
+**Deploy** (run 45070811154):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 21:15:46 e o deploy-frontend começou às 21:15:51;
+- `db push`: "Remote database is up to date" (nenhuma migration nova);
+- `config push`: API, banco, Auth e Storage "up to date";
+- "Nenhuma Edge Function para publicar" (a pasta `_seed` fica fora, como previsto);
+- no ar, o build novo (`last-modified` 21:16:07 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura de chave secreta, token do Supabase, JWT, URL com senha e token do GitHub: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):** as mesmas nove migrations; advisors de segurança: nenhum alerta; `empresas`, `profiles` e `eventos_auditoria` vazias (nada do seed).
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes; o Prettier só acusa o `.claude/settings.json`, local e não versionado);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (28 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
