@@ -1333,6 +1333,26 @@ Fora do commit: `.claude/`. Próximo: STEP 1.9, aguardando aprovação. |
   - **Fase 2:** o supabase-js do frontend na versão das funções, com a checagem no CI. Registrada na nota de revisão dos planos, no Roadmap, para entrar quando a Fase 2 for aberta.
 
 **No merge:** só o `_shared`, sem função para publicar (o pipeline só publica `[a-z]*/index.ts`), e nenhuma migration. Deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.9. |
+| 27/11/2026 | **Merge do PR #24 (STEP 1.8): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.9, branch `chore/step-1.9-provisionar-usuario`).
+
+**Merge com rebase** em 27/11/2026 22:17:50Z (commit `40a81fa`, branch apagada), depois do CI verde no commit da aprovação `f0d07bd` (run 46073266203). O "ok" do merge foi o "pode seguir" do Danilo.
+
+**Deploy** (run 46075762995):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 22:21:01 e o deploy-frontend começou às 22:21:06;
+- `db push`: "Remote database is up to date" (nenhuma migration nova);
+- `config push`: API, banco, Auth e Storage "up to date";
+- "Nenhuma Edge Function para publicar" (o `_shared` não é função, como previsto);
+- no job `edge-functions`, o `deno test -P` com os 70 testes;
+- no ar, o build novo (`last-modified` 22:21:16 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura de chave secreta, token do Supabase, JWT, URL com senha e token do GitHub: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):** as mesmas nove migrations; advisors de segurança: nenhum alerta; `empresas`, `profiles`, `eventos_auditoria` e `auth.users` vazias.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes; o Prettier só acusa o `.claude/settings.json`, local e não versionado);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (`deno test -P`, 70 testes);
+- `git fetch --prune`: só a `main`. |
 
 ---
 
