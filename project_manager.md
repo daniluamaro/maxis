@@ -43,7 +43,7 @@
 - A Fase 6 precede a 7: o cadastro de usuário referencia unidade gerencial e setor.
 - A Fase 8 depende tecnicamente só da 3; fica por último para consumir eventos reais das Fases 4–7.
 
-> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada e aprovada em 14/11/2026 (PR #16); Fases 2–8 seguem pendentes.
+> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada e aprovada em 14/11/2026 (PR #16); Fases 2–8 seguem pendentes. Na revisão da Fase 2, incluir também: o `@supabase/supabase-js` do frontend na mesma versão das Edge Functions (hoje 2.119.2), com uma checagem no CI de que as duas são iguais, porque o CORS libera os cabeçalhos da versão das funções (aprovado no STEP 1.8).
 
 ---
 
@@ -127,7 +127,7 @@
 | 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. **Complemento (22/11/2026, STEP 1.7):** §10: o valor da senha fica na variável `SENHA_SEED_DEV`, no `.env.local` da raiz e no secret de mesmo nome do `development`; §12: o comando `deno task hash-senha-seed` (em `supabase/functions`), que gera o hash do seed. | Aprovada (14/11/2026; complemento em 22/11/2026) · aplicar sob autorização (no STEP 1.9) |
 | 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
 | 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | ✅ Aplicada em 22/11/2026 |
-| 27 | `supabase/CLAUDE.md §8/§12` | Registrar o que o STEP 1.8 fixou no `_shared`. **§8, passo 3 do fluxo:** além de papel, `ativo` e tenant, a função confere que a **senha provisória já foi trocada**; só a `trocar-senha` aceita a provisória (`identificarChamador`, `aceitarSenhaProvisoria`). **§8, resposta padrão:** o 400 de validação leva também `campos`, a mensagem de cada campo: `{ error: { codigo: 'entrada_invalida', mensagem, campos } }`, com a `mensagem` geral para a regra entre campos; o corpo que não é objeto JSON recebe `corpo_invalido`. **§12:** `deno test -P` no lugar de `deno test`: o `@supabase/server` lê variáveis de ambiente ao carregar, e o `test.permissions` do `deno.json` concede só ambiente (rede e arquivos seguem negados). | Proposta (22/11/2026) · aplicar sob autorização |
+| 27 | `supabase/CLAUDE.md §8/§12` | Registrar o que o STEP 1.8 fixou no `_shared`. **§8, passo 3 do fluxo:** além de papel, `ativo` e tenant, a função confere que a **senha provisória já foi trocada**; só a `trocar-senha` aceita a provisória (`identificarChamador`, `aceitarSenhaProvisoria`). **§8, resposta padrão:** o 400 de validação leva também `campos`, a mensagem de cada campo: `{ error: { codigo: 'entrada_invalida', mensagem, campos } }`, com a `mensagem` geral para a regra entre campos; o corpo que não é objeto JSON recebe `corpo_invalido`. **§12:** `deno test -P` no lugar de `deno test`: o `@supabase/server` lê variáveis de ambiente ao carregar, e o `test.permissions` do `deno.json` concede só ambiente (rede e arquivos seguem negados). | Aprovada (27/11/2026) · aplicar sob autorização (no STEP 1.9, junto com a #24) |
 
 ---
 
@@ -1315,6 +1315,24 @@ As 15 entradas npm do lock têm a integridade igual à do registro; nenhum alert
 - **Fase 2 (proposta):** o frontend com o mesmo `@supabase/supabase-js` 2.119.2, e uma checagem no CI de que as duas versões são iguais. O CORS libera os cabeçalhos da versão das funções.
 
 Fora do commit: `.claude/`. Próximo: STEP 1.9, aguardando aprovação. |
+| 27/11/2026 | Danilo aprova o STEP 1.8 (PR #24).
+
+**CI do PR** (run 45084465769): `frontend`, `banco` e `edge-functions` verdes. No `edge-functions`, os 70 testes rodaram com `deno test -P`; no `banco`, o `pg_prove` rodou os 8 arquivos (253 asserções), PASS.
+
+**Desvios aceitos:**
+1. os testes com `deno test -P`, e o `test.permissions` do `deno.json` concedendo só ambiente;
+2. as versões no `deno.json` da pasta das funções até a primeira função; o da `provisionar-usuario` nasce no 1.9, com a conferência do deploy;
+3. a senha provisória pendente barrando as funções por padrão (403 `troca_de_senha_pendente`), exceto na `trocar-senha`;
+4. o 400 de validação com `campos`, e a regra entre campos como a mensagem geral.
+
+**Também aceitas:**
+- as decisões 1–11 do STEP;
+- o code-review (8 achados: 5 corrigidos, 1 comentário corrigido, 2 encaminhados);
+- as propostas:
+  - **pendência #27** aprovada, para aplicar sob autorização no STEP 1.9, junto com a #24 (as duas mexem no `supabase/CLAUDE.md`);
+  - **Fase 2:** o supabase-js do frontend na versão das funções, com a checagem no CI. Registrada na nota de revisão dos planos, no Roadmap, para entrar quando a Fase 2 for aberta.
+
+**No merge:** só o `_shared`, sem função para publicar (o pipeline só publica `[a-z]*/index.ts`), e nenhuma migration. Deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.9. |
 
 ---
 
