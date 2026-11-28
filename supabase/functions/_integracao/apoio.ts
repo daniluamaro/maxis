@@ -134,7 +134,7 @@ export function literal(valor: string): string {
  * fixtures e as conferências da execução: nenhuma senha passa por aqui.
  */
 export async function sql<T>(consulta: string): Promise<T[]> {
-  const { code, stdout } = await new Deno.Command('npx', {
+  const { code, stdout, stderr } = await new Deno.Command('npx', {
     args: [
       '--no',
       'supabase',
@@ -147,11 +147,14 @@ export async function sql<T>(consulta: string): Promise<T[]> {
       consulta,
     ],
     stdout: 'piped',
-    stderr: 'null',
+    stderr: 'piped',
   }).output();
-  const saida = JSON.parse(new TextDecoder().decode(stdout) || '{}');
+  const texto = new TextDecoder().decode(stdout);
+  const saida = texto.trim().startsWith('{') ? JSON.parse(texto) : {};
   if (code !== 0 || !Array.isArray(saida.rows)) {
-    throw new Error(`O db query falhou: ${saida.error?.message ?? `saída ${code}`}`);
+    // Com `--output-format json`, o erro do banco vem na saída; sem JSON, o fim do stderr do CLI
+    const motivo = saida.error?.message ?? new TextDecoder().decode(stderr).trim().slice(-300);
+    throw new Error(`O db query falhou (saída ${code}): ${motivo}`);
   }
   return saida.rows as T[];
 }

@@ -191,14 +191,19 @@ jobs:
         run: deno check
 
       # O deploy empacota cada função pelo deno.json dela, e os portões rodam pelo da pasta: as
-      # versões precisam ser as mesmas, senão o testado não é o publicado.
-      - name: Versões do deno.json de cada função
+      # versões precisam ser as mesmas, senão o testado não é o publicado. E o da função precisa
+      # resolver tudo o que ela importa, inclusive pelo _shared, senão o deploy quebra.
+      - name: deno.json de cada função (versões e imports)
         run: |
           for funcao in [a-z]*/deno.json; do
             [ -e "$funcao" ] || continue
             if ! jq -e --slurpfile pasta deno.json \
               '.imports | to_entries | all(.value == $pasta[0].imports[.key])' "$funcao" > /dev/null; then
               echo "::error::$funcao com versão diferente do deno.json da pasta"
+              exit 1
+            fi
+            if ! deno check --no-lock --config "$funcao" "$(dirname "$funcao")/index.ts"; then
+              echo "::error::$funcao não resolve os imports da função"
               exit 1
             fi
           done
