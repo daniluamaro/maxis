@@ -143,18 +143,23 @@ export async function sql<T>(consulta: string): Promise<T[]> {
       `--remote=${REF_DEV}`,
       '--output-format',
       'json',
+      // O formato da saída muda quando o CLI detecta um agente: fixo, igual no CI e aqui
+      '--agent',
+      'no',
       '--yes',
       consulta,
     ],
     stdout: 'piped',
     stderr: 'piped',
   }).output();
-  const texto = new TextDecoder().decode(stdout);
-  const saida = texto.trim().startsWith('{') ? JSON.parse(texto) : {};
-  if (code !== 0 || !Array.isArray(saida.rows)) {
-    // Com `--output-format json`, o erro do banco vem na saída; sem JSON, o fim do stderr do CLI
-    const motivo = saida.error?.message ?? new TextDecoder().decode(stderr).trim().slice(-300);
+  const texto = new TextDecoder().decode(stdout).trim();
+  const saida: unknown = texto.startsWith('[') || texto.startsWith('{') ? JSON.parse(texto) : null;
+  if (code !== 0 || !Array.isArray(saida)) {
+    // Com `--output-format json`, o erro do banco vem na saída (`error.message`); sem JSON, o fim
+    // do stderr do CLI
+    const erro = (saida as { error?: { message?: string } } | null)?.error?.message;
+    const motivo = erro ?? new TextDecoder().decode(stderr).trim().slice(-300);
     throw new Error(`O db query falhou (saída ${code}): ${motivo}`);
   }
-  return saida.rows as T[];
+  return saida as T[];
 }

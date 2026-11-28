@@ -1388,6 +1388,7 @@ Fora do commit: `.claude/`. Próximo: STEP 1.9, aguardando aprovação. |
 - o `deleteUser` do supabase-js 2.119.2 busca o usuário antes de apagar (supabase-js, issue 2751): a compensação faz um `GET` e um `DELETE`;
 - o `functions deploy --use-api` do CLI 3.0.0 não envia `deno.lock` nenhum (provado com o lock na pasta e na função);
 - no zod 4, a mensagem do `z.email({ error })` vale também para o `.max()` sem mensagem própria.
+- o Supabase CLI muda o formato do `--output-format json` quando detecta um agente (no Claude Code, as linhas vêm em `rows`; no CI, a lista direto). O primeiro run do `integracao` com os secrets falhou por isso, no `jq` do seed; o passo do seed e o `sql()` da integração passaram a fixar `--agent no`.
 
 **Code-review (medium), 8 achados:**
 - **Corrigidos (2):** o `deno.json` de cada função conferido também por um `deno check` com a configuração dela (antes, só as versões); o erro do `db query` da integração com o fim do stderr do CLI.

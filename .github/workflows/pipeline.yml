@@ -288,17 +288,18 @@ jobs:
         run: npx --no supabase functions deploy --remote="$REF_DEV" --use-api --yes
 
       # Idempotente: devolve os usuários do seed ao estado canônico, sem apagar nada (decisão 13).
-      # Nunca `--include-seed` em outro lugar: o seed é só do dev.
+      # Nunca `--include-seed` em outro lugar: o seed é só do dev. `--agent no` fixa o formato da
+      # saída (a lista de linhas do resumo do fim): o CLI muda o formato quando detecta um agente.
       - name: Seed do dev
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           if ! npx --no supabase db query --remote="$REF_DEV" --file supabase/seed.sql \
-            --output-format json --yes > "$RUNNER_TEMP/seed.json"; then
+            --output-format json --agent no --yes > "$RUNNER_TEMP/seed.json"; then
             cat "$RUNNER_TEMP/seed.json"
             exit 1
           fi
-          jq -r '.rows[] | "\(.passo): \(.gravadas)"' "$RUNNER_TEMP/seed.json"
+          jq -r '.[] | "\(.passo): \(.gravadas)"' "$RUNNER_TEMP/seed.json"
 
       # A senha do seed só no `env` deste passo; a suíte nunca a imprime. O token serve ao
       # `db query` das fixtures, que a suíte chama.
