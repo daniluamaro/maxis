@@ -31,10 +31,18 @@
     "indentWidth": 2
   },
   "tasks": {
-    "hash-senha-seed": "deno run --no-prompt --allow-read=../../.env.local _seed/hashDaSenha.ts"
+    "hash-senha-seed": "deno run --no-prompt --allow-read=../../.env.local _seed/hashDaSenha.ts",
+    "integracao": "deno test --no-prompt -P=integracao _integracao/provisionarUsuario.integracao.ts"
   },
   "test": {
     "permissions": { "env": true }
+  },
+  "permissions": {
+    "integracao": {
+      "env": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "SENHA_SEED_DEV"],
+      "net": ["ddaqbcfrplzdywpgilbf.supabase.co"],
+      "run": ["npx"]
+    }
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1.0.19",
