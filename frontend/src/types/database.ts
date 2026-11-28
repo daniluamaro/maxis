@@ -194,6 +194,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      registrar_usuario_provisionado: {
+        Args: {
+          ator_profile_id: string
+          email: string
+          nome: string
+          papel: Database["public"]["Enums"]["papel_usuario"]
+          telefone?: string
+          tenant_id: string
+          usuario_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       papel_usuario: "super_admin" | "master_admin" | "admin" | "user"
