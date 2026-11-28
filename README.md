@@ -31,6 +31,12 @@ npm run lint && npm run format:check && npm run typecheck && npm test && npm run
 (cd supabase/functions && deno fmt --check && deno lint && deno check && deno test -P)
 ```
 
+Testes de integração das Edge Functions, contra as funções publicadas no projeto de dev (o CI os roda no job `integracao` de cada PR, depois de publicar as funções da branch e reaplicar o seed). Escrevem no dev e pedem, no ambiente, `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` do dev e a `SENHA_SEED_DEV`; as fixtures vão pelo login do Supabase CLI:
+
+```bash
+(cd supabase/functions && deno task integracao)
+```
+
 Todos os comandos: [frontend/CLAUDE.md §15](frontend/CLAUDE.md) e [supabase/CLAUDE.md §12](supabase/CLAUDE.md). Variáveis do frontend: [frontend/.env.example](frontend/.env.example). Senha dos usuários do seed do dev: [.env.example](.env.example).
 
 ## Publicação
