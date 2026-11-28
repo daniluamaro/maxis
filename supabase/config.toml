@@ -412,6 +412,14 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Edge Functions. `verify_jwt` explícito em toda função chamada pelo app: a plataforma recusa a
+# chamada sem JWT de sessão antes do código, e o `@supabase/server` confere de novo dentro dela
+# (duas camadas, supabase/CLAUDE.md §8). O import map é o deno.json da própria função, com as
+# versões do deno.json da pasta (o CI confere).
+[functions.provisionar-usuario]
+verify_jwt = true
+import_map = "./functions/provisionar-usuario/deno.json"
+
 [analytics]
 enabled = true
 port = 54327

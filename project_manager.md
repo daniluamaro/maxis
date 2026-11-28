@@ -43,7 +43,7 @@
 - A Fase 6 precede a 7: o cadastro de usuário referencia unidade gerencial e setor.
 - A Fase 8 depende tecnicamente só da 3; fica por último para consumir eventos reais das Fases 4–7.
 
-> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada e aprovada em 14/11/2026 (PR #16); Fases 2–8 seguem pendentes. Na revisão da Fase 2, incluir também: o `@supabase/supabase-js` do frontend na mesma versão das Edge Functions (hoje 2.119.2), com uma checagem no CI de que as duas são iguais, porque o CORS libera os cabeçalhos da versão das funções (aprovado no STEP 1.8).
+> **Revisão pendente (03/11/2026):** os planos das Fases 1–8 ainda citam ambiente, seed e testes de integração "local". Ao abrir cada fase, revisar o plano para o projeto de dev online (pendência #10), com aprovação do Danilo. Fase 1 revisada e aprovada em 14/11/2026 (PR #16); Fases 2–8 seguem pendentes. Na revisão da Fase 2, incluir também: o `@supabase/supabase-js` do frontend na mesma versão das Edge Functions (hoje 2.119.2), com uma checagem no CI de que as duas são iguais, porque o CORS libera os cabeçalhos da versão das funções (aprovado no STEP 1.8). *Propostas do STEP 1.9, para conferência do Danilo:* na Fase 2, o cliente das Edge Functions trata os dois formatos de 401 — o da função (`{ error: { codigo, mensagem } }`) e o da plataforma (`{ code, message }`, com o `sb-error-code`) — como sessão expirada; na Fase 4, uma rotina do Admin SaaS que liste os usuários do Auth sem profile (o órfão de uma compensação que falhou).
 
 ---
 
@@ -83,7 +83,7 @@
 | 6 | Auth endurecido e política de senha (dev + produção) | 1.6 | ✅ |
 | 7 | Seed do dev | 1.7 | ✅ |
 | 8 | Código compartilhado das Edge Functions | 1.8 | ✅ |
-| 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | ⬜ |
+| 9 | Edge Function `provisionar-usuario` e o job `integracao` do CI | 1.9 | 🔄 |
 | 10 | Edge Function `trocar-senha` | 1.10 | ⬜ |
 | 11 | Primeiro `super_admin` em produção | 1.11 | ⬜ |
 | 12 | Fechamento da fase | 1.12 | ⬜ |
@@ -124,7 +124,7 @@
 | 21 | `supabase/CLAUDE.md §8/§9` | Registrar a decisão do STEP 0.11. **§8:** a autenticação usa `@supabase/server` com **`createSupabaseContext`** e `auth: 'user'`, dentro do `comCors` do `_shared`, no lugar de "com `withSupabase`": o CORS do `withSupabase` é fixo (`*` ou cabeçalho estático, sem allowlist por origem) e o erro dele sai no formato do SDK, não em `{ error: { codigo, mensagem } }`. `verify_jwt` segue ligado nas funções de usuário: são duas camadas. A resposta padrão inclui o **405** (método fora de POST, recusado pelo `comCors`). **§9:** no lugar de "se decidem no STEP 0.11", o `verify_jwt` confere o JWT de sessão do usuário, que continua sendo JWT; as chaves novas vão só no cabeçalho `apikey`; o SDK exige JWT assinado pela chave assimétrica (ES256), que os dois projetos publicam no JWKS. | ✅ Aplicada em 08/11/2026 |
 | 22 | `CLAUDE.md §1` | "Plano Pro na conclusão do SaaS" → **plano Pro desde nov/2026**, nos dois projetos: assinado pelo Danilo depois da pausa da produção no 1º deploy (o plano free pausa projeto parado). | ✅ Aplicada em 14/11/2026 |
 | 23 | `CLAUDE.md §1/§5` | Domínio de produção **`maxis.vemperformar.com.br`** no lugar de `maxis.performargestao.com.br`, informado por engano no início do projeto (§1 Domínio; §5 Site URL e Redirect). | ✅ Aplicada em 14/11/2026 |
-| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. **Complemento (22/11/2026, STEP 1.7):** §10: o valor da senha fica na variável `SENHA_SEED_DEV`, no `.env.local` da raiz e no secret de mesmo nome do `development`; §12: o comando `deno task hash-senha-seed` (em `supabase/functions`), que gera o hash do seed. | Aprovada (14/11/2026; complemento em 22/11/2026) · aplicar sob autorização (no STEP 1.9) |
+| 24 | `supabase/CLAUDE.md §8/§10/§12` | Integração das Edge Functions **no CI, contra o dev** (decisão 11 da Fase 1). **§8:** o deploy no dev deixa de ser só pelo MCP: o job `integracao` do PR publica no dev as funções da branch e roda os testes de integração. **§10:** o seed do dev é aplicado pelo MCP ou por `db query --remote=<dev> --file` (no CI, pelo job `integracao`; nunca `--include-seed`); traz só o hash bcrypt da senha, cujo valor fica no `.env.local` e no secret do `development`; é idempotente e não apaga nada, porque a auditoria imutável prende no dev o que a integração cria. **§12:** os comandos `db query --remote=<dev>` e `functions deploy --remote=<dev> --use-api`. **Complemento (22/11/2026, STEP 1.7):** §10: o valor da senha fica na variável `SENHA_SEED_DEV`, no `.env.local` da raiz e no secret de mesmo nome do `development`; §12: o comando `deno task hash-senha-seed` (em `supabase/functions`), que gera o hash do seed. **Complemento proposto (28/11/2026, STEP 1.9):** §8: durante o trabalho, o deploy no dev também pelo CLI (`functions deploy --remote=<dev> --use-api`, o comando do job); os testes de integração ficam em `functions/_integracao/` (`*.integracao.ts`, fora do `deno test` dos portões) e rodam pelo `deno task integracao`; o `deno.lock` da pasta vale para os portões, e o deploy com `--use-api` não o envia (CLI 3.0.0): as dependências transitivas são resolvidas no deploy, e o job `integracao` testa o que foi publicado no dev. §12: o comando `deno task integracao`. | Aprovada (14/11/2026; complemento em 22/11/2026; complemento de 28/11/2026 proposto) · aplicar sob autorização (no STEP 1.9) |
 | 25 | `supabase/CLAUDE.md §10` | Exceção ao "`config.toml` como fonte única do Auth": a **alocação de conexões do Auth** (Dashboard → Authentication → Performance → Connection management: percentual, 17% das conexões máximas) não tem chave no `config.toml` do CLI 3.0.0 — o `db_max_pool_size` só existe na API de gestão (conferido no binário). Fica configurada no Dashboard, igual nos dois projetos, e é conferida pelos advisors (`npx supabase db advisors --remote=<ref>`, que acusa `auth_db_connections_absolute`). Rever quando o CLI mapear a chave. | Aprovada (21/11/2026) · aplicar sob autorização (até o fechamento da Fase 1) |
 | 26 | `supabase/CLAUDE.md §5/§6` | `security definer` **só no `private`**. **§6:** sai a exceção "(ou RPC pública com justificativa no plano da fase)"; a RPC que precisa passar por cima da RLS é `security invoker` e chama a função `security definer` do `private`. **§5:** no `private`, `authenticated` executa as funções de policy **e as que uma RPC chama**. Motivo: o advisor acusa definer em `public` executável por `authenticated` (regra 0029, WARN), e o guardião passou a barrar (regra 5). Padrão aplicado no STEP 1.5 (`obter_meu_acesso()` → `private.acesso_atual()`). | ✅ Aplicada em 22/11/2026 |
 | 27 | `supabase/CLAUDE.md §8/§12` | Registrar o que o STEP 1.8 fixou no `_shared`. **§8, passo 3 do fluxo:** além de papel, `ativo` e tenant, a função confere que a **senha provisória já foi trocada**; só a `trocar-senha` aceita a provisória (`identificarChamador`, `aceitarSenhaProvisoria`). **§8, resposta padrão:** o 400 de validação leva também `campos`, a mensagem de cada campo: `{ error: { codigo: 'entrada_invalida', mensagem, campos } }`, com a `mensagem` geral para a regra entre campos; o corpo que não é objeto JSON recebe `corpo_invalido`. **§12:** `deno test -P` no lugar de `deno test`: o `@supabase/server` lê variáveis de ambiente ao carregar, e o `test.permissions` do `deno.json` concede só ambiente (rede e arquivos seguem negados). | Aprovada (27/11/2026) · aplicar sob autorização (no STEP 1.9, junto com a #24) |
@@ -1333,6 +1333,77 @@ Fora do commit: `.claude/`. Próximo: STEP 1.9, aguardando aprovação. |
   - **Fase 2:** o supabase-js do frontend na versão das funções, com a checagem no CI. Registrada na nota de revisão dos planos, no Roadmap, para entrar quando a Fase 2 for aberta.
 
 **No merge:** só o `_shared`, sem função para publicar (o pipeline só publica `[a-z]*/index.ts`), e nenhuma migration. Deploy acompanhado e site no ar conferido. O resultado e a conferência pós-merge entram no 1º commit da branch do STEP 1.9. |
+| 27/11/2026 | **Merge do PR #24 (STEP 1.8): deploy, produção conferida e pós-merge** (registrados na abertura do STEP 1.9, branch `chore/step-1.9-provisionar-usuario`).
+
+**Merge com rebase** em 27/11/2026 22:17:50Z (commit `40a81fa`, branch apagada), depois do CI verde no commit da aprovação `f0d07bd` (run 46073266203). O "ok" do merge foi o "pode seguir" do Danilo.
+
+**Deploy** (run 46075762995):
+- os 6 jobs verdes, na ordem: o deploy-backend terminou às 22:21:01 e o deploy-frontend começou às 22:21:06;
+- `db push`: "Remote database is up to date" (nenhuma migration nova);
+- `config push`: API, banco, Auth e Storage "up to date";
+- "Nenhuma Edge Function para publicar" (o `_shared` não é função, como previsto);
+- no job `edge-functions`, o `deno test -P` com os 70 testes;
+- no ar, o build novo (`last-modified` 22:21:16 GMT): `/` com 200, rota inexistente com 404;
+- log público sem segredo (varredura de chave secreta, token do Supabase, JWT, URL com senha e token do GitHub: nada; 22 linhas mascaradas).
+
+**Produção, só leitura (MCP `supabase-prod`):** as mesmas nove migrations; advisors de segurança: nenhum alerta; `empresas`, `profiles`, `eventos_auditoria` e `auth.users` vazias.
+
+**Pós-merge na `main`:**
+- `npm ci --ignore-scripts` limpo e os cinco portões verdes (178 testes; o Prettier só acusa o `.claude/settings.json`, local e não versionado);
+- `npm audit --omit=dev`: 0 alertas; todas as dependências: 11 moderados, nenhum alto ou crítico;
+- os quatro portões do Deno verdes com cache vazio (`deno test -P`, 70 testes);
+- `git fetch --prune`: só a `main`. |
+| 28/11/2026 | **STEP 1.9 — código concluído** (branch `chore/step-1.9-provisionar-usuario`, PR). Falta o primeiro run verde do job `integracao`, que depende do 📋 da §2 do plano (token do dev com Edge Functions e o secret `SENHA_SEED_DEV`).
+
+**Versões:** as do STEP 1.8, conferidas no npm antes de começar (nenhuma nova). O Supabase CLI fica na 3.0.0 do lockfile (saiu a 3.4.0, não adotada).
+
+**Decisão do Danilo (27/11/2026):** o profile e o evento `usuario.criado` numa transação só, por uma RPC (opção recomendada). Se o evento falhasse depois do profile, o `master_admin` não sairia do Auth (STEP 1.3) e o usuário ficaria sem rastro.
+
+**Entregue:**
+- migration `20261128000208_f01_cria_rpc_registrar_usuario_provisionado`: `public.registrar_usuario_provisionado()`, `security invoker`, `search_path` vazio, `execute` só da `service_role`. Recusa `super_admin` e ator nulo; nenhum argumento é de senha. Teste pgTAP com 21 asserções; `modelo-dados.md` (§4, §5.2, §11) e tipos do frontend no mesmo commit;
+- `functions/provisionar-usuario/`: `index.ts` (só o `Deno.serve`), `provisionar.ts` (o handler), `cascata.ts` (as regras, módulo puro), `entrada.ts` (o schema zod) e o `deno.json` da função;
+- `config.toml`: `[functions.provisionar-usuario]` com `verify_jwt = true` e o `import_map`;
+- `functions/_integracao/`: a suíte contra o dev e o apoio dela; no `deno.json` da pasta, a task `integracao` e o conjunto de permissões `integracao`;
+- pipeline: o job `integracao` e, no `edge-functions`, a conferência do `deno.json` de cada função; README com o comando;
+- `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` do dev no environment `development` (públicas, cadastradas pelo Claude).
+
+**Verificado:**
+- pgTAP no dev pelo `test db`: 9 arquivos, 274 asserções, PASS (no CI do PR; daqui, 272, antes das duas asserções `lives_ok` que a mutação pediu); guardião verde. Advisors do dev: segurança só com o `auth_leaked_password_protection` já conhecido (decisão no 1.10); performance só com o `multiple_permissive_policies` aceito no 1.2;
+- mutação: RPC com 22 mutantes, todos pegos; função com 50: 46 pegos, 2 equivalentes (trocam um valor que, naquele ponto, já é o mesmo) e 2 que o TypeScript barra;
+- Deno: os quatro portões verdes, 111 testes (70 + 41);
+- integração contra o dev, daqui: 12 etapas verdes em 40 s. O seed reaplicado depois gravou zero linhas (a suíte não mexe nos usuários do seed);
+- logs da função no dev: só boot, shutdown e a linha com o código da compensação; nenhuma senha, nenhum e-mail;
+- deploy no dev pelo CLI: envia só o que o `index.ts` alcança; a função publicada tem `verify_jwt` e o `deno.json` dela como import map;
+- passos de shell novos testados à parte: 10 casos do destino e 4 do `deno.json` das funções; `actionlint` 1.7.12 e `shellcheck` 0.11.0 sem achado;
+- `config diff` do dev sem diferença.
+
+**Desvios do plano:**
+1. o profile e o evento pela RPC transacional (decisão do Danilo), e não em duas chamadas: o `registrarEvento` do 1.8 não é usado nesta função;
+2. o deploy no dev pelo CLI (`functions deploy --use-api`), e não pelo MCP, para provar o empacotamento pelo `deno.json` da função;
+3. o `master_admin` que informa a empresa, mesmo a própria, recebe 403 `empresa_nao_permitida` (o plano dizia só "recusado");
+4. a integração simula a troca de senha do `master_admin` novo pela marca `senha_provisoria` no banco: a `trocar-senha` é do 1.10.
+
+**Achados:**
+- com a chave publishable no `apikey`, a plataforma deixa passar a chamada sem JWT de usuário, e quem recusa é a função (401 `sessao_invalida`). Sem `apikey`, ou com JWT forjado, recusa a plataforma, com `access-control-allow-origin: *` e o corpo `{ code, message }`. Os dois chegam legíveis ao navegador (pendência do STEP 0.11), e a Fase 2 trata os dois formatos;
+- o `deleteUser` do supabase-js 2.119.2 busca o usuário antes de apagar (supabase-js, issue 2751): a compensação faz um `GET` e um `DELETE`;
+- o `functions deploy --use-api` do CLI 3.0.0 não envia `deno.lock` nenhum (provado com o lock na pasta e na função);
+- no zod 4, a mensagem do `z.email({ error })` vale também para o `.max()` sem mensagem própria.
+- o Supabase CLI muda o formato do `--output-format json` quando detecta um agente (no Claude Code, as linhas vêm em `rows`; no CI, a lista direto). O primeiro run do `integracao` com os secrets falhou por isso, no `jq` do seed; o passo do seed e o `sql()` da integração passaram a fixar `--agent no`.
+
+**Code-review (medium), 8 achados:**
+- **Corrigidos (2):** o `deno.json` de cada função conferido também por um `deno check` com a configuração dela (antes, só as versões); o erro do `db query` da integração com o fim do stderr do CLI.
+- **Conferido sem mudança (1):** o `jq` do passo do seed; o `db query` devolve o resumo do fim do seed.
+- **Riscos registrados na §8 do plano (4):** a fila do grupo de concorrência do `integracao`; o usuário órfão no Auth se a compensação falhar; o deploy sem lockfile; a corrida no provisionamento do `master_admin`.
+- **Já coberto (1):** o deploy no dev pelo CI, contra o texto atual do `supabase/CLAUDE.md §8`, é a pendência #24.
+
+**Para o Danilo:**
+- o 📋 da §2 (token e secret), passo a passo na conversa;
+- `integracao` nos checks obrigatórios do ruleset `main`, com a aprovação dele;
+- autorizar a aplicação das pendências #24 (com o complemento) e #27 no `supabase/CLAUDE.md`.
+
+**Proposta para a Fase 4:** uma rotina do Admin SaaS que liste os usuários do Auth sem profile (o órfão da compensação que falha).
+
+Fora do commit: `.claude/`. Próximo: o run verde do `integracao`, depois a aprovação. |
 
 ---
 

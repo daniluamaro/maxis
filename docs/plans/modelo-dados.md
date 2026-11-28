@@ -117,6 +117,7 @@ As de RLS (`tenant_atual`, `papel_atual`, `is_super_admin`, `tem_permissao`): `s
 | RPC | Retorno | Regra | Fase |
 |---|---|---|---|
 | `obter_meu_acesso()` | `acesso_usuario` (um objeto) | Só o próprio usuário (`auth.uid()`), sem argumento. `security invoker`: só chama `private.acesso_atual()`, a parte `security definer`, justificada porque o usuário inativo ou de empresa bloqueada precisa saber **que** está bloqueado sem enxergar mais nada. Nenhuma função de `public` é `security definer` (STEP 1.5: o advisor acusa, regra 0029, e o guardião barra, regra 5). `execute` só para `authenticated`; nem `anon` nem `service_role`. O gate fecha por padrão: libera só com `ativo` verdadeiro e, fora o `super_admin`, `empresa_ativa` verdadeira — campo nulo (o JWT sem profile) nunca libera. `tem_perfil` entra na Fase 5. | 1 |
+| `registrar_usuario_provisionado(usuario_id, tenant_id, papel, nome, email, ator_profile_id, telefone)` | nada (`void`) | **Só da Edge Function** `provisionar-usuario`, logo depois de criar o usuário no Auth: grava o profile (ativo, `senha_provisoria = true`, `created_by` = ator) e o evento `usuario.criado` (tenant, ator, alvo `profiles`/id, `detalhes` só com o papel) **na mesma transação** — se um falha, nenhum fica, e a função apaga o usuário do Auth (compensação). Todo usuário provisionado tem rastro (decisão do Danilo no STEP 1.9). Recusa `super_admin` (`42501`) e ator nulo (`22004`); os conflitos saem com o nome da constraint (`profiles_email_key`, `profiles_tenant_id_master_admin_key`), que a função traduz em 409. Nenhum argumento é de senha: ela vai só ao Auth. `security invoker`, `search_path` vazio: roda com os grants da `service_role`. `execute` só para `service_role`; nem `anon` nem `authenticated`. | 1 |
 | `listar_empresas_admin(busca, situacao, limite, deslocamento)` | linhas com dados da empresa, `master_admin` (id, nome, e-mail, `senha_provisoria`), total de usuários ativos e total de registros | Só `super_admin` (checagem como primeira instrução; demais chamadores → erro de permissão). `security definer` justificado: contar usuários por empresa sem dar ao `super_admin` leitura sobre os profiles de tenant — como em `obter_meu_acesso()`, a parte `security definer` fica no `private`, atrás da RPC `security invoker`. Busca por razão social, nome fantasia ou dígitos do CNPJ; filtro ativas/bloqueadas; paginação. | 4 |
 | `obter_meu_acesso()` — campo `tem_perfil` | `boolean` | `master_admin`/`super_admin` → verdadeiro; `admin`/`user` → tem `perfil_acesso_id`. Atributo novo de `acesso_usuario`, lido em `private.acesso_atual()`. | 5 |
 | `listar_minhas_permissoes()` | `text[]` (chaves) | Permissões ativas do próprio usuário; `master_admin` → todas as ativas do catálogo. `security invoker`. Fonte do `usePermissao` no frontend. | 5 |
@@ -155,7 +156,7 @@ O `id` desta tabela **é** o `tenant_id` de todo o sistema. Não tem coluna `ten
 
 ### 5.2 `profiles` — usuários · `✅ Definida` · Fases 1, 5, 6
 
-Um registro por usuário de `auth.users`, criado pela Edge Function de provisionamento logo após `auth.admin.createUser` (`email_confirm: true`). Colunas que referenciam tabelas de fases posteriores nascem na fase da tabela referenciada.
+Um registro por usuário de `auth.users`, criado pela Edge Function de provisionamento logo após `auth.admin.createUser` (`email_confirm: true`), junto com o evento `usuario.criado`, pela RPC `registrar_usuario_provisionado()` (§4). Colunas que referenciam tabelas de fases posteriores nascem na fase da tabela referenciada.
 
 | Coluna | Tipo | Regras | Fase |
 |---|---|---|---|
@@ -423,7 +424,7 @@ Toda leitura de tenant passa por `private.tenant_atual()` → usuário inativo o
 
 | Fase | Objetos |
 |---|---|
-| 1 | schema `private`; `papel_usuario`; `private.cnpj_valido`, `private.set_updated_at`, `private.tenant_atual`, `private.papel_atual`, `private.is_super_admin`; `empresas`; `profiles` (colunas da Fase 1) + trigger de imutabilidade do `master_admin`; `eventos_auditoria`; `acesso_usuario`, `private.acesso_atual` e a RPC `obter_meu_acesso()`; RLS + testes de isolamento |
+| 1 | schema `private`; `papel_usuario`; `private.cnpj_valido`, `private.set_updated_at`, `private.tenant_atual`, `private.papel_atual`, `private.is_super_admin`; `empresas`; `profiles` (colunas da Fase 1) + trigger de imutabilidade do `master_admin`; `eventos_auditoria`; `acesso_usuario`, `private.acesso_atual` e a RPC `obter_meu_acesso()`; a RPC `registrar_usuario_provisionado()` (da Edge Function `provisionar-usuario`); RLS + testes de isolamento |
 | 2–3 | sem mudanças de schema |
 | 4 | RPC `listar_empresas_admin()` (sem tabelas novas) |
 | 5 | `acao_permissao`; `modulos`, `funcionalidades`, `abas`, `permissoes` (migration gerada do menu-config); `perfis_acesso`, `perfil_permissoes`; `profiles.perfil_acesso_id`; `private.tem_permissao`, `private.registrar_auditoria`; RPCs `listar_minhas_permissoes`, `listar_perfis_acesso`, `salvar_perfil_acesso`; `obter_meu_acesso` + `tem_perfil` |
