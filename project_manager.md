@@ -1368,7 +1368,7 @@ Fora do commit: `.claude/`. Próximo: STEP 1.9, aguardando aprovação. |
 - `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` do dev no environment `development` (públicas, cadastradas pelo Claude).
 
 **Verificado:**
-- pgTAP no dev pelo `test db`: 9 arquivos, 272 asserções, PASS; guardião verde. Advisors do dev: segurança só com o `auth_leaked_password_protection` já conhecido (decisão no 1.10); performance só com o `multiple_permissive_policies` aceito no 1.2;
+- pgTAP no dev pelo `test db`: 9 arquivos, 274 asserções, PASS (no CI do PR; daqui, 272, antes das duas asserções `lives_ok` que a mutação pediu); guardião verde. Advisors do dev: segurança só com o `auth_leaked_password_protection` já conhecido (decisão no 1.10); performance só com o `multiple_permissive_policies` aceito no 1.2;
 - mutação: RPC com 22 mutantes, todos pegos; função com 50: 46 pegos, 2 equivalentes (trocam um valor que, naquele ponto, já é o mesmo) e 2 que o TypeScript barra;
 - Deno: os quatro portões verdes, 111 testes (70 + 41);
 - integração contra o dev, daqui: 12 etapas verdes em 40 s. O seed reaplicado depois gravou zero linhas (a suíte não mexe nos usuários do seed);
